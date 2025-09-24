@@ -72,23 +72,7 @@ export default function ContactPage() {
         </div>
       </section>
 
-      {/* Contact Info Section */}
-      <section className="bg-gradient-to-r from-primary/10 to-accent/10 py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-          >
-            <h1 className="font-display text-4xl md:text-5xl font-bold text-primary mb-4">
-              Informazioni di Contatto
-            </h1>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Siamo sempre felici di sentirti! Contattaci per prenotazioni, domande sui nostri prodotti o semplicemente per condividere la tua esperienza con noi
-            </p>
-          </motion.div>
-        </div>
-      </section>
+
 
       {/* Main Content */}
       <section className="py-16">
