@@ -74,25 +74,6 @@ export default function StoryPage() {
     <main className="min-h-screen bg-background">
       <Navigation />
       
-      {/* Hero Section */}
-      <section className="pt-24 pb-16 bg-gradient-to-b from-primary/5 to-background">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            className="text-center"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-          >
-            <h1 className="font-display text-4xl md:text-6xl font-bold text-primary mb-6">
-              La Nostra Storia
-            </h1>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              Dal 1966, Bar Europa porta avanti la tradizione italiana nel cuore di Milano. 
-              Scopri la nostra storia fatta di passione, famiglia e amore per l'arte dolciaria.
-            </p>
-          </motion.div>
-        </div>
-      </section>
 
       {/* Story Info Section */}
       <section className="bg-gradient-to-r from-primary/10 to-accent/10 py-16">
