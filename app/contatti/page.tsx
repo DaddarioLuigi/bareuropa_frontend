@@ -49,7 +49,7 @@ export default function ContactPage() {
   }
 
   return (
-    <main className="min-h-screen bg-background">
+    <main className="min-h-screen bg-background pt-16">
       <Navigation />
       
       
