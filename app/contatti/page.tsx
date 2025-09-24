@@ -52,27 +52,23 @@ export default function ContactPage() {
     <main className="min-h-screen bg-background">
       <Navigation />
       
-      {/* Hero Section */}
-      <section className="pt-24 pb-16 bg-gradient-to-b from-primary/5 to-background">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Contact Info Section */}
+      <section className="bg-gradient-to-r from-primary/10 to-accent/10 py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <motion.div
-            className="text-center"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
           >
-            <h1 className="font-display text-4xl md:text-6xl font-bold text-primary mb-6">
+            <h1 className="font-display text-4xl md:text-5xl font-bold text-primary mb-4">
               Contattaci
             </h1>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              Siamo qui per rispondere alle tue domande e aiutarti a scoprire la nostra tradizione italiana.
-              Contattaci per prenotazioni, informazioni sui prodotti o semplicemente per dirci ciao!
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              Siamo sempre felici di sentirti! Contattaci per prenotazioni, domande sui nostri prodotti o semplicemente per condividere la tua esperienza con noi
             </p>
           </motion.div>
         </div>
       </section>
-
-
 
       {/* Main Content */}
       <section className="py-16">
