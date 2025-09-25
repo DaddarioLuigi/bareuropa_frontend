@@ -84,7 +84,7 @@ export function ContactSection() {
               <CardContent className="p-0">
                 <div className="aspect-[4/3]">
                   <img
-                    src="/italian-caf--storefront-with-outdoor-seating-and-w.jpg"
+                    src="/home_hero.jpeg"
                     alt="Bar Europa Esterno"
                     className="w-full h-full object-cover"
                   />

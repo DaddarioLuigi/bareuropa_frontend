@@ -158,7 +158,7 @@ export default function StoryPage() {
               transition={{ duration: 0.6, delay: 0.4 }}
             >
               <div className="aspect-[4/5] rounded-lg overflow-hidden">
-                <img src="/vintage-italian-pastry-shop-with-traditional-displ.jpg" alt="Storia di Bar Europa" className="w-full h-full object-cover" />
+                <img src="/home_hero.jpeg" alt="Storia di Bar Europa" className="w-full h-full object-cover" />
               </div>
 
               {/* Decorative element */}
