@@ -15,28 +15,28 @@ export default function StoryPage() {
       title: "La Fondazione",
       description: "Francesco e Cataldo Farucci aprono Bar Europa nel cuore di Trani, lungo Corso Vittorio Emanuele, con la passione per il caffè italiano e la pasticceria tradizionale.",
       icon: Coffee,
-      image: "/vintage-italian-pastry-shop-with-traditional-displ.jpg"
+      image: "/storia_1.jpeg"
     },
     {
       year: "1975",
       title: "L'Espansione",
       description: "Il bar diventa un punto di riferimento per i tranesi. Si amplia l'offerta di pasticceria fresca e si consolida la reputazione per cornetti e caffè di qualità.",
       icon: Users,
-      image: "/elegant-italian-caf--interior-with-warm-lighting--.jpg"
+      image: "/storia_2.jpeg"
     },
     {
       year: "1985",
       title: "La Seconda Generazione",
       description: "La famiglia Farucci porta innovazioni nella pasticceria introducendo nuove ricette mantenendo la tradizione familiare e l'attenzione alla qualità.",
       icon: Heart,
-      image: "/traditional-italian-pastries-display-with-cannoli-.jpg"
+      image: "/storia_3.jpeg"
     },
     {
       year: "2000",
       title: "Il Rinnovamento",
       description: "Bar Europa rinnova i suoi interni con uno stile luminoso e archi in pietra, mantenendo l'atmosfera accogliente che contraddistingue il locale.",
       icon: Award,
-      image: "/italian-espresso-coffee-beans-and-vintage-coffee-m.jpg"
+      image: "/storia_4.jpeg"
     },
     {
       year: "2015",

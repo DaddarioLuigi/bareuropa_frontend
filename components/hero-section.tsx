@@ -11,7 +11,7 @@ export function HeroSection() {
       {/* Background Image */}
       <div className="absolute inset-0 z-0">
         <motion.img
-          src="/vintage-italian-pastry-shop-with-traditional-displ.jpg"
+          src="/home_hero.jpeg"
           alt="Bar Europa Interior"
           className="w-full h-full object-cover"
           initial={{ scale: 1.1 }}
