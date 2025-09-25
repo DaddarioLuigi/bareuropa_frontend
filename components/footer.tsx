@@ -1,3 +1,5 @@
+import { EuropaLogo } from "@/components/europa-logo"
+
 export function Footer() {
   return (
     <footer className="bg-secondary py-12">
@@ -5,7 +7,9 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="md:col-span-2">
-            <h3 className="font-display text-2xl font-bold text-primary mb-2">Bar Europa</h3>
+            <div className="mb-4">
+              <EuropaLogo size="lg" />
+            </div>
             <p className="text-sm text-muted-foreground mb-4">Tradizione italiana dal 1966</p>
             <p className="text-muted-foreground leading-relaxed">
               Pasticceria, caffetteria e gelateria artigianale nel cuore di Milano. Tre generazioni di passione per

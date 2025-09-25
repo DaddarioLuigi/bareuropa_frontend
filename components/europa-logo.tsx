@@ -1,4 +1,5 @@
 import React from "react"
+import Image from "next/image"
 
 interface EuropaLogoProps {
   className?: string
@@ -7,28 +8,21 @@ interface EuropaLogoProps {
 
 export function EuropaLogo({ className = "", size = "md" }: EuropaLogoProps) {
   const sizeClasses = {
-    sm: "h-6",
-    md: "h-10", 
-    lg: "h-14"
-  }
-
-  const textSizes = {
-    sm: { main: "text-sm", sub: "text-xs" },
-    md: { main: "text-lg", sub: "text-xs" },
-    lg: { main: "text-xl", sub: "text-sm" }
+    sm: "h-8 w-auto",
+    md: "h-12 w-auto", 
+    lg: "h-16 w-auto"
   }
 
   return (
-    <div className={`flex items-center space-x-2 ${className}`}>
-      {/* Simplified logo - just text for better mobile readability */}
-      <div className="flex flex-col">
-        <div className={`font-display font-bold text-primary ${textSizes[size].main} tracking-wide leading-tight`}>
-          Bar Europa
-        </div>
-        <div className={`text-muted-foreground ${textSizes[size].sub} -mt-0.5`}>
-          dal 1966
-        </div>
-      </div>
+    <div className={`flex items-center ${className}`}>
+      <Image
+        src="/logo_bareuropa.png"
+        alt="Bar Europa Logo"
+        width={size === "sm" ? 32 : size === "md" ? 48 : 64}
+        height={size === "sm" ? 32 : size === "md" ? 48 : 64}
+        className={`${sizeClasses[size]} object-contain`}
+        priority
+      />
     </div>
   )
 }
