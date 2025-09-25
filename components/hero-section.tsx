@@ -11,7 +11,7 @@ export function HeroSection() {
       {/* Background Image */}
       <div className="absolute inset-0 z-0">
         <motion.img
-          src="/elegant-italian-caf--interior-with-warm-lighting--.jpg"
+          src="/vintage-italian-pastry-shop-with-traditional-displ.jpg"
           alt="Bar Europa Interior"
           className="w-full h-full object-cover"
           initial={{ scale: 1.1 }}
@@ -25,7 +25,7 @@ export function HeroSection() {
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center py-8 sm:py-12 pb-20 sm:pb-8">
         <div className="max-w-4xl mx-auto">
           <motion.h1
-            className="font-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-primary-foreground mb-4 sm:mb-6 text-balance leading-tight px-2"
+            className="font-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-primary-foreground mb-4 sm:mb-6 text-balance leading-tight px-2 hidden sm:block"
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
