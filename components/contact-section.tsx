@@ -4,21 +4,21 @@ import { MapPin, Phone, Clock, Mail } from "lucide-react"
 
 export function ContactSection() {
   return (
-    <section id="contatti" className="py-24 bg-primary text-primary-foreground">
+    <section id="contatti" className="py-12 sm:py-24 bg-primary text-primary-foreground">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-16 items-center">
           {/* Contact Info */}
           <div>
-            <h2 className="font-display text-4xl md:text-5xl font-bold mb-6 text-balance">
+            <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6 text-balance">
               Vieni a trovarci
-              <span className="block text-accent text-3xl md:text-4xl mt-2">nel cuore della città</span>
+              <span className="block text-accent text-2xl sm:text-3xl md:text-4xl mt-1 sm:mt-2">nel cuore della città</span>
             </h2>
 
-            <p className="text-xl text-primary-foreground/90 mb-8 leading-relaxed">
+            <p className="text-lg sm:text-xl text-primary-foreground/90 mb-6 sm:mb-8 leading-relaxed">
               Ti aspettiamo nel cuore di Trani, lungo Corso Vittorio Emanuele, per farti assaporare l'autentica tradizione italiana in un ambiente accogliente e familiare.
             </p>
 
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               <div className="flex items-start space-x-4">
                 <div className="bg-accent/20 p-3 rounded-full">
                   <MapPin className="h-6 w-6 text-accent" />

@@ -2,17 +2,17 @@ import { Card, CardContent } from "@/components/ui/card"
 
 export function StorySection() {
   return (
-    <section id="storia" className="py-24 bg-secondary">
+    <section id="storia" className="py-12 sm:py-24 bg-secondary">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-16 items-center">
           {/* Text Content */}
           <div>
-            <h2 className="font-display text-4xl md:text-5xl font-bold text-primary mb-6 text-balance">
+            <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold text-primary mb-4 sm:mb-6 text-balance">
               La nostra storia
-              <span className="block text-accent text-3xl md:text-4xl mt-2">inizia nel 1966</span>
+              <span className="block text-accent text-2xl sm:text-3xl md:text-4xl mt-1 sm:mt-2">inizia nel 1966</span>
             </h2>
 
-            <div className="space-y-6 text-lg leading-relaxed text-muted-foreground">
+            <div className="space-y-4 sm:space-y-6 text-base sm:text-lg leading-relaxed text-muted-foreground">
               <p>
                 Nel cuore di Trani, lungo Corso Vittorio Emanuele, Bar Europa nasce nel 1966 dalla passione della famiglia Farucci per l'arte dolciaria e la tradizione del caffè. Da oltre cinquant'anni, portiamo avanti l'eredità dei nostri fondatori Francesco e Cataldo con la stessa dedizione e amore.
               </p>

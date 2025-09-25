@@ -28,21 +28,21 @@ const products = [
 
 export function ProductsSection() {
   return (
-    <section id="prodotti" className="py-24 bg-background">
+    <section id="prodotti" className="py-12 sm:py-24 bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="text-center mb-16">
-          <h2 className="font-display text-4xl md:text-5xl font-bold text-primary mb-6 text-balance">
+        <div className="text-center mb-12 sm:mb-16">
+          <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold text-primary mb-4 sm:mb-6 text-balance">
             Le nostre
             <span className="block text-accent">specialità</span>
           </h2>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto text-pretty leading-relaxed">
+          <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto text-pretty leading-relaxed px-4 sm:px-2">
             Scopri l'autentico sapore italiano attraverso le nostre specialità: cornetti freschi, mignon, torte artigianali e caffè pregiato nel cuore di Trani.
           </p>
         </div>
 
         {/* Products Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 mb-8 sm:mb-12">
           {products.map((product, index) => (
             <Card key={index} className="group overflow-hidden hover:shadow-xl transition-all duration-300">
               <div className="relative aspect-[4/3] overflow-hidden">

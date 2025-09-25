@@ -28,7 +28,8 @@ export function Navigation() {
             transition={{ type: "spring", stiffness: 400, damping: 17 }}
           >
             <Link href="/">
-              <EuropaLogo size="md" />
+              <EuropaLogo size="md" className="md:hidden" />
+              <EuropaLogo size="lg" className="hidden md:block" />
             </Link>
           </motion.div>
 

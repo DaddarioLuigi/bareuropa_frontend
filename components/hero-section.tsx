@@ -7,7 +7,7 @@ import { motion } from "framer-motion"
 
 export function HeroSection() {
   return (
-    <section id="home" className="relative min-h-screen flex items-center justify-center overflow-hidden">
+    <section id="home" className="relative min-h-[100vh] sm:min-h-screen flex items-center justify-center overflow-hidden">
       {/* Background Image */}
       <div className="absolute inset-0 z-0">
         <motion.img
@@ -22,17 +22,17 @@ export function HeroSection() {
       </div>
 
       {/* Content */}
-      <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-6 lg:px-8 text-center py-12 pb-24 sm:pb-8">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center py-8 sm:py-12 pb-20 sm:pb-8">
         <div className="max-w-4xl mx-auto">
           <motion.h1
-            className="font-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold text-primary-foreground mb-6 sm:mb-6 text-balance leading-tight"
+            className="font-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-primary-foreground mb-4 sm:mb-6 text-balance leading-tight px-2"
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
           >
             Tradizione italiana
             <motion.span
-              className="block text-accent mt-2 sm:mt-2"
+              className="block text-accent mt-1 sm:mt-2"
               initial={{ opacity: 0, x: -30 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.8, delay: 0.6 }}
@@ -42,7 +42,7 @@ export function HeroSection() {
           </motion.h1>
 
           <motion.p
-            className="text-lg sm:text-xl md:text-2xl text-primary-foreground/90 mb-8 sm:mb-8 max-w-2xl mx-auto text-pretty leading-relaxed px-4 sm:px-2"
+            className="text-base sm:text-lg md:text-xl text-primary-foreground/90 mb-6 sm:mb-8 max-w-2xl mx-auto text-pretty leading-relaxed px-4 sm:px-2"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.8 }}
@@ -51,12 +51,12 @@ export function HeroSection() {
           </motion.p>
 
           <motion.div
-            className="flex flex-col sm:flex-row gap-4 sm:gap-4 justify-center items-center mb-10 sm:mb-12 px-6 sm:px-4"
+            className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center mb-8 sm:mb-12 px-4 sm:px-4"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 1.0 }}
           >
-            <Link href="/shop">
+            <Link href="/shop" className="w-full sm:w-auto">
               <motion.div
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -64,10 +64,10 @@ export function HeroSection() {
               >
                 <Button
                   size="lg"
-                  className="bg-accent hover:bg-accent/90 text-accent-foreground font-semibold px-8 sm:px-8 py-4 sm:py-4 text-lg sm:text-lg w-full sm:w-auto min-h-[48px]"
+                  className="bg-accent hover:bg-accent/90 text-accent-foreground font-semibold px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg w-full sm:w-auto min-h-[44px] sm:min-h-[48px]"
                 >
                   Scopri i Nostri Prodotti
-                  <ArrowRight className="ml-2 h-5 w-5 sm:h-5 sm:w-5" />
+                  <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
                 </Button>
               </motion.div>
             </Link>
@@ -75,11 +75,12 @@ export function HeroSection() {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               transition={{ type: "spring", stiffness: 400, damping: 17 }}
+              className="w-full sm:w-auto"
             >
               <Button
                 size="lg"
                 variant="outline"
-                className="border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary font-semibold px-8 sm:px-8 py-4 sm:py-4 text-lg sm:text-lg bg-transparent w-full sm:w-auto min-h-[48px]"
+                className="border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary font-semibold px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg bg-transparent w-full sm:w-auto min-h-[44px] sm:min-h-[48px]"
               >
                 Prenota un Tavolo
               </Button>
@@ -87,7 +88,7 @@ export function HeroSection() {
           </motion.div>
 
           <motion.div
-            className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 sm:gap-8 max-w-3xl mx-auto px-6 sm:px-4"
+            className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8 max-w-3xl mx-auto px-4 sm:px-4"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.8, delay: 1.2 }}
@@ -121,14 +122,14 @@ export function HeroSection() {
                 whileHover={{ y: -5 }}
               >
                 <motion.div
-                  className="bg-accent/20 p-3 sm:p-4 rounded-full mb-3 sm:mb-4"
+                  className="bg-accent/20 p-3 sm:p-4 rounded-full mb-2 sm:mb-4"
                   whileHover={{ scale: 1.1, rotate: 5 }}
                   transition={{ type: "spring", stiffness: 400, damping: 17 }}
                 >
-                  <item.icon className="h-6 w-6 sm:h-8 sm:w-8 text-accent" />
+                  <item.icon className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-accent" />
                 </motion.div>
-                <h3 className="font-display text-lg sm:text-xl font-semibold mb-2">{item.title}</h3>
-                <p className="text-primary-foreground/80 text-center text-sm sm:text-base">{item.description}</p>
+                <h3 className="font-display text-base sm:text-lg md:text-xl font-semibold mb-1 sm:mb-2">{item.title}</h3>
+                <p className="text-primary-foreground/80 text-center text-xs sm:text-sm md:text-base leading-relaxed">{item.description}</p>
               </motion.div>
             ))}
           </motion.div>
