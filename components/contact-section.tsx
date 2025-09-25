@@ -15,7 +15,7 @@ export function ContactSection() {
             </h2>
 
             <p className="text-xl text-primary-foreground/90 mb-8 leading-relaxed">
-              Ti aspettiamo per farti assaporare l'autentica tradizione italiana in un ambiente accogliente e familiare.
+              Ti aspettiamo nel cuore di Trani, lungo Corso Vittorio Emanuele, per farti assaporare l'autentica tradizione italiana in un ambiente accogliente e familiare.
             </p>
 
             <div className="space-y-6">
@@ -26,9 +26,9 @@ export function ContactSection() {
                 <div>
                   <h3 className="font-semibold text-lg mb-1">Indirizzo</h3>
                   <p className="text-primary-foreground/80">
-                    Via Roma 123
+                    Corso Vittorio Emanuele II 161
                     <br />
-                    20100 Milano, Italia
+                    76125 Trani, Italia
                   </p>
                 </div>
               </div>
@@ -39,7 +39,7 @@ export function ContactSection() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg mb-1">Telefono</h3>
-                  <p className="text-primary-foreground/80">+39 02 1234 5678</p>
+                  <p className="text-primary-foreground/80">0883 583483</p>
                 </div>
               </div>
 

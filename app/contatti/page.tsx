@@ -70,7 +70,7 @@ export default function ContactPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
             >
-              Tre generazioni di maestri pasticceri che hanno portato avanti l'arte dolciaria italiana con passione e dedizione
+              Storico bar-pasticceria di Trani dal 1966. Contattaci per informazioni sui nostri prodotti e servizi.
             </motion.p>
           </div>
         </section>
@@ -230,9 +230,9 @@ export default function ContactPage() {
                     <div>
                       <h3 className="font-semibold text-lg mb-1">Indirizzo</h3>
                       <p className="text-muted-foreground">
-                        Via Roma 123
+                        Corso Vittorio Emanuele II 161
                         <br />
-                        20100 Milano, Italia
+                        76125 Trani, Italia
                       </p>
                     </div>
                   </div>
@@ -243,7 +243,7 @@ export default function ContactPage() {
                     </div>
                     <div>
                       <h3 className="font-semibold text-lg mb-1">Telefono</h3>
-                      <p className="text-muted-foreground">+39 02 1234 5678</p>
+                      <p className="text-muted-foreground">0883 583483</p>
                     </div>
                   </div>
 
@@ -305,7 +305,7 @@ export default function ContactPage() {
                     <div className="text-center text-muted-foreground">
                       <MapPin className="h-12 w-12 mx-auto mb-2" />
                       <p className="font-medium">Mappa Interattiva</p>
-                      <p className="text-sm">Via Roma 123, Milano</p>
+                      <p className="text-sm">Corso Vittorio Emanuele II 161, Trani</p>
                     </div>
                   </div>
                 </CardContent>

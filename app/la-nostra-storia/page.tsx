@@ -13,35 +13,35 @@ export default function StoryPage() {
     {
       year: "1966",
       title: "La Fondazione",
-      description: "Giuseppe e Maria Europa aprono il primo Bar Europa nel cuore di Milano, con la passione per il caffè italiano e la pasticceria tradizionale.",
+      description: "Francesco e Cataldo Farucci aprono Bar Europa nel cuore di Trani, lungo Corso Vittorio Emanuele, con la passione per il caffè italiano e la pasticceria tradizionale.",
       icon: Coffee,
       image: "/vintage-italian-pastry-shop-with-traditional-displ.jpg"
     },
     {
       year: "1975",
       title: "L'Espansione",
-      description: "Il bar diventa un punto di riferimento per i milanesi. Si aggiunge la produzione artigianale di gelato e l'ampliamento del locale.",
+      description: "Il bar diventa un punto di riferimento per i tranesi. Si amplia l'offerta di pasticceria fresca e si consolida la reputazione per cornetti e caffè di qualità.",
       icon: Users,
       image: "/elegant-italian-caf--interior-with-warm-lighting--.jpg"
     },
     {
       year: "1985",
       title: "La Seconda Generazione",
-      description: "Marco, figlio di Giuseppe, porta innovazioni nella pasticceria introducendo nuove ricette mantenendo la tradizione familiare.",
+      description: "La famiglia Farucci porta innovazioni nella pasticceria introducendo nuove ricette mantenendo la tradizione familiare e l'attenzione alla qualità.",
       icon: Heart,
       image: "/traditional-italian-pastries-display-with-cannoli-.jpg"
     },
     {
       year: "2000",
-      title: "Il Riconoscimento",
-      description: "Bar Europa riceve il premio 'Eccellenza Italiana' per la qualità dei prodotti e il servizio al cliente.",
+      title: "Il Rinnovamento",
+      description: "Bar Europa rinnova i suoi interni con uno stile luminoso e archi in pietra, mantenendo l'atmosfera accogliente che contraddistingue il locale.",
       icon: Award,
       image: "/italian-espresso-coffee-beans-and-vintage-coffee-m.jpg"
     },
     {
       year: "2015",
-      title: "La Terza Generazione",
-      description: "Sofia, nipote dei fondatori, introduce il servizio online mantenendo l'autenticità e la qualità che ci contraddistingue.",
+      title: "La Tradizione Continua",
+      description: "Oggi Bar Europa continua la sua tradizione con Francesco e Cataldo Farucci & C. S.n.c., mantenendo l'autenticità e la qualità che ci contraddistingue da oltre cinquant'anni.",
       icon: Clock,
       image: "/italian-caf--storefront-with-outdoor-seating-and-w.jpg"
     }
@@ -114,20 +114,15 @@ export default function StoryPage() {
 
               <div className="space-y-6 text-lg leading-relaxed text-muted-foreground">
                 <p>
-                  Nel cuore della città, Bar Europa nasce dalla passione di una famiglia italiana per l'arte dolciaria e
-                  la tradizione del caffè. Da oltre cinquant'anni, portiamo avanti l'eredità dei nostri fondatori con la
-                  stessa dedizione e amore.
+                  Nel cuore di Trani, lungo Corso Vittorio Emanuele, Bar Europa nasce nel 1966 dalla passione della famiglia Farucci per l'arte dolciaria e la tradizione del caffè. Da oltre cinquant'anni, portiamo avanti l'eredità dei nostri fondatori Francesco e Cataldo con la stessa dedizione e amore.
                 </p>
 
                 <p>
-                  Ogni mattina, i nostri maestri pasticceri preparano a mano cornetti fragranti, cannoli siciliani e
-                  tiramisù cremosi, seguendo ricette tramandate di generazione in generazione. Il nostro caffè, tostato
-                  artigianalmente, offre l'autentico sapore dell'espresso italiano.
+                  Ogni mattina, i nostri maestri pasticceri preparano a mano cornetti fragranti, mignon delicati e torte artigianali, seguendo ricette tramandate di generazione in generazione. Il nostro caffè, selezionato con cura, offre l'autentico sapore dell'espresso italiano nel nostro locale rinnovato con interni luminosi e archi in pietra.
                 </p>
 
                 <p>
-                  La nostra gelateria propone gusti unici preparati con ingredienti freschi e naturali, dalle classiche
-                  creme ai sorbetti alla frutta di stagione.
+                  Il nostro ricco banco di dolci e il dehors su Corso Vittorio Emanuele sono il cuore pulsante della nostra attività, dove i clienti possono gustare le nostre specialità in un ambiente accogliente e familiare.
                 </p>
               </div>
 

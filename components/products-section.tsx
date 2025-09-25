@@ -5,22 +5,22 @@ import { ArrowRight } from "lucide-react"
 const products = [
   {
     category: "Pasticceria",
-    title: "Dolci Tradizionali",
-    description: "Cannoli siciliani, tiramisù, sfogliatelle e cornetti freschi ogni mattina",
+    title: "Cornetti e Mignon",
+    description: "Cornetti freschi ogni mattina, mignon delicati e specialità della tradizione pugliese",
     image: "/traditional-italian-pastries-display-with-cannoli-.jpg",
     accent: "bg-accent",
   },
   {
     category: "Caffetteria",
-    title: "Espresso Perfetto",
-    description: "Miscele pregiate tostate artigianalmente per un caffè dal sapore autentico",
+    title: "Caffè e Bevande",
+    description: "Caffè pregiato, espresso perfetto e bevande nel cuore di Trani",
     image: "/italian-espresso-coffee-beans-and-vintage-coffee-m.jpg",
     accent: "bg-primary",
   },
   {
-    category: "Gelateria",
-    title: "Gelato Artigianale",
-    description: "Gusti unici preparati con ingredienti freschi e ricette della tradizione",
+    category: "Torte",
+    title: "Torte Artigianali",
+    description: "Torte fresche preparate con ricette tradizionali e ingredienti di qualità",
     image: "/artisanal-italian-gelato-display-with-colorful-fla.jpg",
     accent: "bg-accent",
   },
@@ -37,8 +37,7 @@ export function ProductsSection() {
             <span className="block text-accent">specialità</span>
           </h2>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto text-pretty leading-relaxed">
-            Scopri l'autentico sapore italiano attraverso le nostre tre anime: pasticceria, caffetteria e gelateria
-            artigianale.
+            Scopri l'autentico sapore italiano attraverso le nostre specialità: cornetti freschi, mignon, torte artigianali e caffè pregiato nel cuore di Trani.
           </p>
         </div>
 

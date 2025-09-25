@@ -6,6 +6,7 @@ import { Menu, X, ShoppingBag } from "lucide-react"
 import { useCart } from "@/contexts/cart-context"
 import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
+import { EuropaLogo } from "@/components/europa-logo"
 
 export function Navigation() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -27,8 +28,7 @@ export function Navigation() {
             transition={{ type: "spring", stiffness: 400, damping: 17 }}
           >
             <Link href="/">
-              <h1 className="font-display text-2xl font-bold text-primary">Bar Europa</h1>
-              <p className="text-xs text-muted-foreground -mt-1">dal 1966</p>
+              <EuropaLogo size="md" />
             </Link>
           </motion.div>
 

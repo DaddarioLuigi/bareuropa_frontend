@@ -14,20 +14,15 @@ export function StorySection() {
 
             <div className="space-y-6 text-lg leading-relaxed text-muted-foreground">
               <p>
-                Nel cuore della città, Bar Europa nasce dalla passione di una famiglia italiana per l'arte dolciaria e
-                la tradizione del caffè. Da oltre cinquant'anni, portiamo avanti l'eredità dei nostri fondatori con la
-                stessa dedizione e amore.
+                Nel cuore di Trani, lungo Corso Vittorio Emanuele, Bar Europa nasce nel 1966 dalla passione della famiglia Farucci per l'arte dolciaria e la tradizione del caffè. Da oltre cinquant'anni, portiamo avanti l'eredità dei nostri fondatori Francesco e Cataldo con la stessa dedizione e amore.
               </p>
 
               <p>
-                Ogni mattina, i nostri maestri pasticceri preparano a mano cornetti fragranti, cannoli siciliani e
-                tiramisù cremosi, seguendo ricette tramandate di generazione in generazione. Il nostro caffè, tostato
-                artigianalmente, offre l'autentico sapore dell'espresso italiano.
+                Ogni mattina, i nostri maestri pasticceri preparano a mano cornetti fragranti, mignon delicati e torte artigianali, seguendo ricette tramandate di generazione in generazione. Il nostro caffè, selezionato con cura, offre l'autentico sapore dell'espresso italiano nel nostro locale rinnovato con interni luminosi e archi in pietra.
               </p>
 
               <p>
-                La nostra gelateria propone gusti unici preparati con ingredienti freschi e naturali, dalle classiche
-                creme ai sorbetti alla frutta di stagione.
+                Il nostro ricco banco di dolci e il dehors su Corso Vittorio Emanuele sono il cuore pulsante della nostra attività, dove i clienti possono gustare le nostre specialità in un ambiente accogliente e familiare.
               </p>
             </div>
 
