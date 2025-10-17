@@ -19,7 +19,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 
 export default function CheckoutPage() {
-  const { state, dispatch } = useCart()
+  const { state, medusa } = useCart()
   const router = useRouter()
   const [isProcessing, setIsProcessing] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState("card")
@@ -64,12 +64,75 @@ export default function CheckoutPage() {
     e.preventDefault()
     setIsProcessing(true)
 
-    // Simulate payment processing
-    await new Promise((resolve) => setTimeout(resolve, 2000))
+    try {
+      if (!medusa.cart) {
+        throw new Error('Nessun carrello disponibile')
+      }
 
-    // Clear cart and redirect to success page
-    dispatch({ type: "CLEAR_CART" })
-    router.push("/checkout/success")
+      // Imposta l'indirizzo di spedizione
+      const shippingAddress = {
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        address_1: formData.address,
+        city: formData.city,
+        country_code: "IT", // Assumiamo Italia per questo esempio
+        postal_code: formData.postalCode,
+        province: formData.province,
+        phone: formData.phone,
+        email: formData.email
+      }
+
+      await medusa.setShippingAddress(shippingAddress)
+
+      // Se l'indirizzo di fatturazione è diverso, impostalo
+      if (!sameAsShipping) {
+        const billingAddress = {
+          first_name: formData.billingFirstName,
+          last_name: formData.billingLastName,
+          address_1: formData.billingAddress,
+          city: formData.billingCity,
+          country_code: "IT",
+          postal_code: formData.billingPostalCode,
+          province: formData.billingProvince
+        }
+        await medusa.setBillingAddress(billingAddress)
+      } else {
+        await medusa.setBillingAddress(shippingAddress)
+      }
+
+      // Aggiungi metodo di spedizione (assumiamo un metodo standard)
+      // In un'applicazione reale, dovresti recuperare i metodi disponibili
+      try {
+        await medusa.addShippingMethod("standard_shipping")
+      } catch (error) {
+        console.warn('Impossibile aggiungere metodo di spedizione:', error)
+      }
+
+      // Aggiungi sessione di pagamento
+      const providerId = paymentMethod === "card" ? "stripe" : 
+                       paymentMethod === "paypal" ? "paypal" : "manual"
+      
+      try {
+        await medusa.addPaymentSession(providerId)
+      } catch (error) {
+        console.warn('Impossibile aggiungere sessione di pagamento:', error)
+      }
+
+      // Completa l'ordine
+      const order = await medusa.completeOrder()
+      
+      console.log('Ordine completato:', order)
+      
+      // Redirect alla pagina di successo
+      router.push("/checkout/success")
+      
+    } catch (error) {
+      console.error('Errore nel checkout:', error)
+      // In caso di errore, mostra un messaggio o mantieni l'utente nella pagina
+      alert('Si è verificato un errore durante il checkout. Riprova.')
+    } finally {
+      setIsProcessing(false)
+    }
   }
 
   if (state.items.length === 0) {

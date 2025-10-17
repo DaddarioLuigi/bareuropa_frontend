@@ -10,18 +10,18 @@ import { Minus, Plus, Trash2, ShoppingBag, ArrowRight } from "lucide-react"
 import Link from "next/link"
 
 export default function CartPage() {
-  const { state, dispatch } = useCart()
+  const { state, updateQuantityWithMedusa, removeItemWithMedusa, clearCartWithMedusa } = useCart()
 
-  const updateQuantity = (id: number, quantity: number) => {
-    dispatch({ type: "UPDATE_QUANTITY", payload: { id, quantity } })
+  const updateQuantity = async (id: number, quantity: number) => {
+    await updateQuantityWithMedusa(id, quantity)
   }
 
-  const removeItem = (id: number) => {
-    dispatch({ type: "REMOVE_ITEM", payload: id })
+  const removeItem = async (id: number) => {
+    await removeItemWithMedusa(id)
   }
 
-  const clearCart = () => {
-    dispatch({ type: "CLEAR_CART" })
+  const clearCart = async () => {
+    await clearCartWithMedusa()
   }
 
   if (state.items.length === 0) {
