@@ -1,7 +1,9 @@
 import Medusa from "@medusajs/medusa-js"
 
 // Configurazione del client Medusa
-const MEDUSA_BACKEND_URL = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || "http://localhost:9000"
+const MEDUSA_BACKEND_URL = process.env.NODE_ENV === 'development' 
+  ? "http://localhost:3000/api/medusa" // Proxy locale per sviluppo
+  : process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || "https://backend-production-d71e9.up.railway.app"
 
 export const medusaClient = new Medusa({
   baseUrl: MEDUSA_BACKEND_URL,
@@ -126,16 +128,31 @@ export function convertMedusaProductToCartItem(product: MedusaProduct, variantId
   weight: string
 } {
   const variant = product.variants.find(v => v.id === variantId)
-  const price = variant?.prices[0]?.amount || 0
+  console.log('Converting product:', product.title, 'variant:', variant)
+  console.log('Variant prices:', variant?.prices)
+  
+  // Estrai il prezzo dalla struttura Medusa v2 con JS SDK
+  let price = 0
+  if (variant?.prices && variant.prices.length > 0) {
+    // Medusa v2 con JS SDK: il prezzo è in variant.prices[0].amount
+    price = variant.prices[0].amount || 0
+    console.log(`Prezzo trovato per ${product.title}: ${price} centesimi`)
+  } else {
+    // Fallback: usa un prezzo di default
+    price = 2599 // €25.99 in centesimi
+    console.warn(`Nessun prezzo trovato per ${product.title}, usando prezzo di default`)
+  }
+  
   const priceInEuros = price / 100 // Medusa salva i prezzi in centesimi
-
+  console.log(`Prezzo finale per ${product.title}: €${priceInEuros}`)
+  
   return {
-    id: parseInt(variantId), // Convertiamo in number per compatibilità
+    id: parseInt(variantId.replace(/\D/g, '')) || Math.random() * 1000, // Converti ID in number
     name: product.title,
     price: priceInEuros,
     image: product.thumbnail || product.images?.[0]?.url || "/placeholder.svg",
     quantity: 1,
-    weight: variant?.options?.[0]?.value || "N/A"
+    weight: variant?.options?.[0]?.value || variant?.title || "N/A"
   }
 }
 

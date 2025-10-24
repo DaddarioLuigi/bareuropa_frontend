@@ -25,6 +25,13 @@ export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState("card")
   const [sameAsShipping, setSameAsShipping] = useState(true)
 
+  // Debug: log dei dati Medusa
+  useEffect(() => {
+    console.log('Regioni disponibili:', medusa.regions)
+    console.log('Provider pagamento:', medusa.paymentProviders)
+    console.log('Opzioni spedizione:', medusa.shippingOptions)
+  }, [medusa.regions, medusa.paymentProviders, medusa.shippingOptions])
+
   const [formData, setFormData] = useState({
     // Shipping Information
     firstName: "",

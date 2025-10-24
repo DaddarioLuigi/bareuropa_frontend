@@ -13,8 +13,16 @@ export interface UseMedusaReturn {
   cart: MedusaCart | null
   loadingCart: boolean
   
+  // Regioni e spedizione
+  regions: any[]
+  shippingOptions: any[]
+  paymentProviders: any[]
+  
   // Funzioni
   fetchProducts: () => Promise<void>
+  fetchRegions: () => Promise<void>
+  fetchShippingOptions: (regionId: string) => Promise<void>
+  fetchPaymentProviders: () => Promise<void>
   addToCart: (productId: string, variantId: string, quantity?: number) => Promise<void>
   updateCartItem: (itemId: string, quantity: number) => Promise<void>
   removeFromCart: (itemId: string) => Promise<void>
@@ -33,8 +41,13 @@ export function useMedusa(): UseMedusaReturn {
   const [loadingProducts, setLoadingProducts] = useState(false)
   const [loadingCart, setLoadingCart] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  
+  // Stati per regioni, spedizione e pagamenti
+  const [regions, setRegions] = useState<any[]>([])
+  const [shippingOptions, setShippingOptions] = useState<any[]>([])
+  const [paymentProviders, setPaymentProviders] = useState<any[]>([])
 
-  // Ottieni o crea un carrello
+  // Ottieni o crea un carrello usando chiamate fetch dirette
   const getOrCreateCart = useCallback(async (): Promise<string> => {
     try {
       // Prima prova a recuperare un carrello esistente dal localStorage
@@ -42,9 +55,19 @@ export function useMedusa(): UseMedusaReturn {
       
       if (existingCartId) {
         try {
-          const existingCart = await medusaClient.carts.retrieve(existingCartId)
-          setCart(existingCart.cart)
-          return existingCartId
+          const baseUrl = 'http://localhost:3000/api/medusa'
+          const response = await fetch(`${baseUrl}/store/carts/${existingCartId}`, {
+            headers: {
+              'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
+            }
+          })
+          
+          if (response.ok) {
+            const existingCart = await response.json()
+            setCart(existingCart.cart)
+            console.log('Carrello esistente recuperato:', existingCart.cart)
+            return existingCartId
+          }
         } catch (err) {
           // Se il carrello non esiste più, rimuovilo dal localStorage
           localStorage.removeItem('medusa_cart_id')
@@ -52,50 +75,93 @@ export function useMedusa(): UseMedusaReturn {
       }
 
       // Crea un nuovo carrello
-      const response = await medusaClient.carts.create()
-      const cartId = response.cart.id
-      localStorage.setItem('medusa_cart_id', cartId)
-      setCart(response.cart)
-      return cartId
+      const baseUrl = 'http://localhost:3000/api/medusa'
+      const response = await fetch(`${baseUrl}/store/carts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
+        }
+      })
+      
+      if (response.ok) {
+        const newCart = await response.json()
+        const cartId = newCart.cart.id
+        localStorage.setItem('medusa_cart_id', cartId)
+        setCart(newCart.cart)
+        console.log('Nuovo carrello creato:', newCart.cart)
+        return cartId
+      } else {
+        throw new Error('Errore nella creazione del carrello')
+      }
     } catch (err) {
       console.error('Errore nel recupero/creazione del carrello:', err)
       throw err
     }
   }, [])
 
-  // Carica i prodotti
+  // Carica i prodotti usando chiamate fetch dirette
   const fetchProducts = useCallback(async () => {
     setLoadingProducts(true)
     setError(null)
     
     try {
-      const response = await medusaClient.products.list({
-        limit: 100,
-        expand: ["variants", "variants.prices", "images", "options"]
-      })
+      const baseUrl = 'http://localhost:3000/api/medusa'
+      console.log('Fetching products from:', baseUrl)
       
-      setProducts(response.products)
+      // Carica i prodotti con le relazioni espanse
+      const productsResponse = await fetch(`${baseUrl}/store/products?limit=100&expand=variants,variants.prices,images,options`)
+      
+      if (!productsResponse.ok) {
+        const errorText = await productsResponse.text()
+        console.error('Response error:', errorText)
+        throw new Error(`HTTP error! status: ${productsResponse.status}, message: ${errorText}`)
+      }
+      
+      const productsData = await productsResponse.json()
+      console.log('Prodotti caricati da Medusa:', productsData.products?.length || 0)
+      console.log('Primo prodotto:', productsData.products?.[0])
+      
+      // I prodotti dovrebbero già avere i prezzi nelle varianti
+      setProducts(productsData.products || [])
+      
     } catch (err) {
       console.error('Errore nel caricamento dei prodotti:', err)
-      setError('Errore nel caricamento dei prodotti')
+      setError(`Errore nel caricamento dei prodotti: ${err.message}`)
     } finally {
       setLoadingProducts(false)
     }
   }, [])
 
-  // Aggiungi prodotto al carrello
+  // Aggiungi prodotto al carrello usando chiamate fetch dirette
   const addToCart = useCallback(async (productId: string, variantId: string, quantity: number = 1) => {
     setLoadingCart(true)
     
     try {
       const cartId = await getOrCreateCart()
+      const baseUrl = 'http://localhost:3000/api/medusa'
       
-      const response = await medusaClient.carts.lineItems.create(cartId, {
-        variant_id: variantId,
-        quantity
+      const response = await fetch(`${baseUrl}/store/carts/${cartId}/line-items`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
+        },
+        body: JSON.stringify({
+          variant_id: variantId,
+          quantity: quantity
+        })
       })
       
-      setCart(response.cart)
+      if (response.ok) {
+        const updatedCart = await response.json()
+        setCart(updatedCart.cart)
+        console.log('Prodotto aggiunto al carrello:', updatedCart.cart)
+      } else {
+        const error = await response.text()
+        console.error('Errore nell\'aggiunta al carrello:', error)
+        throw new Error(error)
+      }
     } catch (err) {
       console.error('Errore nell\'aggiunta al carrello:', err)
       setError('Errore nell\'aggiunta al carrello')
@@ -104,18 +170,19 @@ export function useMedusa(): UseMedusaReturn {
     }
   }, [getOrCreateCart])
 
-  // Aggiorna quantità di un item nel carrello
+  // Aggiorna quantità di un item nel carrello usando JS SDK
   const updateCartItem = useCallback(async (itemId: string, quantity: number) => {
     if (!cart) return
     
     setLoadingCart(true)
     
     try {
-      const response = await medusaClient.carts.lineItems.update(cart.id, itemId, {
+      const { cart: updatedCart } = await sdk.store.cart.lineItem.update(cart.id, itemId, {
         quantity
       })
       
-      setCart(response.cart)
+      setCart(updatedCart)
+      console.log('Item aggiornato nel carrello con JS SDK:', updatedCart)
     } catch (err) {
       console.error('Errore nell\'aggiornamento del carrello:', err)
       setError('Errore nell\'aggiornamento del carrello')
@@ -124,15 +191,17 @@ export function useMedusa(): UseMedusaReturn {
     }
   }, [cart])
 
-  // Rimuovi item dal carrello
+  // Rimuovi item dal carrello usando JS SDK
   const removeFromCart = useCallback(async (itemId: string) => {
     if (!cart) return
     
     setLoadingCart(true)
     
     try {
-      const response = await medusaClient.carts.lineItems.delete(cart.id, itemId)
-      setCart(response.cart)
+      const { cart: updatedCart } = await sdk.store.cart.lineItem.delete(cart.id, itemId)
+      
+      setCart(updatedCart)
+      console.log('Item rimosso dal carrello con JS SDK:', updatedCart)
     } catch (err) {
       console.error('Errore nella rimozione dal carrello:', err)
       setError('Errore nella rimozione dal carrello')
@@ -141,7 +210,7 @@ export function useMedusa(): UseMedusaReturn {
     }
   }, [cart])
 
-  // Svuota carrello
+  // Svuota carrello usando JS SDK
   const clearCart = useCallback(async () => {
     if (!cart) return
     
@@ -150,12 +219,13 @@ export function useMedusa(): UseMedusaReturn {
     try {
       // Rimuovi tutti gli item dal carrello
       for (const item of cart.items) {
-        await medusaClient.carts.lineItems.delete(cart.id, item.id)
+        await sdk.store.cart.lineItem.delete(cart.id, item.id)
       }
       
       // Ricarica il carrello
-      const response = await medusaClient.carts.retrieve(cart.id)
-      setCart(response.cart)
+      const { cart: updatedCart } = await sdk.store.cart.retrieve(cart.id)
+      setCart(updatedCart)
+      console.log('Carrello svuotato con JS SDK:', updatedCart)
     } catch (err) {
       console.error('Errore nello svuotamento del carrello:', err)
       setError('Errore nello svuotamento del carrello')
@@ -164,23 +234,24 @@ export function useMedusa(): UseMedusaReturn {
     }
   }, [cart])
 
-  // Crea nuovo carrello
+  // Crea nuovo carrello usando JS SDK
   const createCart = useCallback(async (): Promise<string> => {
     return await getOrCreateCart()
   }, [getOrCreateCart])
 
-  // Imposta indirizzo di spedizione
+  // Imposta indirizzo di spedizione usando JS SDK
   const setShippingAddress = useCallback(async (address: any) => {
     if (!cart) return
     
     setLoadingCart(true)
     
     try {
-      const response = await medusaClient.carts.update(cart.id, {
+      const { cart: updatedCart } = await sdk.store.cart.update(cart.id, {
         shipping_address: address
       })
       
-      setCart(response.cart)
+      setCart(updatedCart)
+      console.log('Indirizzo spedizione impostato con JS SDK:', updatedCart)
     } catch (err) {
       console.error('Errore nell\'impostazione dell\'indirizzo di spedizione:', err)
       setError('Errore nell\'impostazione dell\'indirizzo di spedizione')
@@ -189,18 +260,19 @@ export function useMedusa(): UseMedusaReturn {
     }
   }, [cart])
 
-  // Imposta indirizzo di fatturazione
+  // Imposta indirizzo di fatturazione usando JS SDK
   const setBillingAddress = useCallback(async (address: any) => {
     if (!cart) return
     
     setLoadingCart(true)
     
     try {
-      const response = await medusaClient.carts.update(cart.id, {
+      const { cart: updatedCart } = await sdk.store.cart.update(cart.id, {
         billing_address: address
       })
       
-      setCart(response.cart)
+      setCart(updatedCart)
+      console.log('Indirizzo fatturazione impostato con JS SDK:', updatedCart)
     } catch (err) {
       console.error('Errore nell\'impostazione dell\'indirizzo di fatturazione:', err)
       setError('Errore nell\'impostazione dell\'indirizzo di fatturazione')
@@ -209,18 +281,19 @@ export function useMedusa(): UseMedusaReturn {
     }
   }, [cart])
 
-  // Aggiungi metodo di spedizione
+  // Aggiungi metodo di spedizione usando JS SDK
   const addShippingMethod = useCallback(async (shippingMethodId: string) => {
     if (!cart) return
     
     setLoadingCart(true)
     
     try {
-      const response = await medusaClient.carts.addShippingMethod(cart.id, {
+      const { cart: updatedCart } = await sdk.store.cart.addShippingMethod(cart.id, {
         option_id: shippingMethodId
       })
       
-      setCart(response.cart)
+      setCart(updatedCart)
+      console.log('Metodo spedizione aggiunto con JS SDK:', updatedCart)
     } catch (err) {
       console.error('Errore nell\'aggiunta del metodo di spedizione:', err)
       setError('Errore nell\'aggiunta del metodo di spedizione')
@@ -229,18 +302,19 @@ export function useMedusa(): UseMedusaReturn {
     }
   }, [cart])
 
-  // Aggiungi sessione di pagamento
+  // Aggiungi sessione di pagamento usando JS SDK
   const addPaymentSession = useCallback(async (providerId: string) => {
     if (!cart) return
     
     setLoadingCart(true)
     
     try {
-      const response = await medusaClient.carts.addPaymentSession(cart.id, {
+      const { cart: updatedCart } = await sdk.store.cart.addPaymentSession(cart.id, {
         provider_id: providerId
       })
       
-      setCart(response.cart)
+      setCart(updatedCart)
+      console.log('Sessione pagamento aggiunta con JS SDK:', updatedCart)
     } catch (err) {
       console.error('Errore nell\'aggiunta della sessione di pagamento:', err)
       setError('Errore nell\'aggiunta della sessione di pagamento')
@@ -249,20 +323,21 @@ export function useMedusa(): UseMedusaReturn {
     }
   }, [cart])
 
-  // Completa l'ordine
+  // Completa l'ordine usando JS SDK
   const completeOrder = useCallback(async () => {
     if (!cart) throw new Error('Nessun carrello disponibile')
     
     setLoadingCart(true)
     
     try {
-      const response = await medusaClient.carts.complete(cart.id)
+      const { order } = await sdk.store.cart.complete(cart.id)
+      console.log('Ordine completato con JS SDK:', order)
       
       // Rimuovi il carrello dal localStorage dopo il completamento
       localStorage.removeItem('medusa_cart_id')
       setCart(null)
       
-      return response.order
+      return order
     } catch (err) {
       console.error('Errore nel completamento dell\'ordine:', err)
       setError('Errore nel completamento dell\'ordine')
@@ -272,10 +347,57 @@ export function useMedusa(): UseMedusaReturn {
     }
   }, [cart])
 
+  // Carica regioni usando chiamate fetch dirette
+  const fetchRegions = useCallback(async () => {
+    try {
+      const baseUrl = 'http://localhost:3000/api/medusa'
+      const response = await fetch(`${baseUrl}/store/regions`)
+      if (response.ok) {
+        const data = await response.json()
+        setRegions(data.regions || [])
+        console.log('Regioni caricate:', data.regions?.length || 0)
+      }
+    } catch (error) {
+      console.error('Errore nel caricamento regioni:', error)
+    }
+  }, [])
+
+  // Carica opzioni di spedizione usando chiamate fetch dirette
+  const fetchShippingOptions = useCallback(async (regionId: string) => {
+    try {
+      const baseUrl = 'http://localhost:3000/api/medusa'
+      const response = await fetch(`${baseUrl}/store/shipping-options?region_id=${regionId}`)
+      if (response.ok) {
+        const data = await response.json()
+        setShippingOptions(data.shipping_options || [])
+        console.log('Opzioni spedizione caricate:', data.shipping_options?.length || 0)
+      }
+    } catch (error) {
+      console.error('Errore nel caricamento opzioni spedizione:', error)
+    }
+  }, [])
+
+  // Carica provider di pagamento usando chiamate fetch dirette
+  const fetchPaymentProviders = useCallback(async () => {
+    try {
+      const baseUrl = 'http://localhost:3000/api/medusa'
+      const response = await fetch(`${baseUrl}/store/payment-providers`)
+      if (response.ok) {
+        const data = await response.json()
+        setPaymentProviders(data.payment_providers || [])
+        console.log('Provider pagamento caricati:', data.payment_providers?.length || 0)
+      }
+    } catch (error) {
+      console.error('Errore nel caricamento provider pagamento:', error)
+    }
+  }, [])
+
   // Carica il carrello esistente all'avvio
   useEffect(() => {
     getOrCreateCart().catch(console.error)
-  }, [getOrCreateCart])
+    fetchRegions().catch(console.error)
+    fetchPaymentProviders().catch(console.error)
+  }, [getOrCreateCart, fetchRegions, fetchPaymentProviders])
 
   return {
     products,
@@ -283,7 +405,13 @@ export function useMedusa(): UseMedusaReturn {
     error,
     cart,
     loadingCart,
+    regions,
+    shippingOptions,
+    paymentProviders,
     fetchProducts,
+    fetchRegions,
+    fetchShippingOptions,
+    fetchPaymentProviders,
     addToCart,
     updateCartItem,
     removeFromCart,

@@ -19,26 +19,66 @@ export default function ShopPage() {
   const medusa = useMedusa()
   const [addingToCart, setAddingToCart] = useState<string | null>(null)
 
-  // Carica i prodotti all'avvio
+  // Test diretto dell'hook
+  const testMedusa = async () => {
+    console.log('Test diretto Medusa...')
+    try {
+      const response = await fetch('http://localhost:3000/api/medusa/store/products?limit=1')
+      const data = await response.json()
+      console.log('Test diretto risultato:', data)
+    } catch (error) {
+      console.error('Test diretto errore:', error)
+    }
+  }
+
+  // Esegui il test all'avvio
   useEffect(() => {
-    medusa.fetchProducts()
+    testMedusa()
   }, [])
 
+  // Debug: log dei prodotti
+  useEffect(() => {
+    console.log('Prodotti Medusa:', medusa.products.length)
+    console.log('Loading:', medusa.loadingProducts)
+    console.log('Error:', medusa.error)
+    if (medusa.products.length > 0) {
+      console.log('Primo prodotto:', medusa.products[0])
+      console.log('Varianti primo prodotto:', medusa.products[0].variants)
+      if (medusa.products[0].variants && medusa.products[0].variants.length > 0) {
+        console.log('Prima variante:', medusa.products[0].variants[0])
+      }
+    }
+  }, [medusa.products, medusa.loadingProducts, medusa.error])
+
+  // Forza il caricamento dei prodotti se non ci sono
+  useEffect(() => {
+    if (medusa.products.length === 0 && !medusa.loadingProducts && !medusa.error) {
+      console.log('Forzando caricamento prodotti...')
+      medusa.fetchProducts()
+    }
+  }, [medusa.products.length, medusa.loadingProducts, medusa.error, medusa.fetchProducts])
+
   const addToCart = async (product: any) => {
+    console.log('Tentativo di aggiungere al carrello:', product.title)
+    console.log('Varianti disponibili:', product.variants)
+    
     if (!product.variants || product.variants.length === 0) {
       console.error('Prodotto senza varianti disponibili')
       return
     }
 
     const variant = product.variants[0] // Usa la prima variante disponibile
+    console.log('Variante selezionata:', variant)
     setAddingToCart(product.id)
 
     try {
       // Converti il prodotto Medusa nel formato del carrello locale
       const cartItem = convertMedusaProductToCartItem(product, variant.id)
+      console.log('Cart item creato:', cartItem)
       
       // Aggiungi al carrello usando la funzione integrata con Medusa
       await addItemWithMedusa(cartItem)
+      console.log('Prodotto aggiunto con successo!')
     } catch (error) {
       console.error('Errore nell\'aggiunta al carrello:', error)
     } finally {
@@ -102,8 +142,10 @@ export default function ShopPage() {
     },
   ]
 
-  // Usa i prodotti da Medusa se disponibili, altrimenti usa i prodotti di fallback
+  // Usa SEMPRE i prodotti da Medusa se disponibili
   const products = medusa.products.length > 0 ? medusa.products : fallbackProducts
+  
+  console.log('Prodotti selezionati:', products.length, 'Medusa:', medusa.products.length, 'Fallback:', fallbackProducts.length)
 
   return (
     <div className="min-h-screen bg-background">
@@ -148,9 +190,20 @@ export default function ShopPage() {
                 </Button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-                {products.map((product, index) => {
-                  const price = product.variants?.[0]?.prices?.[0]?.amount ? product.variants[0].prices[0].amount / 100 : 0
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+          {products.map((product, index) => {
+            // Debug prezzo - ora dovrebbe funzionare con i prezzi reali da JS SDK
+            console.log('Prodotto:', product.title, 'Varianti:', product.variants)
+            console.log('Prima variante prezzi:', product.variants?.[0]?.prices)
+            
+            // Estrai il prezzo dalla struttura Medusa v2 con JS SDK
+            let price = 25.99 // Fallback
+            if (product.variants?.[0]?.prices?.[0]?.amount) {
+              price = product.variants[0].prices[0].amount / 100
+              console.log(`Prezzo reale per ${product.title}: €${price}`)
+            } else {
+              console.warn(`Nessun prezzo trovato per ${product.title}, usando fallback`)
+            }
                   const weight = product.variants?.[0]?.options?.[0]?.value || "N/A"
                   const category = product.tags?.[0]?.value || "Generale"
                   const image = product.thumbnail || product.images?.[0]?.url || "/placeholder.svg"
