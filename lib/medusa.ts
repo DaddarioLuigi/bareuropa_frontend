@@ -152,19 +152,26 @@ export function convertMedusaProductToCartItem(product: MedusaProduct, variantId
   weight: string
 } {
   const variant = product.variants.find(v => v.id === variantId)
+  console.log('Converting product:', product.title, 'variant:', variant)
+  console.log('Variant prices:', variant?.prices)
   
-  // Estrai il prezzo dalla struttura Medusa
+  // Estrai il prezzo dalla struttura Medusa v2 con JS SDK
   let price = 0
   if (variant?.prices && variant.prices.length > 0) {
+    // Medusa v2 con JS SDK: il prezzo è in variant.prices[0].amount
     price = variant.prices[0].amount || 0
+    console.log(`Prezzo trovato per ${product.title}: ${price} centesimi`)
   } else {
-    price = 2599 // €25.99 in centesimi fallback
+    // Fallback: usa un prezzo di default
+    price = 2599 // €25.99 in centesimi
+    console.warn(`Nessun prezzo trovato per ${product.title}, usando prezzo di default`)
   }
   
   const priceInEuros = price / 100 // Medusa salva i prezzi in centesimi
+  console.log(`Prezzo finale per ${product.title}: €${priceInEuros}`)
   
   return {
-    id: parseInt(variantId.replace(/\D/g, '')) || Math.random() * 1000,
+    id: parseInt(variantId.replace(/\D/g, '')) || Math.random() * 1000, // Converti ID in number
     name: product.title,
     price: priceInEuros,
     image: product.thumbnail || product.images?.[0]?.url || "/placeholder.svg",
