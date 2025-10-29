@@ -1,12 +1,26 @@
-import Medusa from "@medusajs/medusa-js"
+// Server-side Medusa API client
+const BASE = process.env.MEDUSA_BACKEND_URL!
 
-// Configurazione del client Medusa
-const MEDUSA_BACKEND_URL = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || "http://localhost:9000"
+// Region ID for pricing (Europe region)
+export const MEDUSA_REGION_ID = 'reg_01K8BEGZCPDDPM7CA706AB5SBH'
 
-export const medusaClient = new Medusa({
-  baseUrl: MEDUSA_BACKEND_URL,
-  maxRetries: 3,
-})
+export async function api(path: string, init?: RequestInit) {
+  const res = await fetch(`${BASE}${path}`, {
+    ...init,
+    headers: { 
+      'content-type': 'application/json',
+      'x-publishable-api-key': process.env.MEDUSA_PUBLISHABLE_API_KEY || '',
+      ...(init?.headers || {}) 
+    },
+  })
+  
+  if (!res.ok) {
+    const errorText = await res.text()
+    throw new Error(`Medusa ${res.status}: ${errorText}`)
+  }
+  
+  return res.json()
+}
 
 // Tipi per i prodotti Medusa
 export interface MedusaProduct {
@@ -116,6 +130,18 @@ export interface MedusaCart {
   }>
 }
 
+// Client-side Medusa SDK for browser usage
+import Medusa from "@medusajs/medusa-js"
+
+const MEDUSA_BACKEND_URL = process.env.NODE_ENV === 'development' 
+  ? "http://localhost:3000/api/medusa" // Proxy locale per sviluppo
+  : process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || "https://backend-production-d71e9.up.railway.app"
+
+export const medusaClient = new Medusa({
+  baseUrl: MEDUSA_BACKEND_URL,
+  maxRetries: 3,
+})
+
 // Funzioni helper per convertire i dati Medusa nel formato del tuo carrello esistente
 export function convertMedusaProductToCartItem(product: MedusaProduct, variantId: string): {
   id: number
@@ -126,16 +152,24 @@ export function convertMedusaProductToCartItem(product: MedusaProduct, variantId
   weight: string
 } {
   const variant = product.variants.find(v => v.id === variantId)
-  const price = variant?.prices[0]?.amount || 0
+  
+  // Estrai il prezzo dalla struttura Medusa
+  let price = 0
+  if (variant?.prices && variant.prices.length > 0) {
+    price = variant.prices[0].amount || 0
+  } else {
+    price = 2599 // €25.99 in centesimi fallback
+  }
+  
   const priceInEuros = price / 100 // Medusa salva i prezzi in centesimi
-
+  
   return {
-    id: parseInt(variantId), // Convertiamo in number per compatibilità
+    id: parseInt(variantId.replace(/\D/g, '')) || Math.random() * 1000,
     name: product.title,
     price: priceInEuros,
     image: product.thumbnail || product.images?.[0]?.url || "/placeholder.svg",
     quantity: 1,
-    weight: variant?.options?.[0]?.value || "N/A"
+    weight: variant?.options?.[0]?.value || variant?.title || "N/A"
   }
 }
 

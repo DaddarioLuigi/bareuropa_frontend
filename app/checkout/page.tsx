@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
@@ -14,16 +14,25 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Separator } from "@/components/ui/separator"
 import { useCart } from "@/contexts/cart-context"
+import { useMedusa } from "@/hooks/use-medusa"
 import { CreditCard, Truck, MapPin, Lock } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
 export default function CheckoutPage() {
-  const { state, medusa } = useCart()
+  const { state } = useCart()
+  const medusa = useMedusa()
   const router = useRouter()
   const [isProcessing, setIsProcessing] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState("card")
   const [sameAsShipping, setSameAsShipping] = useState(true)
+
+  // Debug: log dei dati Medusa
+  useEffect(() => {
+    console.log('Regioni disponibili:', medusa.regions)
+    console.log('Provider pagamento:', medusa.paymentProviders)
+    console.log('Opzioni spedizione:', medusa.shippingOptions)
+  }, [medusa.regions, medusa.paymentProviders, medusa.shippingOptions])
 
   const [formData, setFormData] = useState({
     // Shipping Information

@@ -273,25 +273,6 @@ export default function ContactPage() {
                 </CardContent>
               </Card>
 
-              {/* Quick Actions */}
-              <Card className="shadow-lg">
-                <CardHeader>
-                  <CardTitle className="text-2xl font-bold text-primary">
-                    Azioni Rapide
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-3">
-                    Prenota un Tavolo
-                  </Button>
-                  <Button variant="outline" className="w-full font-semibold py-3">
-                    Visualizza Menu
-                  </Button>
-                  <Button variant="outline" className="w-full font-semibold py-3">
-                    Ordina Online
-                  </Button>
-                </CardContent>
-              </Card>
 
               {/* Map Placeholder */}
               <Card className="shadow-lg">

@@ -14,6 +14,7 @@
     "@hookform/resolvers": "^3.10.0",
     "@medusajs/js-sdk": "^2.10.3",
     "@medusajs/medusa-js": "^6.1.10",
+    "@medusajs/types": "^2.11.0",
     "@radix-ui/react-accordion": "1.2.2",
     "@radix-ui/react-alert-dialog": "1.1.4",
     "@radix-ui/react-aspect-ratio": "1.1.1",

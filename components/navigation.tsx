@@ -39,8 +39,7 @@ export function Navigation() {
               {[
                 { href: "/", label: "Home" },
                 { href: "/la-nostra-storia", label: "La Nostra Storia" },
-                { href: "/prodotti", label: "Prodotti" },
-                { href: "/shop", label: "Shop" },
+                { href: "/products", label: "Prodotti" },
                 { href: "/contatti", label: "Contatti" },
               ].map((item, index) => (
                 <motion.div
@@ -67,7 +66,7 @@ export function Navigation() {
           {/* Right side buttons */}
           <div className="hidden md:flex items-center space-x-4">
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Link href="/carrello">
+              <Link href="/cart">
                 <Button variant="ghost" size="sm" className="relative">
                   <ShoppingBag className="h-5 w-5" />
                   <AnimatePresence>
@@ -137,8 +136,7 @@ export function Navigation() {
                 {[
                   { href: "/", label: "Home" },
                   { href: "/la-nostra-storia", label: "La Nostra Storia" },
-                  { href: "/prodotti", label: "Prodotti" },
-                  { href: "/shop", label: "Shop" },
+                  { href: "/products", label: "Prodotti" },
                   { href: "/contatti", label: "Contatti" },
                 ].map((item, index) => (
                   <motion.div
@@ -162,7 +160,7 @@ export function Navigation() {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.3, delay: 0.5 }}
                 >
-                  <Link href="/carrello" onClick={() => setIsMenuOpen(false)}>
+                  <Link href="/cart" onClick={() => setIsMenuOpen(false)}>
                     <Button variant="ghost" size="sm" className="w-full justify-start">
                       <ShoppingBag className="h-5 w-5 mr-2" />
                       Carrello ({state.itemCount})
