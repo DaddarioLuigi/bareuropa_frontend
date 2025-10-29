@@ -4,7 +4,7 @@ import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Star, Eye } from "lucide-react"
+import { Eye } from "lucide-react"
 import { AddToCartButton } from "@/components/add-to-cart-button"
 import Link from "next/link"
 import { Suspense } from "react"
@@ -68,8 +68,13 @@ async function ProductsGrid({ searchParams }: ProductsPageProps) {
   
   try {
     const data = await fetch(
-      `http://localhost:3000/api/medusa/store/products?limit=${limit}&offset=${page*limit}&region_id=${MEDUSA_REGION_ID}${q}`,
-      { next: { revalidate: 60 } }
+      `${process.env.MEDUSA_BACKEND_URL}/store/products?limit=${limit}&offset=${page*limit}&region_id=${MEDUSA_REGION_ID}${q}`,
+      {
+        next: { revalidate: 60 },
+        headers: {
+          'x-publishable-api-key': process.env.MEDUSA_PUBLISHABLE_API_KEY || '',
+        },
+      }
     ).then(r => r.json())
 
     const products: Product[] = data.products ?? data
@@ -123,12 +128,6 @@ async function ProductsGrid({ searchParams }: ProductsPageProps) {
                   <Badge variant="outline" className="text-xs">
                     {category}
                   </Badge>
-                  <div className="flex items-center gap-1">
-                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                    <span className="text-sm text-muted-foreground">
-                      4.8 (127)
-                    </span>
-                  </div>
                 </div>
 
                 <CardTitle className="text-lg mb-2 line-clamp-1">{product.title}</CardTitle>

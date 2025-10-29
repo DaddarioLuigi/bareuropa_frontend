@@ -78,11 +78,12 @@ export function HeroSection() {
               className="w-full sm:w-auto"
             >
               <Button
+                asChild
                 size="lg"
                 variant="outline"
                 className="border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary font-semibold px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg bg-transparent w-full sm:w-auto min-h-[44px] sm:min-h-[48px]"
               >
-                Prenota un Tavolo
+                <a href="https://wa.me/393458041890" target="_blank" rel="noopener noreferrer">Contattaci</a>
               </Button>
             </motion.div>
           </motion.div>

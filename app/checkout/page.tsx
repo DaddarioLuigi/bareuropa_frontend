@@ -24,7 +24,7 @@ export default function CheckoutPage() {
   const medusa = useMedusa()
   const router = useRouter()
   const [isProcessing, setIsProcessing] = useState(false)
-  const [paymentMethod, setPaymentMethod] = useState("card")
+  const [paymentMethod, setPaymentMethod] = useState("")
   const [sameAsShipping, setSameAsShipping] = useState(true)
 
   // Debug: log dei dati Medusa
@@ -33,6 +33,13 @@ export default function CheckoutPage() {
     console.log('Provider pagamento:', medusa.paymentProviders)
     console.log('Opzioni spedizione:', medusa.shippingOptions)
   }, [medusa.regions, medusa.paymentProviders, medusa.shippingOptions])
+
+  // Seleziona automaticamente il primo provider disponibile
+  useEffect(() => {
+    if (!paymentMethod && medusa.paymentProviders.length > 0) {
+      setPaymentMethod(medusa.paymentProviders[0].id)
+    }
+  }, [medusa.paymentProviders, paymentMethod])
 
   const [formData, setFormData] = useState({
     // Shipping Information
@@ -117,10 +124,10 @@ export default function CheckoutPage() {
         console.warn('Impossibile aggiungere metodo di spedizione:', error)
       }
 
-      // Aggiungi sessione di pagamento
-      const providerId = paymentMethod === "card" ? "stripe" : 
-                       paymentMethod === "paypal" ? "paypal" : "manual"
-      
+      // Aggiungi sessione di pagamento usando il provider selezionato da Medusa
+      const providerId = paymentMethod
+      if (!providerId) throw new Error('Nessun metodo di pagamento selezionato')
+
       try {
         await medusa.addPaymentSession(providerId)
       } catch (error) {
@@ -376,22 +383,22 @@ export default function CheckoutPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="card" id="card" />
-                      <Label htmlFor="card">Carta di Credito/Debito</Label>
+                  {medusa.paymentProviders.length > 0 ? (
+                    <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
+                      {medusa.paymentProviders.map((p: any) => (
+                        <div key={p.id} className="flex items-center space-x-2">
+                          <RadioGroupItem value={p.id} id={`pm-${p.id}`} />
+                          <Label htmlFor={`pm-${p.id}`}>{p.id}</Label>
+                        </div>
+                      ))}
+                    </RadioGroup>
+                  ) : (
+                    <div className="p-4 rounded-md bg-muted text-sm text-muted-foreground">
+                      Nessun metodo di pagamento configurato.
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="paypal" id="paypal" />
-                      <Label htmlFor="paypal">PayPal</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="bank" id="bank" />
-                      <Label htmlFor="bank">Bonifico Bancario</Label>
-                    </div>
-                  </RadioGroup>
+                  )}
 
-                  {paymentMethod === "card" && (
+                  {paymentMethod && paymentMethod.includes('stripe') && (
                     <div className="space-y-4 pt-4 border-t">
                       <div>
                         <Label htmlFor="cardName">Nome sulla Carta *</Label>
@@ -399,7 +406,7 @@ export default function CheckoutPage() {
                           id="cardName"
                           value={formData.cardName}
                           onChange={(e) => handleInputChange("cardName", e.target.value)}
-                          required={paymentMethod === "card"}
+                          required={paymentMethod.includes('stripe')}
                         />
                       </div>
 
@@ -410,7 +417,7 @@ export default function CheckoutPage() {
                           placeholder="1234 5678 9012 3456"
                           value={formData.cardNumber}
                           onChange={(e) => handleInputChange("cardNumber", e.target.value)}
-                          required={paymentMethod === "card"}
+                          required={paymentMethod.includes('stripe')}
                         />
                       </div>
 
@@ -422,7 +429,7 @@ export default function CheckoutPage() {
                             placeholder="MM/AA"
                             value={formData.expiryDate}
                             onChange={(e) => handleInputChange("expiryDate", e.target.value)}
-                            required={paymentMethod === "card"}
+                            required={paymentMethod.includes('stripe')}
                           />
                         </div>
                         <div>
@@ -432,7 +439,7 @@ export default function CheckoutPage() {
                             placeholder="123"
                             value={formData.cvv}
                             onChange={(e) => handleInputChange("cvv", e.target.value)}
-                            required={paymentMethod === "card"}
+                            required={paymentMethod.includes('stripe')}
                           />
                         </div>
                       </div>

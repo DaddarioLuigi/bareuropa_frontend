@@ -303,10 +303,11 @@ export default function StoryPage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button
+                asChild
                 size="lg"
                 className="bg-accent hover:bg-accent/90 text-accent-foreground font-semibold px-8 py-4 text-lg"
               >
-                Prenota un Tavolo
+                <a href="https://wa.me/393458041890" target="_blank" rel="noopener noreferrer">Contattaci</a>
               </Button>
               <Button
                 variant="outline"

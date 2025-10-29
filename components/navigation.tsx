@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Menu, X, ShoppingBag } from "lucide-react"
+import { Menu, X, ShoppingBag, Heart } from "lucide-react"
 import { useCart } from "@/contexts/cart-context"
 import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
@@ -86,7 +86,16 @@ export function Navigation() {
               </Link>
             </motion.div>
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">Prenota un Tavolo</Button>
+              <Link href="/preferiti" aria-label="Preferiti">
+                <Button variant="ghost" size="sm">
+                  <Heart className="h-5 w-5" />
+                </Button>
+              </Link>
+            </motion.div>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button asChild className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                <a href="https://wa.me/393458041890" target="_blank" rel="noopener noreferrer">Contattaci</a>
+              </Button>
             </motion.div>
           </div>
 
@@ -166,8 +175,14 @@ export function Navigation() {
                       Carrello ({state.itemCount})
                     </Button>
                   </Link>
-                  <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
-                    Prenota un Tavolo
+                  <Link href="/preferiti" onClick={() => setIsMenuOpen(false)} aria-label="Preferiti">
+                    <Button variant="ghost" size="sm" className="w-full justify-start">
+                      <Heart className="h-5 w-5 mr-2" />
+                      Preferiti
+                    </Button>
+                  </Link>
+                  <Button asChild className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
+                    <a href="https://wa.me/393458041890" target="_blank" rel="noopener noreferrer">Contattaci</a>
                   </Button>
                 </motion.div>
               </div>

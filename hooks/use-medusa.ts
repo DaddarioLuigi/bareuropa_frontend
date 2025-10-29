@@ -56,7 +56,7 @@ export function useMedusa(): UseMedusaReturn {
       
       if (existingCartId) {
         try {
-          const baseUrl = 'http://localhost:3000/api/medusa'
+          const baseUrl = '/api/medusa'
           const response = await fetch(`${baseUrl}/store/carts/${existingCartId}`, {
             headers: {
               'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
@@ -76,7 +76,7 @@ export function useMedusa(): UseMedusaReturn {
       }
 
       // Crea un nuovo carrello
-      const baseUrl = 'http://localhost:3000/api/medusa'
+      const baseUrl = '/api/medusa'
       const response = await fetch(`${baseUrl}/store/carts`, {
         method: 'POST',
         headers: {
@@ -107,7 +107,7 @@ export function useMedusa(): UseMedusaReturn {
     setError(null)
     
     try {
-      const baseUrl = 'http://localhost:3000/api/medusa'
+      const baseUrl = '/api/medusa'
       console.log('Fetching products from:', baseUrl)
       
       // Carica i prodotti con le relazioni espanse
@@ -140,7 +140,7 @@ export function useMedusa(): UseMedusaReturn {
     
     try {
       const cartId = await getOrCreateCart()
-      const baseUrl = 'http://localhost:3000/api/medusa'
+      const baseUrl = '/api/medusa'
       
       const response = await fetch(`${baseUrl}/store/carts/${cartId}/line-items`, {
         method: 'POST',
@@ -351,7 +351,7 @@ export function useMedusa(): UseMedusaReturn {
   // Carica regioni usando chiamate fetch dirette
   const fetchRegions = useCallback(async () => {
     try {
-      const baseUrl = 'http://localhost:3000/api/medusa'
+      const baseUrl = '/api/medusa'
       const response = await fetch(`${baseUrl}/store/regions`)
       if (response.ok) {
         const data = await response.json()
@@ -366,7 +366,7 @@ export function useMedusa(): UseMedusaReturn {
   // Carica opzioni di spedizione usando chiamate fetch dirette
   const fetchShippingOptions = useCallback(async (regionId: string) => {
     try {
-      const baseUrl = 'http://localhost:3000/api/medusa'
+      const baseUrl = '/api/medusa'
       const response = await fetch(`${baseUrl}/store/shipping-options?region_id=${regionId}`)
       if (response.ok) {
         const data = await response.json()
@@ -381,7 +381,7 @@ export function useMedusa(): UseMedusaReturn {
   // Carica provider di pagamento usando chiamate fetch dirette
   const fetchPaymentProviders = useCallback(async () => {
     try {
-      const baseUrl = 'http://localhost:3000/api/medusa'
+      const baseUrl = '/api/medusa'
       const response = await fetch(`${baseUrl}/store/payment-providers`)
       if (response.ok) {
         const data = await response.json()

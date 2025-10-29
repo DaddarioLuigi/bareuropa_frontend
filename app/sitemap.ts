@@ -53,7 +53,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let productPages: MetadataRoute.Sitemap = []
   
   try {
-    const productsRes = await fetch(`http://localhost:3000/api/medusa/store/products?limit=1000`, {
+    const productsRes = await fetch(`/api/medusa/store/products?limit=1000`, {
       next: { revalidate: 300 }
     })
     

@@ -1,7 +1,7 @@
 import { Client } from "@medusajs/js-sdk"
 
 const MEDUSA_BACKEND_URL = process.env.NODE_ENV === 'development'
-  ? "http://localhost:3000/api/medusa" // Proxy locale per sviluppo
+  ? "/api/medusa" // Proxy locale per sviluppo
   : process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || "https://backend-production-d71e9.up.railway.app"
 
 export const sdk = new Client({

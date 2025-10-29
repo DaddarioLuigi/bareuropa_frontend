@@ -2,10 +2,11 @@ import { api, MEDUSA_REGION_ID } from '@/lib/medusa'
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
+import { LikeButton } from "@/components/like-button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { ShoppingCart, Star, Heart, Minus, Plus, ArrowLeft, Truck, Shield, RotateCcw } from "lucide-react"
+import { ArrowLeft, Truck, Shield, RotateCcw } from "lucide-react"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { Suspense } from "react"
@@ -13,17 +14,23 @@ import { Metadata } from 'next'
 import { addToCart } from './actions'
 import { VariantSelector } from './variant-selector'
 import { AddToCartSection } from './add-to-cart-section'
+import { ProductImageGallery } from '@/components/product-image-gallery'
 
 export const revalidate = 300
 
 export async function generateMetadata({ params }: { params: { handle: string } }): Promise<Metadata> {
   try {
     const data = await fetch(
-      `http://localhost:3000/api/medusa/store/products?region_id=${MEDUSA_REGION_ID}`,
-      { next: { revalidate: 300 } }
+      `${process.env.MEDUSA_BACKEND_URL}/store/products?region_id=${MEDUSA_REGION_ID}&handle=${encodeURIComponent(params.handle)}&limit=1`,
+      {
+        next: { revalidate: 300 },
+        headers: {
+          'x-publishable-api-key': process.env.MEDUSA_PUBLISHABLE_API_KEY || '',
+        },
+      }
     ).then(r => r.json())
     const products = data.products ?? data
-    const product = products.find((p: any) => p.handle === params.handle)
+    const product = Array.isArray(products) ? products[0] : undefined
     
     if (!product) {
       return {
@@ -87,11 +94,16 @@ interface ProductPageProps {
 async function ProductDetails({ params }: ProductPageProps) {
   try {
     const data = await fetch(
-      `http://localhost:3000/api/medusa/store/products?region_id=${MEDUSA_REGION_ID}`,
-      { next: { revalidate: 300 } }
+      `${process.env.MEDUSA_BACKEND_URL}/store/products?region_id=${MEDUSA_REGION_ID}&handle=${encodeURIComponent(params.handle)}&limit=1`,
+      {
+        next: { revalidate: 300 },
+        headers: {
+          'x-publishable-api-key': process.env.MEDUSA_PUBLISHABLE_API_KEY || '',
+        },
+      }
     ).then(r => r.json())
     const products = data.products ?? data
-    const product: Product = products.find((p: Product) => p.handle === params.handle)
+    const product: Product | undefined = Array.isArray(products) ? products[0] : undefined
 
     if (!product) {
       notFound()
@@ -108,7 +120,7 @@ async function ProductDetails({ params }: ProductPageProps) {
     const mainImage = images.length > 0 ? images[0].url : (product.thumbnail || "/placeholder.svg")
     
     // Check if product has multiple variants
-    const hasMultipleVariants = product.variants && product.variants.length > 1
+    const hasMultipleVariants = !!(product.variants && product.variants.length > 1)
 
     return (
       <div className="min-h-screen bg-background">
@@ -142,32 +154,7 @@ async function ProductDetails({ params }: ProductPageProps) {
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
                 {/* Product Images */}
-                <div className="space-y-4">
-                  <div className="aspect-square overflow-hidden rounded-lg bg-muted">
-                    <img
-                      src={mainImage}
-                      alt={product.title}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-
-                  {images.length > 1 && (
-                    <div className="flex gap-4">
-                      {images.slice(0, 4).map((image, index) => (
-                        <div
-                          key={image.id || index}
-                          className="aspect-square w-20 overflow-hidden rounded-lg border-2 border-transparent hover:border-primary cursor-pointer"
-                        >
-                          <img
-                            src={image.url}
-                            alt={`${product.title} ${index + 1}`}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                <ProductImageGallery main={mainImage} images={images} alt={product.title} />
 
                 {/* Product Info */}
                 <div className="space-y-6">
@@ -178,12 +165,8 @@ async function ProductDetails({ params }: ProductPageProps) {
 
                     <h1 className="font-display text-3xl font-bold text-primary mb-4">{product.title}</h1>
 
-                    <div className="flex items-center gap-4 mb-4">
-                      <div className="flex items-center gap-1">
-                        <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                        <span className="font-semibold">4.8</span>
-                        <span className="text-muted-foreground">(127 recensioni)</span>
-                      </div>
+                    <div className="mb-4 flex items-center gap-2">
+                      <LikeButton productId={product.id} />
                     </div>
 
                     {hasMultipleVariants ? (
@@ -292,8 +275,11 @@ async function ProductDetails({ params }: ProductPageProps) {
 
 export async function generateStaticParams() {
   try {
-    const data = await fetch(`http://localhost:3000/api/medusa/store/products?limit=1000&region_id=${MEDUSA_REGION_ID}`, { 
-      next: { revalidate: 300 } 
+    const data = await fetch(`${process.env.MEDUSA_BACKEND_URL}/store/products?limit=1000&region_id=${MEDUSA_REGION_ID}`, {
+      next: { revalidate: 300 },
+      headers: {
+        'x-publishable-api-key': process.env.MEDUSA_PUBLISHABLE_API_KEY || '',
+      },
     }).then(r => r.json())
     
     const products = data.products ?? data

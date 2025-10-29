@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Heart } from 'lucide-react'
 import { AddToCartButton } from '@/components/add-to-cart-button'
 import { VariantSelector } from './variant-selector'
 
@@ -92,13 +91,6 @@ export function AddToCartSection({ product, price, weight, image, hasMultipleVar
         className="flex-1 bg-accent hover:bg-accent/90"
         size="lg"
       />
-      <Button
-        variant="outline"
-        size="lg"
-        className="text-red-500 border-red-500 hover:bg-red-50"
-      >
-        <Heart className="h-5 w-5" />
-      </Button>
     </div>
   )
 }
