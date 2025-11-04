@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = 'https://bareuropa.vercel.app' // Replace with your actual domain
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3002'
   
   // Static pages
   const staticPages = [
@@ -53,7 +53,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let productPages: MetadataRoute.Sitemap = []
   
   try {
-    const productsRes = await fetch(`/api/medusa/store/products?limit=1000`, {
+    const productsRes = await fetch(`${baseUrl}/api/medusa/store/products?limit=1000`, {
       next: { revalidate: 300 }
     })
     

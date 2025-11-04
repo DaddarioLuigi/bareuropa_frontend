@@ -1,4 +1,5 @@
 import { EuropaLogo } from "@/components/europa-logo"
+import Link from "next/link"
 
 export function Footer() {
   return (
@@ -22,24 +23,49 @@ export function Footer() {
             <h4 className="font-semibold text-primary mb-4">Link Rapidi</h4>
             <ul className="space-y-2 text-muted-foreground">
               <li>
-                <a href="#home" className="hover:text-accent transition-colors">
+                <Link href="/" className="hover:text-accent transition-colors">
                   Home
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#storia" className="hover:text-accent transition-colors">
+                <Link href="/la-nostra-storia" className="hover:text-accent transition-colors">
                   La Nostra Storia
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#prodotti" className="hover:text-accent transition-colors">
+                <Link href="/products" className="hover:text-accent transition-colors">
                   Prodotti
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#contatti" className="hover:text-accent transition-colors">
+                <Link href="/contatti" className="hover:text-accent transition-colors">
                   Contatti
-                </a>
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Legal */}
+          <div>
+            <h4 className="font-semibold text-primary mb-4">Legale</h4>
+            <ul className="space-y-2 text-muted-foreground text-sm">
+              <li>
+                <Link href="/privacy" className="hover:text-accent transition-colors">Privacy</Link>
+              </li>
+              <li>
+                <Link href="/cookie-policy" className="hover:text-accent transition-colors">Cookie Policy</Link>
+              </li>
+              <li>
+                <Link href="/termini-e-condizioni" className="hover:text-accent transition-colors">Termini e Condizioni</Link>
+              </li>
+              <li>
+                <Link href="/resi-e-rimborsi" className="hover:text-accent transition-colors">Resi e Rimborsi</Link>
+              </li>
+              <li>
+                <Link href="/spedizioni" className="hover:text-accent transition-colors">Spedizioni</Link>
+              </li>
+              <li>
+                <Link href="/note-legali" className="hover:text-accent transition-colors">Note Legali</Link>
               </li>
             </ul>
           </div>

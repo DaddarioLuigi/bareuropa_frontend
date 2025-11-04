@@ -48,6 +48,18 @@ interface Product {
       value: string
     }>
   }>
+  categories?: Array<{
+    id: string
+    name: string
+  }>
+  collection?: {
+    id: string
+    title: string
+  }
+  type?: {
+    id: string
+    value: string
+  }
   tags?: Array<{
     id: string
     value: string
@@ -101,7 +113,7 @@ async function ProductsGrid({ searchParams }: ProductsPageProps) {
           const price = variant?.calculated_price?.calculated_amount ?? 
             (variant?.prices?.[0]?.amount ? variant.prices[0].amount / 100 : 0)
           const weight = variant?.options?.[0]?.value || "N/A"
-          const category = product.tags?.[0]?.value || "Generale"
+          const category = product.collection?.title || "Generale"
           const image = product.thumbnail || product.images?.[0]?.url || "/placeholder.svg"
           
           return (

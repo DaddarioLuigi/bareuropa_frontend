@@ -8,6 +8,7 @@ import { VariantSelector } from './variant-selector'
 interface Variant {
   id: string
   title: string
+  weight?: number
   calculated_price?: {
     calculated_amount: number
     currency_code: string
@@ -19,6 +20,7 @@ interface Variant {
   }>
   options?: Array<{
     id: string
+    option_id?: string
     value: string
   }>
 }
@@ -32,6 +34,10 @@ interface Product {
   images?: Array<{
     id: string
     url: string
+  }>
+  options?: Array<{
+    id: string
+    title: string
   }>
   variants?: Variant[]
 }
@@ -77,7 +83,32 @@ export function AddToCartSection({ product, price, weight, image, hasMultipleVar
   const currentVariant = selectedVariant || product.variants[0]
   const currentPrice = currentVariant?.calculated_price?.calculated_amount ?? 
     (currentVariant?.prices?.[0]?.amount ? currentVariant.prices[0].amount / 100 : price)
-  const currentWeight = currentVariant?.options?.[0]?.value || currentVariant?.title || weight
+  const isDefaultOptionValue = (value?: string) => {
+    if (!value) return false
+    const v = value.toLowerCase()
+    return v === 'default option value' || v === 'default' || v === 'default option'
+  }
+  const formatWeight = (w?: number) => {
+    if (typeof w === 'number' && w > 0) {
+      return w >= 1000 ? `${(w / 1000).toFixed(2)} kg` : `${w} g`
+    }
+    return undefined
+  }
+  const getWeightLabel = (product: Product, variant?: Variant) => {
+    if (!variant) return weight
+    const byNumeric = formatWeight(variant.weight)
+    if (byNumeric) return byNumeric
+    const productWeightOption = product.options?.find(o => /peso|weight/i.test(o.title))
+    if (productWeightOption) {
+      const vo = variant.options?.find(o => o.option_id === productWeightOption.id)
+      if (vo && !isDefaultOptionValue(vo.value)) return vo.value
+    }
+    const guess = variant.options?.map(o => o.value).find(v => v && /(\d+\s?(g|kg))$/i.test(v))
+    if (guess) return guess
+    const firstNonDefault = variant.options?.map(o => o.value).find(v => v && !isDefaultOptionValue(v))
+    return firstNonDefault || weight
+  }
+  const currentWeight = getWeightLabel(product, currentVariant)
 
   return (
     <div className="flex gap-4">

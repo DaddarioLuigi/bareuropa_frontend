@@ -67,6 +67,10 @@ interface Product {
   variants?: Array<{
     id: string
     title: string
+    weight?: number
+    length?: number
+    height?: number
+    width?: number
     calculated_price?: {
       calculated_amount: number
       currency_code: string
@@ -78,9 +82,31 @@ interface Product {
     }>
     options?: Array<{
       id: string
+      option_id?: string
       value: string
     }>
   }>
+  options?: Array<{
+    id: string
+    title: string
+  }>
+  categories?: Array<{
+    id: string
+    name: string
+    handle?: string
+  }>
+  collection?: {
+    id: string
+    title: string
+  }
+  weight?: number | string
+  length?: number | string
+  height?: number | string
+  width?: number | string
+  type?: {
+    id: string
+    value: string
+  }
   tags?: Array<{
     id: string
     value: string
@@ -104,9 +130,30 @@ async function ProductDetails({ params }: ProductPageProps) {
     ).then(r => r.json())
     const products = data.products ?? data
     const product: Product | undefined = Array.isArray(products) ? products[0] : undefined
+    let enrichedProduct: any | undefined
 
     if (!product) {
       notFound()
+    }
+
+    // Enrich categories/collection if missing
+    if (product && (!product.categories || product.categories.length === 0) && !product.collection) {
+      try {
+        const enriched = await fetch(
+          `${process.env.MEDUSA_BACKEND_URL}/store/products/${product.id}`,
+          {
+            next: { revalidate: 300 },
+            headers: {
+              'x-publishable-api-key': process.env.MEDUSA_PUBLISHABLE_API_KEY || '',
+            },
+          }
+        ).then(r => r.json())
+        if (enriched && enriched.product) {
+          enrichedProduct = enriched.product
+          product.categories = enriched.product.categories || product.categories
+          product.collection = enriched.product.collection || product.collection
+        }
+      } catch {}
     }
 
     // Get price from the first variant
@@ -114,8 +161,68 @@ async function ProductDetails({ params }: ProductPageProps) {
     const price = firstVariant?.calculated_price?.calculated_amount ?? 
       (firstVariant?.prices?.[0]?.amount ? firstVariant.prices[0].amount / 100 : 0)
     
-    const weight = firstVariant?.options?.[0]?.value || "N/A"
-    const category = product.tags?.[0]?.value || "Generale"
+    const isDefaultOptionValue = (value?: string) => {
+      if (!value) return false
+      const v = value.toLowerCase()
+      return v === 'default option value' || v === 'default' || v === 'default option'
+    }
+
+    const toNumber = (v: unknown): number | undefined => {
+      if (v == null) return undefined
+      if (typeof v === 'number') return Number.isFinite(v) ? v : undefined
+      if (typeof v === 'string') {
+        const n = parseFloat(v.replace(',', '.'))
+        return Number.isNaN(n) ? undefined : n
+      }
+      return undefined
+    }
+
+    const formatWeight = (w?: number) => {
+      if (typeof w === 'number' && w > 0) {
+        if (w >= 1000) return `${(w / 1000).toFixed(2)} kg`
+        if (w <= 10) return `${w} kg`
+        return `${w} g`
+      }
+      return undefined
+    }
+
+    const formatDimensions = (l?: number, h?: number, w?: number) => {
+      const parts: string[] = []
+      if (typeof l === 'number' && l > 0) parts.push(`${l}`)
+      if (typeof h === 'number' && h > 0) parts.push(`${h}`)
+      if (typeof w === 'number' && w > 0) parts.push(`${w}`)
+      if (parts.length === 0) return undefined
+      return parts.join(' × ')
+    }
+
+    const getWeightLabel = (product: Product, variant?: Product['variants'][number]) => {
+      if (!variant) return 'N/A'
+      const byNumeric = formatWeight(variant.weight ?? toNumber(product.weight))
+      if (byNumeric) return byNumeric
+
+      // Try to find an option titled Peso/Weight
+      const productWeightOption = product.options?.find(o => /peso|weight/i.test(o.title))
+      if (productWeightOption) {
+        const vo = variant.options?.find(o => o.option_id === productWeightOption.id)
+        if (vo && !isDefaultOptionValue(vo.value)) return vo.value
+      }
+
+      // Fallback: pick a variant option that looks like a weight (e.g., 500g, 1kg)
+      const guess = variant.options?.map(o => o.value).find(v => v && /(\d+\s?(g|kg))$/i.test(v))
+      if (guess) return guess
+
+      // Final fallback: ignore default-looking values
+      const firstNonDefault = variant.options?.map(o => o.value).find(v => v && !isDefaultOptionValue(v))
+      return firstNonDefault || 'N/A'
+    }
+
+    const weight = getWeightLabel(product, firstVariant)
+    const dims = formatDimensions(
+      firstVariant?.length ?? toNumber(product.length),
+      firstVariant?.height ?? toNumber(product.height),
+      firstVariant?.width ?? toNumber(product.width)
+    )
+    const category = product.collection?.title || "Generale"
     const images = product.images || []
     const mainImage = images.length > 0 ? images[0].url : (product.thumbnail || "/placeholder.svg")
     
@@ -176,9 +283,14 @@ async function ProductDetails({ params }: ProductPageProps) {
                       </div>
                     ) : (
                       // Single variant - show price
-                      <div className="flex items-center gap-3 mb-6">
-                        <span className="text-3xl font-bold text-primary">€{price.toFixed(2)}</span>
-                        <span className="text-sm text-muted-foreground">({weight})</span>
+                      <div className="mb-6">
+                        <div className="flex items-center gap-3 mb-2">
+                          <span className="text-3xl font-bold text-primary">€{price.toFixed(2)}</span>
+                          <span className="text-sm text-muted-foreground">({weight})</span>
+                        </div>
+                        {dims && (
+                          <div className="text-xs text-muted-foreground">Dimensioni: {dims}</div>
+                        )}
                       </div>
                     )}
 
@@ -240,6 +352,12 @@ async function ProductDetails({ params }: ProductPageProps) {
                         <span>Peso:</span>
                         <span className="font-medium">{weight}</span>
                       </div>
+                      {dims && (
+                        <div className="flex justify-between">
+                          <span>Dimensioni:</span>
+                          <span className="font-medium">{dims}</span>
+                        </div>
+                      )}
                       <div className="flex justify-between">
                         <span>Categoria:</span>
                         <span className="font-medium">{category}</span>
@@ -261,6 +379,20 @@ async function ProductDetails({ params }: ProductPageProps) {
                 </Card>
               </div>
             </div>
+          </section>
+
+          {/* Debug: raw product data */}
+          <section className="py-6">
+            <Card>
+              <CardContent className="p-6">
+                <details>
+                  <summary className="cursor-pointer select-none text-sm text-muted-foreground">Vedi dati grezzi prodotto (debug)</summary>
+                  <pre className="mt-4 text-xs overflow-x-auto whitespace-pre-wrap break-words">
+{JSON.stringify({ product, enrichedProduct }, null, 2)}
+                  </pre>
+                </details>
+              </CardContent>
+            </Card>
           </section>
         </main>
 
