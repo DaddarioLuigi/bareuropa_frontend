@@ -13,7 +13,7 @@ export function Footer() {
             </div>
             <p className="text-sm text-muted-foreground mb-4">Tradizione italiana dal 1966</p>
             <p className="text-muted-foreground leading-relaxed">
-              Pasticceria, caffetteria e gelateria artigianale nel cuore di Milano. Tre generazioni di passione per
+              Pasticceria, caffetteria e gelateria artigianale nel cuore di Trani. Tre generazioni di passione per
               l'autentico sapore italiano.
             </p>
           </div>
@@ -75,7 +75,7 @@ export function Footer() {
             <h4 className="font-semibold text-primary mb-4">Contatti</h4>
             <ul className="space-y-2 text-muted-foreground text-sm">
               <li>Corso Vittorio Emanuele II 161, 76125 Trani</li>
-              <li>+39 02 1234 5678</li>
+              <li>0883 583483</li>
               <li>info@bareuropa.it</li>
             </ul>
           </div>

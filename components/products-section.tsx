@@ -75,13 +75,15 @@ export function ProductsSection() {
 
         {/* CTA */}
         <div className="text-center">
-          <Button
-            size="lg"
-            className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-8 py-4 text-lg"
-          >
-            Vedi Tutti i Prodotti
-            <ArrowRight className="ml-2 h-5 w-5" />
-          </Button>
+          <Link href="/products">
+            <Button
+              size="lg"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-8 py-4 text-lg"
+            >
+              Vedi Tutti i Prodotti
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
+          </Link>
         </div>
       </div>
     </section>
