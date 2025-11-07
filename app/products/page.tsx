@@ -88,7 +88,9 @@ async function ProductsGrid({ searchParams }: ProductsPageProps) {
       })
     } catch (e) {
       // Fallback: usa il proxy interno in runtime
-      const res = await fetch(`/api/medusa/store/products?${expand}&limit=${limit}&offset=${page*limit}${regionParam}${q}`, {
+      const origin = process.env.NEXT_PUBLIC_SITE_URL
+        || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
+      const res = await fetch(`${origin}/api/medusa/store/products?${expand}&limit=${limit}&offset=${page*limit}${regionParam}${q}`, {
         next: { revalidate: 60 },
       })
       if (!res.ok) {

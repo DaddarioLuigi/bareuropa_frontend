@@ -74,7 +74,7 @@ export function Footer() {
           <div>
             <h4 className="font-semibold text-primary mb-4">Contatti</h4>
             <ul className="space-y-2 text-muted-foreground text-sm">
-              <li>Via Roma 123, Milano</li>
+              <li>Corso Vittorio Emanuele II 161, 76125 Trani</li>
               <li>+39 02 1234 5678</li>
               <li>info@bareuropa.it</li>
             </ul>

@@ -274,7 +274,7 @@ export default function ContactPage() {
               </Card>
 
 
-              {/* Map Placeholder */}
+              {/* Map Embed */}
               <Card className="shadow-lg">
                 <CardHeader>
                   <CardTitle className="text-2xl font-bold text-primary">
@@ -282,12 +282,15 @@ export default function ContactPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <div className="aspect-[4/3] bg-muted rounded-lg flex items-center justify-center">
-                    <div className="text-center text-muted-foreground">
-                      <MapPin className="h-12 w-12 mx-auto mb-2" />
-                      <p className="font-medium">Mappa Interattiva</p>
-                      <p className="text-sm">Corso Vittorio Emanuele II 161, Trani</p>
-                    </div>
+                  <div className="aspect-[4/3] rounded-lg overflow-hidden">
+                    <iframe
+                      title="Bar Europa - Corso Vittorio Emanuele II 161, Trani"
+                      src="https://www.google.com/maps?q=Corso+Vittorio+Emanuele+II+161,+76125+Trani&hl=it&z=16&output=embed"
+                      className="w-full h-full border-0"
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                      allowFullScreen
+                    />
                   </div>
                 </CardContent>
               </Card>

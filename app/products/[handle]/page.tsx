@@ -29,7 +29,9 @@ export async function generateMetadata({ params }: { params: { handle: string } 
         { next: { revalidate: 300 } }
       )
     } catch {
-      const res = await fetch(`/api/medusa/store/products?${expand}&${regionParam}handle=${encodeURIComponent(params.handle)}&limit=1`, {
+      const origin = process.env.NEXT_PUBLIC_SITE_URL
+        || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
+      const res = await fetch(`${origin}/api/medusa/store/products?${expand}&${regionParam}handle=${encodeURIComponent(params.handle)}&limit=1`, {
         next: { revalidate: 300 },
       })
       data = await res.json()
@@ -133,7 +135,9 @@ async function ProductDetails({ params }: ProductPageProps) {
         { next: { revalidate: 300 } }
       )
     } catch {
-      const res = await fetch(`/api/medusa/store/products?${expand}&${regionParam}handle=${encodeURIComponent(params.handle)}&limit=1`, {
+      const origin = process.env.NEXT_PUBLIC_SITE_URL
+        || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
+      const res = await fetch(`${origin}/api/medusa/store/products?${expand}&${regionParam}handle=${encodeURIComponent(params.handle)}&limit=1`, {
         next: { revalidate: 300 },
       })
       data = await res.json()
@@ -151,7 +155,9 @@ async function ProductDetails({ params }: ProductPageProps) {
       try {
         let enriched = await api(`/store/products/${product.id}?expand=variants,variants.prices,images,options,categories,collection`, { next: { revalidate: 300 } })
         if (!enriched?.product) {
-          const resEn = await fetch(`/api/medusa/store/products/${product.id}?expand=variants,variants.prices,images,options,categories,collection`, { next: { revalidate: 300 } })
+          const origin = process.env.NEXT_PUBLIC_SITE_URL
+            || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
+          const resEn = await fetch(`${origin}/api/medusa/store/products/${product.id}?expand=variants,variants.prices,images,options,categories,collection`, { next: { revalidate: 300 } })
           if (resEn.ok) enriched = await resEn.json()
         }
         if (enriched && enriched.product) {
