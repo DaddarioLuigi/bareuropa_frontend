@@ -256,7 +256,7 @@ export function useMedusa(): UseMedusaReturn {
       
       // Dopo aver impostato l'indirizzo, recupera i payment providers per la regione del carrello
       if (updatedCart.region?.id) {
-        // Usa una chiamata diretta per evitare problemi di dipendenze
+        // Usa una chiamata diretta per evitare problemi di riferimento circolare
         try {
           const baseUrl = '/api/medusa'
           const url = `${baseUrl}/store/payment-providers?region_id=${updatedCart.region.id}`
@@ -264,8 +264,10 @@ export function useMedusa(): UseMedusaReturn {
           if (response.ok) {
             const data = await response.json()
             const providers = data.payment_providers || []
-            setPaymentProviders(providers)
-            console.log('Provider pagamento caricati per regione:', providers.length)
+            if (providers.length > 0) {
+              setPaymentProviders(providers)
+              console.log('Provider pagamento caricati per regione:', providers.length)
+            }
           }
         } catch (err) {
           console.error('Errore nel caricamento payment providers:', err)
@@ -274,7 +276,38 @@ export function useMedusa(): UseMedusaReturn {
       
       // Recupera anche le opzioni di spedizione per la regione
       if (updatedCart.region?.id) {
-        await fetchShippingOptions(updatedCart.region.id)
+        // Usa una chiamata diretta per evitare problemi di riferimento circolare
+        try {
+          const baseUrl = '/api/medusa'
+          const response = await fetch(`${baseUrl}/store/shipping-options?region_id=${updatedCart.region.id}`)
+          if (response.ok) {
+            const data = await response.json()
+            const options = data.shipping_options || []
+            if (options.length === 0) {
+              const freeShipping = {
+                id: 'free_shipping',
+                name: 'Spedizione Gratuita',
+                amount: 0,
+                data: {},
+                provider_id: 'manual',
+                region_id: updatedCart.region.id
+              }
+              setShippingOptions([freeShipping])
+            } else {
+              setShippingOptions(options)
+            }
+          }
+        } catch (error) {
+          const freeShipping = {
+            id: 'free_shipping',
+            name: 'Spedizione Gratuita',
+            amount: 0,
+            data: {},
+            provider_id: 'manual',
+            region_id: updatedCart.region.id
+          }
+          setShippingOptions([freeShipping])
+        }
       }
     } catch (err) {
       console.error('Errore nell\'impostazione dell\'indirizzo di spedizione:', err)
@@ -282,7 +315,7 @@ export function useMedusa(): UseMedusaReturn {
     } finally {
       setLoadingCart(false)
     }
-  }, [cart, fetchShippingOptions])
+  }, [cart])
 
   // Imposta indirizzo di fatturazione usando JS SDK
   const setBillingAddress = useCallback(async (address: any) => {
@@ -378,8 +411,50 @@ export function useMedusa(): UseMedusaReturn {
       const response = await fetch(`${baseUrl}/store/regions`)
       if (response.ok) {
         const data = await response.json()
-        setRegions(data.regions || [])
-        console.log('Regioni caricate:', data.regions?.length || 0)
+        const regionsData = data.regions || []
+        setRegions(regionsData)
+        console.log('Regioni caricate:', regionsData.length)
+        
+        // Se ci sono regioni, prova a caricare i payment providers dalla prima regione
+        // o da tutte le regioni disponibili
+        if (regionsData.length > 0) {
+          // Prova a recuperare i payment providers dalla prima regione
+          const firstRegion = regionsData[0]
+          if (firstRegion?.id) {
+            try {
+              // Prova prima con l'endpoint payment-providers
+              const providersResponse = await fetch(`${baseUrl}/store/payment-providers?region_id=${firstRegion.id}`)
+              if (providersResponse.ok) {
+                const providersData = await providersResponse.json()
+                const providers = providersData.payment_providers || []
+                if (providers.length > 0) {
+                  setPaymentProviders(providers)
+                  console.log('Provider pagamento caricati dalla prima regione:', providers.length)
+                } else {
+                  // Se non ci sono provider, prova a recuperarli dalla regione stessa
+                  // Alcune versioni di Medusa includono i payment providers nella risposta della regione
+                  if (firstRegion.payment_providers && firstRegion.payment_providers.length > 0) {
+                    setPaymentProviders(firstRegion.payment_providers)
+                    console.log('Provider pagamento recuperati dalla regione stessa:', firstRegion.payment_providers.length)
+                  }
+                }
+              } else {
+                // Se l'endpoint non funziona, prova a recuperare i payment providers dalla regione stessa
+                if (firstRegion.payment_providers && firstRegion.payment_providers.length > 0) {
+                  setPaymentProviders(firstRegion.payment_providers)
+                  console.log('Provider pagamento recuperati dalla regione stessa (fallback):', firstRegion.payment_providers.length)
+                }
+              }
+            } catch (err) {
+              console.error('Errore nel caricamento payment providers dalla regione:', err)
+              // Fallback: prova a recuperare i payment providers dalla regione stessa
+              if (firstRegion.payment_providers && firstRegion.payment_providers.length > 0) {
+                setPaymentProviders(firstRegion.payment_providers)
+                console.log('Provider pagamento recuperati dalla regione stessa (errore fallback):', firstRegion.payment_providers.length)
+              }
+            }
+          }
+        }
       }
     } catch (error) {
       console.error('Errore nel caricamento regioni:', error)
@@ -440,7 +515,7 @@ export function useMedusa(): UseMedusaReturn {
   }, [])
 
   // Carica provider di pagamento usando chiamate fetch dirette
-  const fetchPaymentProviders = useCallback(async (regionId?: string) => {
+  const fetchPaymentProviders = useCallback(async (regionId?: string, cartId?: string) => {
     try {
       const baseUrl = '/api/medusa'
       // Se abbiamo una regionId, recupera i payment providers per quella regione
@@ -454,38 +529,59 @@ export function useMedusa(): UseMedusaReturn {
       if (response.ok) {
         const data = await response.json()
         const providers = data.payment_providers || []
-        setPaymentProviders(providers)
-        console.log('Provider pagamento caricati per regione', regionId || 'tutte', ':', providers.length)
-      } else {
-        // Se la richiesta fallisce, prova a recuperare i payment providers dal carrello
-        if (cart?.region?.id) {
-          try {
-            const cartResponse = await fetch(`${baseUrl}/store/carts/${cart.id}`, {
-              headers: {
-                'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
-              }
-            })
-            if (cartResponse.ok) {
-              const cartData = await cartResponse.json()
-              // I payment providers potrebbero essere disponibili come payment_sessions nel carrello
-              if (cartData.cart?.payment_sessions && cartData.cart.payment_sessions.length > 0) {
-                const providers = cartData.cart.payment_sessions.map((ps: any) => ({
-                  id: ps.provider_id,
-                  is_enabled: true
-                }))
-                setPaymentProviders(providers)
-                console.log('Provider pagamento recuperati dal carrello:', providers.length)
-              }
+        if (providers.length > 0) {
+          setPaymentProviders(providers)
+          console.log('Provider pagamento caricati per regione', regionId || 'tutte', ':', providers.length)
+          return
+        }
+      }
+      
+      // Se la richiesta fallisce o non ci sono provider, prova a recuperare i payment providers dal carrello
+      if (cartId) {
+        try {
+          const cartResponse = await fetch(`${baseUrl}/store/carts/${cartId}`, {
+            headers: {
+              'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
             }
-          } catch (err) {
-            console.error('Errore nel recupero payment providers dal carrello:', err)
+          })
+          if (cartResponse.ok) {
+            const cartData = await cartResponse.json()
+            // I payment providers potrebbero essere disponibili come payment_sessions nel carrello
+            if (cartData.cart?.payment_sessions && cartData.cart.payment_sessions.length > 0) {
+              const providers = cartData.cart.payment_sessions.map((ps: any) => ({
+                id: ps.provider_id,
+                is_enabled: true
+              }))
+              setPaymentProviders(providers)
+              console.log('Provider pagamento recuperati dal carrello:', providers.length)
+              return
+            }
           }
+        } catch (err) {
+          console.error('Errore nel recupero payment providers dal carrello:', err)
+        }
+      }
+      
+      // Se ancora non abbiamo provider, prova senza region_id
+      if (regionId) {
+        try {
+          const fallbackResponse = await fetch(`${baseUrl}/store/payment-providers`)
+          if (fallbackResponse.ok) {
+            const fallbackData = await fallbackResponse.json()
+            const fallbackProviders = fallbackData.payment_providers || []
+            if (fallbackProviders.length > 0) {
+              setPaymentProviders(fallbackProviders)
+              console.log('Provider pagamento caricati senza regione:', fallbackProviders.length)
+            }
+          }
+        } catch (err) {
+          console.error('Errore nel caricamento payment providers senza regione:', err)
         }
       }
     } catch (error) {
       console.error('Errore nel caricamento provider pagamento:', error)
     }
-  }, [cart])
+  }, [])
 
   // Carica il carrello esistente all'avvio
   useEffect(() => {
@@ -493,49 +589,6 @@ export function useMedusa(): UseMedusaReturn {
     fetchRegions().catch(console.error)
   }, [getOrCreateCart, fetchRegions])
   
-  // Quando il carrello cambia e ha una regione, carica i payment providers per quella regione
-  useEffect(() => {
-    if (cart?.region?.id) {
-      const loadProviders = async () => {
-        try {
-          const baseUrl = '/api/medusa'
-          const url = `${baseUrl}/store/payment-providers?region_id=${cart.region.id}`
-          const response = await fetch(url)
-          if (response.ok) {
-            const data = await response.json()
-            const providers = data.payment_providers || []
-            setPaymentProviders(providers)
-            console.log('Provider pagamento caricati per regione:', providers.length)
-          } else {
-            // Se la richiesta fallisce, prova a recuperare i payment providers dal carrello
-            try {
-              const cartResponse = await fetch(`${baseUrl}/store/carts/${cart.id}`, {
-                headers: {
-                  'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
-                }
-              })
-              if (cartResponse.ok) {
-                const cartData = await cartResponse.json()
-                if (cartData.cart?.payment_sessions && cartData.cart.payment_sessions.length > 0) {
-                  const providers = cartData.cart.payment_sessions.map((ps: any) => ({
-                    id: ps.provider_id,
-                    is_enabled: true
-                  }))
-                  setPaymentProviders(providers)
-                  console.log('Provider pagamento recuperati dal carrello:', providers.length)
-                }
-              }
-            } catch (err) {
-              console.error('Errore nel recupero payment providers dal carrello:', err)
-            }
-          }
-        } catch (error) {
-          console.error('Errore nel caricamento provider pagamento:', error)
-        }
-      }
-      loadProviders()
-    }
-  }, [cart?.region?.id, cart?.id])
 
   return {
     products,

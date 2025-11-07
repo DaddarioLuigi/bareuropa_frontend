@@ -3,6 +3,9 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
+
+// Forza il rendering dinamico per evitare problemi di pre-rendering
+export const dynamic = 'force-dynamic'
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
@@ -27,19 +30,6 @@ export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState("")
   const [sameAsShipping, setSameAsShipping] = useState(true)
 
-  // Debug: log dei dati Medusa
-  useEffect(() => {
-    console.log('Regioni disponibili:', medusa.regions)
-    console.log('Provider pagamento:', medusa.paymentProviders)
-    console.log('Opzioni spedizione:', medusa.shippingOptions)
-  }, [medusa.regions, medusa.paymentProviders, medusa.shippingOptions])
-
-  // Seleziona automaticamente il primo provider disponibile
-  useEffect(() => {
-    if (!paymentMethod && medusa.paymentProviders.length > 0) {
-      setPaymentMethod(medusa.paymentProviders[0].id)
-    }
-  }, [medusa.paymentProviders, paymentMethod])
 
   const [formData, setFormData] = useState({
     // Shipping Information
