@@ -80,23 +80,20 @@ async function ProductsGrid({ searchParams }: ProductsPageProps) {
   
   try {
     const regionParam = MEDUSA_REGION_ID ? `&region_id=${MEDUSA_REGION_ID}` : ''
-    const expand = 'expand=variants,variants.prices,images,options'
+    const origin = process.env.NEXT_PUBLIC_SITE_URL
+      || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
+    const base = `${origin}/api/medusa/store/products?limit=${limit}&offset=${page*limit}${regionParam}${q}`
+    const withExpand = `${base}&expand=variants,variants.prices,images,options`
+    const res1 = await fetch(withExpand, { next: { revalidate: 60 } })
     let data: any
-    try {
-      data = await api(`/store/products?${expand}&limit=${limit}&offset=${page*limit}${regionParam}${q}`, {
-        next: { revalidate: 60 },
-      })
-    } catch (e) {
-      // Fallback: usa il proxy interno in runtime
-      const origin = process.env.NEXT_PUBLIC_SITE_URL
-        || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
-      const res = await fetch(`${origin}/api/medusa/store/products?${expand}&limit=${limit}&offset=${page*limit}${regionParam}${q}`, {
-        next: { revalidate: 60 },
-      })
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`)
+    if (res1.ok) {
+      data = await res1.json()
+    } else {
+      const res2 = await fetch(base, { next: { revalidate: 60 } })
+      if (!res2.ok) {
+        throw new Error(`HTTP ${res1.status}/${res2.status}`)
       }
-      data = await res.json()
+      data = await res2.json()
     }
 
     const products: Product[] = data.products ?? data
