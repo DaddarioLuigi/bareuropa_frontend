@@ -79,15 +79,11 @@ async function ProductsGrid({ searchParams }: ProductsPageProps) {
   const q = searchParams?.q ? `&q=${encodeURIComponent(searchParams.q)}` : ''
   
   try {
-    const data = await fetch(
-      `${process.env.MEDUSA_BACKEND_URL}/store/products?limit=${limit}&offset=${page*limit}&region_id=${MEDUSA_REGION_ID}${q}`,
+    const data = await api(`/store/products?limit=${limit}&offset=${page*limit}&region_id=${MEDUSA_REGION_ID}${q}`,
       {
         next: { revalidate: 60 },
-        headers: {
-          'x-publishable-api-key': process.env.MEDUSA_PUBLISHABLE_API_KEY || '',
-        },
       }
-    ).then(r => r.json())
+    )
 
     const products: Product[] = data.products ?? data
 

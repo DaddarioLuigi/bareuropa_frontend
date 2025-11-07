@@ -20,15 +20,10 @@ export const revalidate = 300
 
 export async function generateMetadata({ params }: { params: { handle: string } }): Promise<Metadata> {
   try {
-    const data = await fetch(
-      `${process.env.MEDUSA_BACKEND_URL}/store/products?region_id=${MEDUSA_REGION_ID}&handle=${encodeURIComponent(params.handle)}&limit=1`,
-      {
-        next: { revalidate: 300 },
-        headers: {
-          'x-publishable-api-key': process.env.MEDUSA_PUBLISHABLE_API_KEY || '',
-        },
-      }
-    ).then(r => r.json())
+    const data = await api(
+      `/store/products?region_id=${MEDUSA_REGION_ID}&handle=${encodeURIComponent(params.handle)}&limit=1`,
+      { next: { revalidate: 300 } }
+    )
     const products = data.products ?? data
     const product = Array.isArray(products) ? products[0] : undefined
     
@@ -119,15 +114,10 @@ interface ProductPageProps {
 
 async function ProductDetails({ params }: ProductPageProps) {
   try {
-    const data = await fetch(
-      `${process.env.MEDUSA_BACKEND_URL}/store/products?region_id=${MEDUSA_REGION_ID}&handle=${encodeURIComponent(params.handle)}&limit=1`,
-      {
-        next: { revalidate: 300 },
-        headers: {
-          'x-publishable-api-key': process.env.MEDUSA_PUBLISHABLE_API_KEY || '',
-        },
-      }
-    ).then(r => r.json())
+    const data = await api(
+      `/store/products?region_id=${MEDUSA_REGION_ID}&handle=${encodeURIComponent(params.handle)}&limit=1`,
+      { next: { revalidate: 300 } }
+    )
     const products = data.products ?? data
     const product: Product | undefined = Array.isArray(products) ? products[0] : undefined
     let enrichedProduct: any | undefined
@@ -139,15 +129,10 @@ async function ProductDetails({ params }: ProductPageProps) {
     // Enrich categories/collection if missing
     if (product && (!product.categories || product.categories.length === 0) && !product.collection) {
       try {
-        const enriched = await fetch(
-          `${process.env.MEDUSA_BACKEND_URL}/store/products/${product.id}`,
-          {
-            next: { revalidate: 300 },
-            headers: {
-              'x-publishable-api-key': process.env.MEDUSA_PUBLISHABLE_API_KEY || '',
-            },
-          }
-        ).then(r => r.json())
+        const enriched = await api(
+          `/store/products/${product.id}`,
+          { next: { revalidate: 300 } }
+        )
         if (enriched && enriched.product) {
           enrichedProduct = enriched.product
           product.categories = enriched.product.categories || product.categories
@@ -407,12 +392,9 @@ async function ProductDetails({ params }: ProductPageProps) {
 
 export async function generateStaticParams() {
   try {
-    const data = await fetch(`${process.env.MEDUSA_BACKEND_URL}/store/products?limit=1000&region_id=${MEDUSA_REGION_ID}`, {
+    const data = await api(`/store/products?limit=1000&region_id=${MEDUSA_REGION_ID}`, {
       next: { revalidate: 300 },
-      headers: {
-        'x-publishable-api-key': process.env.MEDUSA_PUBLISHABLE_API_KEY || '',
-      },
-    }).then(r => r.json())
+    })
     
     const products = data.products ?? data
     

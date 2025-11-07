@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const MEDUSA_BACKEND_URL = 'https://backend-production-d71e9.up.railway.app'
+const MEDUSA_BACKEND_URL = process.env.MEDUSA_BACKEND_URL
+  || process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL
+  || 'https://backend-production-d71e9.up.railway.app'
 
 export async function GET(request: NextRequest) {
   const url = new URL(request.url)
