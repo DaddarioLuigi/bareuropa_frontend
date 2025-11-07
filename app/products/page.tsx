@@ -80,7 +80,8 @@ async function ProductsGrid({ searchParams }: ProductsPageProps) {
   
   try {
     const regionParam = MEDUSA_REGION_ID ? `&region_id=${MEDUSA_REGION_ID}` : ''
-    const data = await api(`/store/products?limit=${limit}&offset=${page*limit}${regionParam}${q}`,
+    const expand = 'expand=variants,variants.prices,images,options'
+    const data = await api(`/store/products?${expand}&limit=${limit}&offset=${page*limit}${regionParam}${q}`,
       {
         next: { revalidate: 60 },
       }
