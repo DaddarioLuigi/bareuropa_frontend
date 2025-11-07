@@ -64,7 +64,7 @@ export function HeroSection() {
               >
                 <Button
                   size="lg"
-                  className="bg-accent hover:bg-accent/90 text-black font-semibold px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg w-full sm:w-auto min-h-[44px] sm:min-h-[48px]"
+                  className="bg-accent hover:bg-accent/90 text-white font-semibold px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg w-full sm:w-auto min-h-[44px] sm:min-h-[48px]"
                 >
                   Scopri i Nostri Prodotti
                   <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />

@@ -101,7 +101,7 @@ export default function CheckoutSuccessPage() {
 
           <div className="text-center space-y-4">
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/shop">
+              <Link href="/products">
                 <Button size="lg" className="bg-accent hover:bg-accent/90">
                   <ArrowRight className="h-5 w-5 mr-2" />
                   Continua lo Shopping

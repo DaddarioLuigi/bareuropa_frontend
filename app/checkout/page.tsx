@@ -161,9 +161,9 @@ export default function CheckoutPage() {
             <p className="text-muted-foreground mb-8">
               Aggiungi alcuni prodotti al carrello prima di procedere al checkout.
             </p>
-            <Link href="/shop">
+            <Link href="/products">
               <Button size="lg" className="bg-accent hover:bg-accent/90">
-                Vai al Shop
+                Vai ai Prodotti
               </Button>
             </Link>
           </div>
@@ -475,7 +475,7 @@ export default function CheckoutPage() {
                     />
                     <Label htmlFor="terms" className="text-sm">
                       Accetto i{" "}
-                      <Link href="/terms" className="text-accent hover:underline">
+                      <Link href="/termini-e-condizioni" className="text-accent hover:underline">
                         Termini e Condizioni
                       </Link>{" "}
                       e la{" "}

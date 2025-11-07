@@ -3,8 +3,8 @@ const BASE = process.env.MEDUSA_BACKEND_URL
   || process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL
   || 'https://backend-production-d71e9.up.railway.app'
 
-// Region ID for pricing: use env if provided; otherwise undefined (omit from queries)
-export const MEDUSA_REGION_ID = process.env.MEDUSA_REGION_ID
+// Region ID for pricing: prefer server env, fallback to public env; otherwise undefined (omit from queries)
+export const MEDUSA_REGION_ID = process.env.MEDUSA_REGION_ID || process.env.NEXT_PUBLIC_MEDUSA_REGION_ID
 
 export async function api(path: string, init?: RequestInit) {
   const res = await fetch(`${BASE}${path}`, {

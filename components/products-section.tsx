@@ -1,6 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ArrowRight } from "lucide-react"
+import Link from "next/link"
 
 const products = [
   {
@@ -61,10 +62,12 @@ export function ProductsSection() {
               <CardContent className="p-6">
                 <h3 className="font-display text-2xl font-semibold text-primary mb-3">{product.title}</h3>
                 <p className="text-muted-foreground leading-relaxed mb-4">{product.description}</p>
-                <Button variant="ghost" className="group/btn p-0 h-auto text-accent hover:text-accent/80">
-                  Scopri di più
-                  <ArrowRight className="ml-2 h-4 w-4 group-hover/btn:translate-x-1 transition-transform" />
-                </Button>
+                <Link href="/la-nostra-storia">
+                  <Button variant="ghost" className="group/btn p-0 h-auto text-accent hover:text-accent/80">
+                    Scopri di più
+                    <ArrowRight className="ml-2 h-4 w-4 group-hover/btn:translate-x-1 transition-transform" />
+                  </Button>
+                </Link>
               </CardContent>
             </Card>
           ))}
