@@ -364,20 +364,6 @@ async function ProductDetails({ params }: ProductPageProps) {
               </div>
             </div>
           </section>
-
-          {/* Debug: raw product data */}
-          <section className="py-6">
-            <Card>
-              <CardContent className="p-6">
-                <details>
-                  <summary className="cursor-pointer select-none text-sm text-muted-foreground">Vedi dati grezzi prodotto (debug)</summary>
-                  <pre className="mt-4 text-xs overflow-x-auto whitespace-pre-wrap break-words">
-{JSON.stringify({ product, enrichedProduct }, null, 2)}
-                  </pre>
-                </details>
-              </CardContent>
-            </Card>
-          </section>
         </main>
 
         <Footer />

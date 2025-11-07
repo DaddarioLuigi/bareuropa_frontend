@@ -473,14 +473,15 @@ export default function CheckoutPage() {
               {/* Terms and Newsletter */}
               <Card>
                 <CardContent className="pt-6 space-y-4">
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-start space-x-2">
                     <Checkbox
                       id="terms"
                       checked={formData.terms}
                       onCheckedChange={(checked) => handleInputChange("terms", checked as boolean)}
                       required
+                      className="mt-1 flex-shrink-0"
                     />
-                    <Label htmlFor="terms" className="text-sm">
+                    <Label htmlFor="terms" className="text-sm leading-relaxed break-words">
                       Accetto i{" "}
                       <Link href="/termini-e-condizioni" className="text-accent hover:underline">
                         Termini e Condizioni
@@ -493,13 +494,14 @@ export default function CheckoutPage() {
                     </Label>
                   </div>
 
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-start space-x-2">
                     <Checkbox
                       id="newsletter"
                       checked={formData.newsletter}
                       onCheckedChange={(checked) => handleInputChange("newsletter", checked as boolean)}
+                      className="mt-1 flex-shrink-0"
                     />
-                    <Label htmlFor="newsletter" className="text-sm">
+                    <Label htmlFor="newsletter" className="text-sm leading-relaxed break-words">
                       Iscriviti alla newsletter per ricevere offerte speciali
                     </Label>
                   </div>

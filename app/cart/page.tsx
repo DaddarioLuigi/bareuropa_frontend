@@ -352,7 +352,7 @@ async function CartContent() {
                       </span>
                     </div>
                     {shippingCost > 0 && (
-                      <p className="text-sm text-muted-foreground">Spedizione gratuita per ordini sopra €50</p>
+                      <p className="text-sm text-muted-foreground break-words whitespace-normal">Spedizione gratuita per ordini sopra €50</p>
                     )}
                   </div>
 
