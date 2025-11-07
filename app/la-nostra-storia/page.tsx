@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Calendar, Users, Coffee, Heart, Award, Clock } from "lucide-react"
 import { motion } from "framer-motion"
+import Link from "next/link"
 
 export default function StoryPage() {
   const timeline = [
@@ -309,13 +310,15 @@ export default function StoryPage() {
               >
                 <a href="https://wa.me/393458041890" target="_blank" rel="noopener noreferrer">Contattaci</a>
               </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                className="border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary font-semibold px-8 py-4 text-lg"
-              >
-                Scopri i Nostri Prodotti
-              </Button>
+              <Link href="/products">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="border-primary-foreground text-black hover:bg-primary-foreground hover:text-primary font-semibold px-8 py-4 text-lg"
+                >
+                  Scopri i Nostri Prodotti
+                </Button>
+              </Link>
             </div>
           </motion.div>
         </div>
