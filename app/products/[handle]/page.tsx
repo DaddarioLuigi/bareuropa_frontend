@@ -21,21 +21,11 @@ export const revalidate = 300
 export async function generateMetadata({ params }: { params: { handle: string } }): Promise<Metadata> {
   try {
     const regionParam = MEDUSA_REGION_ID ? `region_id=${MEDUSA_REGION_ID}&` : ''
-    const origin = process.env.NEXT_PUBLIC_SITE_URL
-      || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
-    const base = `${origin}/api/medusa/store/products?${regionParam}handle=${encodeURIComponent(params.handle)}&limit=1`
-    const withExpand = `${base}&expand=variants,variants.prices,images,options,categories,collection`
-    const res1 = await fetch(withExpand, { next: { revalidate: 300 } })
-    let data: any
-    if (res1.ok) {
-      data = await res1.json()
-    } else {
-      const res2 = await fetch(base, { next: { revalidate: 300 } })
-      if (!res2.ok) {
-        throw new Error(`HTTP ${res1.status}/${res2.status}`)
-      }
-      data = await res2.json()
-    }
+    const expand = 'expand=variants,variants.prices,images,options&'
+    const data = await api(
+      `/store/products?${expand}${regionParam}handle=${encodeURIComponent(params.handle)}&limit=1`,
+      { next: { revalidate: 300 } }
+    )
     const products = data.products ?? data
     const product = Array.isArray(products) ? products[0] : undefined
     
@@ -127,21 +117,11 @@ interface ProductPageProps {
 async function ProductDetails({ params }: ProductPageProps) {
   try {
     const regionParam = MEDUSA_REGION_ID ? `region_id=${MEDUSA_REGION_ID}&` : ''
-    const origin = process.env.NEXT_PUBLIC_SITE_URL
-      || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
-    const base = `${origin}/api/medusa/store/products?${regionParam}handle=${encodeURIComponent(params.handle)}&limit=1`
-    const withExpand = `${base}&expand=variants,variants.prices,images,options,categories,collection`
-    const res1 = await fetch(withExpand, { next: { revalidate: 300 } })
-    let data: any
-    if (res1.ok) {
-      data = await res1.json()
-    } else {
-      const res2 = await fetch(base, { next: { revalidate: 300 } })
-      if (!res2.ok) {
-        throw new Error(`HTTP ${res1.status}/${res2.status}`)
-      }
-      data = await res2.json()
-    }
+    const expand = 'expand=variants,variants.prices,images,options&'
+    const data = await api(
+      `/store/products?${expand}${regionParam}handle=${encodeURIComponent(params.handle)}&limit=1`,
+      { next: { revalidate: 300 } }
+    )
     const products = data.products ?? data
     const product: Product | undefined = Array.isArray(products) ? products[0] : undefined
     let enrichedProduct: any | undefined
@@ -153,10 +133,7 @@ async function ProductDetails({ params }: ProductPageProps) {
     // Enrich categories/collection if missing
     if (product && (!product.categories || product.categories.length === 0) && !product.collection) {
       try {
-        const origin = process.env.NEXT_PUBLIC_SITE_URL
-          || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
-        const resEn = await fetch(`${origin}/api/medusa/store/products/${product.id}?expand=variants,variants.prices,images,options,categories,collection`, { next: { revalidate: 300 } })
-        const enriched = resEn.ok ? await resEn.json() : undefined
+        const enriched = await api(`/store/products/${product.id}?expand=variants,variants.prices,images,options`, { next: { revalidate: 300 } })
         if (enriched && enriched.product) {
           enrichedProduct = enriched.product
           product.categories = enriched.product.categories || product.categories
@@ -417,7 +394,7 @@ async function ProductDetails({ params }: ProductPageProps) {
 export async function generateStaticParams() {
   try {
     const regionParam = MEDUSA_REGION_ID ? `&region_id=${MEDUSA_REGION_ID}` : ''
-    const data = await api(`/store/products?expand=variants,variants.prices&limit=1000${regionParam}`, { next: { revalidate: 300 } })
+    const data = await api(`/store/products?limit=1000${regionParam}&expand=variants,variants.prices,images,options`, { next: { revalidate: 300 } })
     
     const products = data.products ?? data
     
