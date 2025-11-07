@@ -13,7 +13,9 @@ export async function GET(request: NextRequest) {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'x-publishable-api-key': process.env.MEDUSA_PUBLISHABLE_API_KEY || '',
+        'x-publishable-api-key': process.env.MEDUSA_PUBLISHABLE_API_KEY
+          || process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY
+          || '',
       },
     })
     
@@ -51,7 +53,9 @@ export async function POST(request: NextRequest) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-publishable-api-key': process.env.MEDUSA_PUBLISHABLE_API_KEY || '',
+        'x-publishable-api-key': process.env.MEDUSA_PUBLISHABLE_API_KEY
+          || process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY
+          || '',
       },
       body: JSON.stringify(body),
     })

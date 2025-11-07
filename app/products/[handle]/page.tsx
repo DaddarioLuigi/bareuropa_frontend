@@ -20,8 +20,9 @@ export const revalidate = 300
 
 export async function generateMetadata({ params }: { params: { handle: string } }): Promise<Metadata> {
   try {
+    const regionParam = MEDUSA_REGION_ID ? `region_id=${MEDUSA_REGION_ID}&` : ''
     const data = await api(
-      `/store/products?region_id=${MEDUSA_REGION_ID}&handle=${encodeURIComponent(params.handle)}&limit=1`,
+      `/store/products?${regionParam}handle=${encodeURIComponent(params.handle)}&limit=1`,
       { next: { revalidate: 300 } }
     )
     const products = data.products ?? data
@@ -114,8 +115,9 @@ interface ProductPageProps {
 
 async function ProductDetails({ params }: ProductPageProps) {
   try {
+    const regionParam = MEDUSA_REGION_ID ? `region_id=${MEDUSA_REGION_ID}&` : ''
     const data = await api(
-      `/store/products?region_id=${MEDUSA_REGION_ID}&handle=${encodeURIComponent(params.handle)}&limit=1`,
+      `/store/products?${regionParam}handle=${encodeURIComponent(params.handle)}&limit=1`,
       { next: { revalidate: 300 } }
     )
     const products = data.products ?? data
@@ -129,10 +131,7 @@ async function ProductDetails({ params }: ProductPageProps) {
     // Enrich categories/collection if missing
     if (product && (!product.categories || product.categories.length === 0) && !product.collection) {
       try {
-        const enriched = await api(
-          `/store/products/${product.id}`,
-          { next: { revalidate: 300 } }
-        )
+        const enriched = await api(`/store/products/${product.id}`, { next: { revalidate: 300 } })
         if (enriched && enriched.product) {
           enrichedProduct = enriched.product
           product.categories = enriched.product.categories || product.categories
@@ -392,9 +391,8 @@ async function ProductDetails({ params }: ProductPageProps) {
 
 export async function generateStaticParams() {
   try {
-    const data = await api(`/store/products?limit=1000&region_id=${MEDUSA_REGION_ID}`, {
-      next: { revalidate: 300 },
-    })
+    const regionParam = MEDUSA_REGION_ID ? `&region_id=${MEDUSA_REGION_ID}` : ''
+    const data = await api(`/store/products?limit=1000${regionParam}`, { next: { revalidate: 300 } })
     
     const products = data.products ?? data
     

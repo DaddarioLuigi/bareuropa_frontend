@@ -79,7 +79,8 @@ async function ProductsGrid({ searchParams }: ProductsPageProps) {
   const q = searchParams?.q ? `&q=${encodeURIComponent(searchParams.q)}` : ''
   
   try {
-    const data = await api(`/store/products?limit=${limit}&offset=${page*limit}&region_id=${MEDUSA_REGION_ID}${q}`,
+    const regionParam = MEDUSA_REGION_ID ? `&region_id=${MEDUSA_REGION_ID}` : ''
+    const data = await api(`/store/products?limit=${limit}&offset=${page*limit}${regionParam}${q}`,
       {
         next: { revalidate: 60 },
       }

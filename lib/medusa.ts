@@ -3,15 +3,18 @@ const BASE = process.env.MEDUSA_BACKEND_URL
   || process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL
   || 'https://backend-production-d71e9.up.railway.app'
 
-// Region ID for pricing (Europe region)
-export const MEDUSA_REGION_ID = 'reg_01K8BEGZCPDDPM7CA706AB5SBH'
+// Region ID for pricing: use env if provided; otherwise undefined (omit from queries)
+export const MEDUSA_REGION_ID = process.env.MEDUSA_REGION_ID
 
 export async function api(path: string, init?: RequestInit) {
   const res = await fetch(`${BASE}${path}`, {
     ...init,
     headers: { 
       'content-type': 'application/json',
-      'x-publishable-api-key': process.env.MEDUSA_PUBLISHABLE_API_KEY || '',
+      // Support either server or public env for publishable key
+      'x-publishable-api-key': process.env.MEDUSA_PUBLISHABLE_API_KEY
+        || process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY
+        || '',
       ...(init?.headers || {}) 
     },
   })
