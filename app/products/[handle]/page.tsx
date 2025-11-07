@@ -217,7 +217,7 @@ async function ProductDetails({ params }: ProductPageProps) {
       <div className="min-h-screen bg-background">
         <Navigation />
 
-        <main className="pt-16">
+        <main id="main-content" className="pt-16">
           {/* Breadcrumb */}
           <div className="bg-muted/30 py-4">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

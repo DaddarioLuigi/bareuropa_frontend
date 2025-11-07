@@ -66,8 +66,8 @@ export function Navigation() {
           {/* Right side buttons */}
           <div className="hidden md:flex items-center space-x-4">
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Link href="/cart">
-                <Button variant="ghost" size="sm" className="relative">
+              <Link href="/cart" aria-label={`Carrello${state.itemCount > 0 ? ` (${state.itemCount} articoli)` : ''}`}>
+                <Button variant="ghost" size="sm" className="relative min-h-[44px] min-w-[44px]">
                   <ShoppingBag className="h-5 w-5" />
                   <AnimatePresence>
                     {state.itemCount > 0 && (
@@ -77,6 +77,7 @@ export function Navigation() {
                         animate={{ scale: 1 }}
                         exit={{ scale: 0 }}
                         transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                        aria-hidden="true"
                       >
                         {state.itemCount}
                       </motion.span>
@@ -87,7 +88,7 @@ export function Navigation() {
             </motion.div>
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Link href="/preferiti" aria-label="Preferiti">
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" className="min-h-[44px] min-w-[44px]">
                   <Heart className="h-5 w-5" />
                 </Button>
               </Link>
@@ -102,7 +103,14 @@ export function Navigation() {
           {/* Mobile menu button */}
           <div className="md:hidden">
             <motion.div whileTap={{ scale: 0.95 }}>
-              <Button variant="ghost" size="sm" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                aria-label={isMenuOpen ? "Chiudi menu" : "Apri menu"}
+                aria-expanded={isMenuOpen}
+                className="min-h-[44px] min-w-[44px]"
+              >
                 <AnimatePresence mode="wait">
                   {isMenuOpen ? (
                     <motion.div

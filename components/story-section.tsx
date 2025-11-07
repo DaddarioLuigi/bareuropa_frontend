@@ -53,7 +53,7 @@ export function StorySection() {
           {/* Image */}
           <div className="relative">
             <div className="aspect-[4/5] rounded-lg overflow-hidden">
-              <img src="/vintage-italian-pastry-shop-with-traditional-displ.jpg" alt="Storia di Bar Europa" className="w-full h-full object-cover" />
+              <img src="/storia_1.jpeg" alt="Storia di Bar Europa" className="w-full h-full object-cover" />
             </div>
 
             {/* Decorative element */}

@@ -49,8 +49,9 @@ export function ProductsSection() {
               <div className="relative aspect-[4/3] overflow-hidden">
                 <img
                   src={product.image || "/placeholder.svg"}
-                  alt={product.title}
+                  alt={`${product.title} - ${product.description}`}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  loading="lazy"
                 />
                 <div
                   className={`absolute top-4 left-4 ${product.accent} text-white px-3 py-1 rounded-full text-sm font-medium`}
@@ -62,7 +63,7 @@ export function ProductsSection() {
               <CardContent className="p-6">
                 <h3 className="font-display text-2xl font-semibold text-primary mb-3">{product.title}</h3>
                 <p className="text-muted-foreground leading-relaxed mb-4">{product.description}</p>
-                <Link href="/la-nostra-storia">
+                <Link href="/products">
                   <Button variant="ghost" className="group/btn p-0 h-auto text-accent hover:text-accent/80">
                     Scopri di più
                     <ArrowRight className="ml-2 h-4 w-4 group-hover/btn:translate-x-1 transition-transform" />

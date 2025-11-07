@@ -25,11 +25,17 @@ export function ContactSection() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg mb-1">Indirizzo</h3>
-                  <p className="text-primary-foreground/80">
+                  <a 
+                    href="https://maps.google.com/?q=Corso+Vittorio+Emanuele+II+161,+76125+Trani" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-primary-foreground/80 hover:text-accent transition-colors"
+                    aria-label="Apri mappa con l'indirizzo di Bar Europa"
+                  >
                     Corso Vittorio Emanuele II 161
                     <br />
                     76125 Trani, Italia
-                  </p>
+                  </a>
                 </div>
               </div>
 
@@ -39,7 +45,13 @@ export function ContactSection() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg mb-1">Telefono</h3>
-                  <p className="text-primary-foreground/80">0883 583483</p>
+                  <a 
+                    href="tel:+390883583483" 
+                    className="text-primary-foreground/80 hover:text-accent transition-colors"
+                    aria-label="Chiama Bar Europa"
+                  >
+                    0883 583483
+                  </a>
                 </div>
               </div>
 
@@ -49,7 +61,13 @@ export function ContactSection() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg mb-1">Email</h3>
-                  <p className="text-primary-foreground/80">info@bareuropa.it</p>
+                  <a 
+                    href="mailto:info@bareuropa.it" 
+                    className="text-primary-foreground/80 hover:text-accent transition-colors"
+                    aria-label="Invia email a Bar Europa"
+                  >
+                    info@bareuropa.it
+                  </a>
                 </div>
               </div>
 

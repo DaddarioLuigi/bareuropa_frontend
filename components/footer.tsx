@@ -74,9 +74,34 @@ export function Footer() {
           <div>
             <h4 className="font-semibold text-primary mb-4">Contatti</h4>
             <ul className="space-y-2 text-muted-foreground text-sm">
-              <li>Corso Vittorio Emanuele II 161, 76125 Trani</li>
-              <li>0883 583483</li>
-              <li>info@bareuropa.it</li>
+              <li>
+                <a 
+                  href="https://maps.google.com/?q=Corso+Vittorio+Emanuele+II+161,+76125+Trani" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="hover:text-accent transition-colors"
+                >
+                  Corso Vittorio Emanuele II 161, 76125 Trani
+                </a>
+              </li>
+              <li>
+                <a 
+                  href="tel:+390883583483" 
+                  className="hover:text-accent transition-colors"
+                  aria-label="Chiama Bar Europa"
+                >
+                  0883 583483
+                </a>
+              </li>
+              <li>
+                <a 
+                  href="mailto:info@bareuropa.it" 
+                  className="hover:text-accent transition-colors"
+                  aria-label="Invia email a Bar Europa"
+                >
+                  info@bareuropa.it
+                </a>
+              </li>
             </ul>
           </div>
         </div>

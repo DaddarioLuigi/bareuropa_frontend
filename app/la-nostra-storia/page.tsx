@@ -44,7 +44,7 @@ export default function StoryPage() {
       title: "La Tradizione Continua",
       description: "Oggi Bar Europa continua la sua tradizione con Francesco e Cataldo Farucci & C. S.n.c., mantenendo l'autenticità e la qualità che ci contraddistingue da oltre cinquant'anni.",
       icon: Clock,
-      image: "/italian-caf--storefront-with-outdoor-seating-and-w.jpg"
+      image: "/tradizione.jpeg"
     }
   ]
 

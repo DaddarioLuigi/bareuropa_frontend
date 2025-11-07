@@ -242,7 +242,8 @@ async function CartContent() {
                         type="submit"
                         variant="outline"
                         size="sm"
-                        className="text-destructive hover:text-destructive bg-transparent"
+                        className="text-destructive hover:text-destructive bg-transparent min-h-[44px]"
+                        aria-label="Svuota tutto il carrello"
                       >
                         <Trash2 className="h-4 w-4 mr-2" />
                         Svuota carrello
@@ -286,16 +287,20 @@ async function CartContent() {
                                   name="quantity"
                                   value={item.quantity - 1}
                                   disabled={item.quantity <= 1}
+                                  aria-label={`Riduci quantità di ${productTitle}`}
+                                  className="min-h-[44px] min-w-[44px]"
                                 >
                                   <Minus className="h-4 w-4" />
                                 </Button>
-                                <span className="px-3 py-1 font-medium">{item.quantity}</span>
+                                <span className="px-3 py-1 font-medium min-w-[3ch] text-center" aria-label={`Quantità: ${item.quantity}`}>{item.quantity}</span>
                                 <Button
                                   type="submit"
                                   variant="ghost"
                                   size="sm"
                                   name="quantity"
                                   value={item.quantity + 1}
+                                  aria-label={`Aumenta quantità di ${productTitle}`}
+                                  className="min-h-[44px] min-w-[44px]"
                                 >
                                   <Plus className="h-4 w-4" />
                                 </Button>
@@ -307,7 +312,8 @@ async function CartContent() {
                                   type="submit"
                                   variant="ghost"
                                   size="sm"
-                                  className="text-destructive hover:text-destructive"
+                                  className="text-destructive hover:text-destructive min-h-[44px] min-w-[44px]"
+                                  aria-label={`Rimuovi ${productTitle} dal carrello`}
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
@@ -450,7 +456,7 @@ export default async function CartPage() {
       <Navigation />
       <CartStateSync serverCartItemCount={itemCount} />
 
-      <main className="pt-16">
+      <main id="main-content" className="pt-16">
         <CartContent />
       </main>
 

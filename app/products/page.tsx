@@ -124,7 +124,12 @@ async function ProductsGrid({ searchParams }: ProductsPageProps) {
                   />
                   <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     <Link href={`/products/${product.handle}`}>
-                      <Button size="sm" variant="secondary" className="h-8 w-8 p-0">
+                      <Button 
+                        size="sm" 
+                        variant="secondary" 
+                        className="min-h-[44px] min-w-[44px]"
+                        aria-label={`Vedi dettagli di ${product.title}`}
+                      >
                         <Eye className="h-4 w-4" />
                       </Button>
                     </Link>
@@ -152,7 +157,11 @@ async function ProductsGrid({ searchParams }: ProductsPageProps) {
 
               <CardFooter className="p-4 pt-0 flex gap-2">
                 <Link href={`/products/${product.handle}`} className="flex-1">
-                  <Button variant="outline" className="w-full bg-transparent">
+                  <Button 
+                    variant="outline" 
+                    className="w-full bg-transparent min-h-[44px]"
+                    aria-label={`Vedi dettagli di ${product.title}`}
+                  >
                     <Eye className="h-4 w-4 mr-2" />
                     Dettagli
                   </Button>
@@ -166,7 +175,7 @@ async function ProductsGrid({ searchParams }: ProductsPageProps) {
                       price={price}
                       image={image}
                       weight={weight}
-                      className="w-full bg-accent hover:bg-accent/90"
+                      className="w-full bg-accent hover:bg-accent/90 min-h-[44px]"
                       size="default"
                     />
                   </div>
@@ -219,7 +228,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
     <div className="min-h-screen bg-background">
       <Navigation />
 
-      <main className="pt-16">
+      <main id="main-content" className="pt-16">
         {/* Hero Section */}
         <section className="bg-gradient-to-r from-primary/10 to-accent/10 py-16">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
