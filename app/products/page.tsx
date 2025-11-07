@@ -81,11 +81,21 @@ async function ProductsGrid({ searchParams }: ProductsPageProps) {
   try {
     const regionParam = MEDUSA_REGION_ID ? `&region_id=${MEDUSA_REGION_ID}` : ''
     const expand = 'expand=variants,variants.prices,images,options'
-    const data = await api(`/store/products?${expand}&limit=${limit}&offset=${page*limit}${regionParam}${q}`,
-      {
+    let data: any
+    try {
+      data = await api(`/store/products?${expand}&limit=${limit}&offset=${page*limit}${regionParam}${q}`, {
         next: { revalidate: 60 },
+      })
+    } catch (e) {
+      // Fallback: usa il proxy interno in runtime
+      const res = await fetch(`/api/medusa/store/products?${expand}&limit=${limit}&offset=${page*limit}${regionParam}${q}`, {
+        next: { revalidate: 60 },
+      })
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`)
       }
-    )
+      data = await res.json()
+    }
 
     const products: Product[] = data.products ?? data
 

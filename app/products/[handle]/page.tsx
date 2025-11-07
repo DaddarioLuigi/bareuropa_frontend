@@ -22,10 +22,18 @@ export async function generateMetadata({ params }: { params: { handle: string } 
   try {
     const regionParam = MEDUSA_REGION_ID ? `region_id=${MEDUSA_REGION_ID}&` : ''
     const expand = 'expand=variants,variants.prices,images,options,categories,collection'
-    const data = await api(
-      `/store/products?${expand}&${regionParam}handle=${encodeURIComponent(params.handle)}&limit=1`,
-      { next: { revalidate: 300 } }
-    )
+    let data: any
+    try {
+      data = await api(
+        `/store/products?${expand}&${regionParam}handle=${encodeURIComponent(params.handle)}&limit=1`,
+        { next: { revalidate: 300 } }
+      )
+    } catch {
+      const res = await fetch(`/api/medusa/store/products?${expand}&${regionParam}handle=${encodeURIComponent(params.handle)}&limit=1`, {
+        next: { revalidate: 300 },
+      })
+      data = await res.json()
+    }
     const products = data.products ?? data
     const product = Array.isArray(products) ? products[0] : undefined
     
@@ -118,10 +126,18 @@ async function ProductDetails({ params }: ProductPageProps) {
   try {
     const regionParam = MEDUSA_REGION_ID ? `region_id=${MEDUSA_REGION_ID}&` : ''
     const expand = 'expand=variants,variants.prices,images,options,categories,collection'
-    const data = await api(
-      `/store/products?${expand}&${regionParam}handle=${encodeURIComponent(params.handle)}&limit=1`,
-      { next: { revalidate: 300 } }
-    )
+    let data: any
+    try {
+      data = await api(
+        `/store/products?${expand}&${regionParam}handle=${encodeURIComponent(params.handle)}&limit=1`,
+        { next: { revalidate: 300 } }
+      )
+    } catch {
+      const res = await fetch(`/api/medusa/store/products?${expand}&${regionParam}handle=${encodeURIComponent(params.handle)}&limit=1`, {
+        next: { revalidate: 300 },
+      })
+      data = await res.json()
+    }
     const products = data.products ?? data
     const product: Product | undefined = Array.isArray(products) ? products[0] : undefined
     let enrichedProduct: any | undefined
@@ -133,7 +149,11 @@ async function ProductDetails({ params }: ProductPageProps) {
     // Enrich categories/collection if missing
     if (product && (!product.categories || product.categories.length === 0) && !product.collection) {
       try {
-        const enriched = await api(`/store/products/${product.id}?expand=variants,variants.prices,images,options,categories,collection`, { next: { revalidate: 300 } })
+        let enriched = await api(`/store/products/${product.id}?expand=variants,variants.prices,images,options,categories,collection`, { next: { revalidate: 300 } })
+        if (!enriched?.product) {
+          const resEn = await fetch(`/api/medusa/store/products/${product.id}?expand=variants,variants.prices,images,options,categories,collection`, { next: { revalidate: 300 } })
+          if (resEn.ok) enriched = await resEn.json()
+        }
         if (enriched && enriched.product) {
           enrichedProduct = enriched.product
           product.categories = enriched.product.categories || product.categories
