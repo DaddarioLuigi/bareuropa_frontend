@@ -260,9 +260,9 @@ async function CartContent() {
                 
                 return (
                   <Card key={item.id}>
-                    <CardContent className="p-6">
-                      <div className="flex gap-4">
-                        <div className="w-24 h-24 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                    <CardContent className="p-4 sm:p-6">
+                      <div className="flex gap-3 sm:gap-4">
+                        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg overflow-hidden bg-muted flex-shrink-0">
                           <img
                             src={image}
                             alt={productTitle}
@@ -271,13 +271,13 @@ async function CartContent() {
                         </div>
 
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-lg mb-1">{productTitle}</h3>
-                          <p className="text-sm text-muted-foreground mb-3">
+                          <h3 className="font-semibold text-base sm:text-lg mb-1 break-words">{productTitle}</h3>
+                          <p className="text-xs sm:text-sm text-muted-foreground mb-3 break-words">
                             Variante: {variantTitle}
                           </p>
 
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                            <div className="flex items-center gap-2 sm:gap-3">
                               <form action={updateCartItem} className="flex items-center border rounded-lg">
                                 <input type="hidden" name="lineItemId" value={item.id} />
                                 <Button
@@ -292,7 +292,7 @@ async function CartContent() {
                                 >
                                   <Minus className="h-4 w-4" />
                                 </Button>
-                                <span className="px-3 py-1 font-medium min-w-[3ch] text-center" aria-label={`Quantità: ${item.quantity}`}>{item.quantity}</span>
+                                <span className="px-2 sm:px-3 py-1 font-medium min-w-[3ch] text-center" aria-label={`Quantità: ${item.quantity}`}>{item.quantity}</span>
                                 <Button
                                   type="submit"
                                   variant="ghost"
@@ -320,9 +320,9 @@ async function CartContent() {
                               </form>
                             </div>
 
-                            <div className="text-right">
-                              <p className="text-lg font-bold text-primary">€{(price * item.quantity).toFixed(2)}</p>
-                              <p className="text-sm text-muted-foreground">€{price.toFixed(2)} cad.</p>
+                            <div className="text-left sm:text-right flex-shrink-0">
+                              <p className="text-base sm:text-lg font-bold text-primary whitespace-nowrap">€{(price * item.quantity).toFixed(2)}</p>
+                              <p className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">€{price.toFixed(2)} cad.</p>
                             </div>
                           </div>
                         </div>
