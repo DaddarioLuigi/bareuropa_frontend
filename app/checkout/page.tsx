@@ -500,35 +500,35 @@ export default function CheckoutPage() {
               {/* Terms and Newsletter */}
               <Card>
                 <CardContent className="pt-6 space-y-4">
-                  <div className="flex items-start space-x-2">
+                  <div className="flex items-start gap-2 sm:gap-3">
                     <Checkbox
                       id="terms"
                       checked={formData.terms}
                       onCheckedChange={(checked) => handleInputChange("terms", checked as boolean)}
                       required
-                      className="mt-1 flex-shrink-0"
+                      className="mt-0.5 sm:mt-1 flex-shrink-0"
                     />
-                    <Label htmlFor="terms" className="text-sm leading-relaxed break-words">
+                    <Label htmlFor="terms" className="text-xs sm:text-sm leading-relaxed flex-1 min-w-0">
                       Accetto i{" "}
-                      <Link href="/termini-e-condizioni" className="text-accent hover:underline">
+                      <Link href="/termini-e-condizioni" className="text-accent hover:underline inline">
                         Termini e Condizioni
-                      </Link>{" "}
-                      e la{" "}
-                      <Link href="/privacy" className="text-accent hover:underline">
+                      </Link>
+                      {" "}e la{" "}
+                      <Link href="/privacy" className="text-accent hover:underline inline">
                         Privacy Policy
-                      </Link>{" "}
-                      *
+                      </Link>
+                      {" "}*
                     </Label>
                   </div>
 
-                  <div className="flex items-start space-x-2">
+                  <div className="flex items-start gap-2 sm:gap-3">
                     <Checkbox
                       id="newsletter"
                       checked={formData.newsletter}
                       onCheckedChange={(checked) => handleInputChange("newsletter", checked as boolean)}
-                      className="mt-1 flex-shrink-0"
+                      className="mt-0.5 sm:mt-1 flex-shrink-0"
                     />
-                    <Label htmlFor="newsletter" className="text-sm leading-relaxed break-words">
+                    <Label htmlFor="newsletter" className="text-xs sm:text-sm leading-relaxed flex-1 min-w-0">
                       Iscriviti alla newsletter per ricevere offerte speciali
                     </Label>
                   </div>
