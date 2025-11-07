@@ -22,6 +22,33 @@ import { CreditCard, Truck, MapPin, Lock } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
+// Funzione helper per ottenere un nome user-friendly per i payment providers
+function getPaymentProviderName(providerId: string): string {
+  const providerNames: Record<string, string> = {
+    'pp_stripe_stripe': 'Carta di Credito (Stripe)',
+    'stripe': 'Carta di Credito (Stripe)',
+    'pp_stripe': 'Carta di Credito (Stripe)',
+    'paypal': 'PayPal',
+    'pp_paypal': 'PayPal',
+    'manual': 'Pagamento Manuale',
+  }
+  
+  // Se c'è un nome mappato, usalo
+  if (providerNames[providerId]) {
+    return providerNames[providerId]
+  }
+  
+  // Altrimenti, pulisci l'ID rimuovendo prefissi comuni
+  let cleanName = providerId
+    .replace(/^pp_/i, '') // Rimuovi prefisso "pp_"
+    .replace(/_/g, ' ') // Sostituisci underscore con spazi
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ')
+  
+  return cleanName
+}
+
 export default function CheckoutPage() {
   const { state } = useCart()
   const medusa = useMedusa()
@@ -395,7 +422,7 @@ export default function CheckoutPage() {
                       {medusa.paymentProviders.map((p: any) => (
                         <div key={p.id} className="flex items-center space-x-2">
                           <RadioGroupItem value={p.id} id={`pm-${p.id}`} />
-                          <Label htmlFor={`pm-${p.id}`}>{p.id}</Label>
+                          <Label htmlFor={`pm-${p.id}`}>{getPaymentProviderName(p.id)}</Label>
                         </div>
                       ))}
                     </RadioGroup>
