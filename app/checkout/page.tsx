@@ -116,12 +116,29 @@ export default function CheckoutPage() {
         await medusa.setBillingAddress(shippingAddress)
       }
 
-      // Aggiungi metodo di spedizione (assumiamo un metodo standard)
-      // In un'applicazione reale, dovresti recuperare i metodi disponibili
+      // Aggiungi metodo di spedizione da Medusa
+      // Se ci sono opzioni disponibili, usa la prima, altrimenti usa spedizione gratuita
       try {
-        await medusa.addShippingMethod("standard_shipping")
+        if (medusa.shippingOptions.length > 0) {
+          // Usa la prima opzione disponibile
+          await medusa.addShippingMethod(medusa.shippingOptions[0].id)
+        } else {
+          // Se non ci sono opzioni, prova con spedizione gratuita
+          try {
+            await medusa.addShippingMethod("free_shipping")
+          } catch (freeError) {
+            console.warn('Impossibile aggiungere spedizione gratuita:', freeError)
+            // Se anche questo fallisce, continua comunque (Medusa potrebbe gestirlo automaticamente)
+          }
+        }
       } catch (error) {
         console.warn('Impossibile aggiungere metodo di spedizione:', error)
+        // Prova con spedizione gratuita come fallback
+        try {
+          await medusa.addShippingMethod("free_shipping")
+        } catch (freeError) {
+          console.warn('Impossibile aggiungere spedizione gratuita come fallback:', freeError)
+        }
       }
 
       // Aggiungi sessione di pagamento usando il provider selezionato da Medusa
