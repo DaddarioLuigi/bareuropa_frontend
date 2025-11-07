@@ -547,3 +547,6 @@ Proxy error: SyntaxError: Unexpected end of JSON input
  ✓ Compiled in 75ms (846 modules)
  ✓ Compiled in 350ms (1851 modules)
  ✓ Compiled in 169ms (1851 modules)
+ ✓ Compiled in 384ms (1851 modules)
+ ✓ Compiled in 7.3s (1851 modules)
+ ✓ Compiled in 1809ms (846 modules)

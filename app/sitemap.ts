@@ -1,48 +1,52 @@
 import { MetadataRoute } from 'next'
 
+export const dynamic = 'force-dynamic'
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3002'
+  const siteUrl =
+    process.env.NEXT_PUBLIC_SITE_URL
+    || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
   
   // Static pages
   const staticPages = [
     {
-      url: baseUrl,
+      url: siteUrl,
       lastModified: new Date(),
       changeFrequency: 'weekly' as const,
       priority: 1,
     },
     {
-      url: `${baseUrl}/products`,
+      url: `${siteUrl}/products`,
       lastModified: new Date(),
       changeFrequency: 'daily' as const,
       priority: 0.9,
     },
     {
-      url: `${baseUrl}/cart`,
+      url: `${siteUrl}/cart`,
       lastModified: new Date(),
       changeFrequency: 'monthly' as const,
       priority: 0.7,
     },
     {
-      url: `${baseUrl}/login`,
+      url: `${siteUrl}/login`,
       lastModified: new Date(),
       changeFrequency: 'monthly' as const,
       priority: 0.5,
     },
     {
-      url: `${baseUrl}/register`,
+      url: `${siteUrl}/register`,
       lastModified: new Date(),
       changeFrequency: 'monthly' as const,
       priority: 0.5,
     },
     {
-      url: `${baseUrl}/la-nostra-storia`,
+      url: `${siteUrl}/la-nostra-storia`,
       lastModified: new Date(),
       changeFrequency: 'monthly' as const,
       priority: 0.6,
     },
     {
-      url: `${baseUrl}/contatti`,
+      url: `${siteUrl}/contatti`,
       lastModified: new Date(),
       changeFrequency: 'monthly' as const,
       priority: 0.6,
@@ -53,8 +57,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let productPages: MetadataRoute.Sitemap = []
   
   try {
-    const productsRes = await fetch(`${baseUrl}/api/medusa/store/products?limit=1000`, {
-      next: { revalidate: 300 }
+    const backend =
+      process.env.MEDUSA_BACKEND_URL
+      || process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL
+      || 'https://backend-production-d71e9.up.railway.app'
+    const pubKey =
+      process.env.MEDUSA_PUBLISHABLE_API_KEY
+      || process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY
+      || ''
+
+    const productsRes = await fetch(`${backend}/store/products?limit=1000`, {
+      headers: pubKey ? { 'x-publishable-api-key': pubKey } : {},
+      cache: 'no-store',
+      next: { revalidate: 300 },
     })
     
     if (productsRes.ok) {
@@ -62,7 +77,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       const products = data.products ?? data
       
       productPages = products.map((product: any) => ({
-        url: `${baseUrl}/products/${product.handle}`,
+        url: `${siteUrl}/products/${product.handle}`,
         lastModified: new Date(product.updated_at || product.created_at),
         changeFrequency: 'weekly' as const,
         priority: 0.8,
