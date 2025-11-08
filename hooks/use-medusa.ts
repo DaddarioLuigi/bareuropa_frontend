@@ -449,27 +449,38 @@ export function useMedusa(): UseMedusaReturn {
         const updatedCart = await response.json()
         const cartData = updatedCart.cart || updatedCart
         
-        // Verifica che il codice sia stato effettivamente applicato
+        // Verifica che il codice sia stato effettivamente applicato da Medusa
         // Controlla se ci sono discount codes nel carrello
         const hasDiscountCodes = cartData.discounts && cartData.discounts.length > 0
-        const newDiscountTotal = cartData.discount_total || 0
         
-        // Se non ci sono discount codes e il discount_total non è aumentato, il codice non è valido
-        if (!hasDiscountCodes && newDiscountTotal <= previousDiscountTotal) {
+        // Verifica che il codice applicato corrisponda a quello richiesto
+        let appliedCode = null
+        if (hasDiscountCodes) {
+          appliedCode = cartData.discounts[0]?.code || cartData.discounts[0]?.discount?.code
+        }
+        
+        // Validazione rigorosa: 
+        // 1. Il codice DEVE essere presente nell'array discounts (Medusa lo aggiunge solo se valido)
+        // 2. Il codice DEVE corrispondere esattamente a quello richiesto
+        if (!hasDiscountCodes) {
+          // Il codice non è stato aggiunto all'array discounts, quindi non è valido
           throw new Error('Codice promozionale non valido o non applicabile')
         }
         
-        // Verifica che il codice applicato corrisponda a quello richiesto
-        if (hasDiscountCodes) {
-          const appliedCode = cartData.discounts[0]?.code || cartData.discounts[0]?.discount?.code
-          if (appliedCode && appliedCode.toUpperCase() !== codeToApply) {
-            // Il codice applicato è diverso da quello richiesto
-            throw new Error('Codice promozionale non valido')
-          }
+        if (!appliedCode || appliedCode.toUpperCase() !== codeToApply) {
+          // Il codice non corrisponde a quello richiesto
+          throw new Error('Codice promozionale non valido')
         }
         
+        // Se arriviamo qui, il codice è valido e applicato
+        console.log('Codice promozionale applicato con successo:', {
+          code: codeToApply,
+          appliedCode,
+          discountTotal: cartData.discount_total || 0,
+          discounts: cartData.discounts
+        })
+        
         setCart(cartData)
-        console.log('Codice promozionale applicato:', cartData)
       } else {
         const errorText = await response.text()
         let errorData
