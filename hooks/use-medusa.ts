@@ -36,7 +36,7 @@ export interface UseMedusaReturn {
   completeOrder: () => Promise<any>
   applyDiscountCode: (code: string) => Promise<void>
   removeDiscountCode: (code: string) => Promise<void>
-}
+}  
 
 export function useMedusa(): UseMedusaReturn {
   const [products, setProducts] = useState<MedusaProduct[]>([])
