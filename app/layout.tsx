@@ -12,6 +12,10 @@ export const metadata: Metadata = {
     "Scopri l'autentica tradizione italiana dal 1966. Pasticceria artigianale, caffè pregiato e gelato cremoso nel cuore della città.",
   generator: "v0.app",
   keywords: ['panettone', 'pandoro', 'dolci italiani', 'tradizione', 'artigianale', 'pasticceria', 'gelateria'],
+  icons: {
+    icon: '/logo_bareuropa.png',
+    apple: '/logo_bareuropa.png',
+  },
   openGraph: {
     title: "Bar Europa - Pasticceria, Bar & Gelateria dal 1966",
     description: "Scopri l'autentica tradizione italiana dal 1966. Pasticceria artigianale, caffè pregiato e gelato cremoso nel cuore della città.",

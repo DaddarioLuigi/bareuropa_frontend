@@ -34,6 +34,8 @@ export interface UseMedusaReturn {
   addShippingMethod: (shippingMethodId: string) => Promise<void>
   addPaymentSession: (providerId: string) => Promise<void>
   completeOrder: () => Promise<any>
+  applyDiscountCode: (code: string) => Promise<void>
+  removeDiscountCode: (code: string) => Promise<void>
 }
 
 export function useMedusa(): UseMedusaReturn {
@@ -404,6 +406,120 @@ export function useMedusa(): UseMedusaReturn {
     }
   }, [cart])
 
+  // Applica codice promozionale usando chiamate fetch dirette
+  const applyDiscountCode = useCallback(async (code: string) => {
+    if (!cart) return
+    
+    setLoadingCart(true)
+    
+    try {
+      const baseUrl = '/api/medusa'
+      const codeToApply = code.toUpperCase().trim()
+      
+      // Prova prima con l'endpoint specifico per i discount codes
+      let response = await fetch(`${baseUrl}/store/carts/${cart.id}/discounts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
+        },
+        body: JSON.stringify({
+          code: codeToApply
+        })
+      })
+      
+      // Se l'endpoint specifico non funziona, prova ad aggiornare il carrello
+      if (!response.ok) {
+        response = await fetch(`${baseUrl}/store/carts/${cart.id}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
+          },
+          body: JSON.stringify({
+            discounts: [{ code: codeToApply }]
+          })
+        })
+      }
+      
+      if (response.ok) {
+        const updatedCart = await response.json()
+        setCart(updatedCart.cart)
+        console.log('Codice promozionale applicato:', updatedCart.cart)
+      } else {
+        const errorText = await response.text()
+        let errorData
+        try {
+          errorData = JSON.parse(errorText)
+        } catch {
+          errorData = { message: errorText || 'Codice promozionale non valido' }
+        }
+        throw new Error(errorData.message || 'Codice promozionale non valido')
+      }
+    } catch (err: any) {
+      console.error('Errore nell\'applicazione del codice promozionale:', err)
+      setError(err.message || 'Errore nell\'applicazione del codice promozionale')
+      throw err
+    } finally {
+      setLoadingCart(false)
+    }
+  }, [cart])
+
+  // Rimuovi codice promozionale usando chiamate fetch dirette
+  const removeDiscountCode = useCallback(async (code: string) => {
+    if (!cart) return
+    
+    setLoadingCart(true)
+    
+    try {
+      const baseUrl = '/api/medusa'
+      const codeToRemove = code.toUpperCase().trim()
+      
+      // Prova prima con l'endpoint specifico per rimuovere il discount code
+      let response = await fetch(`${baseUrl}/store/carts/${cart.id}/discounts/${codeToRemove}`, {
+        method: 'DELETE',
+        headers: {
+          'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
+        }
+      })
+      
+      // Se l'endpoint specifico non funziona, aggiorna il carrello con un array vuoto di discount codes
+      if (!response.ok) {
+        response = await fetch(`${baseUrl}/store/carts/${cart.id}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
+          },
+          body: JSON.stringify({
+            discounts: []
+          })
+        })
+      }
+      
+      if (response.ok) {
+        const updatedCart = await response.json()
+        setCart(updatedCart.cart)
+        console.log('Codice promozionale rimosso:', updatedCart.cart)
+      } else {
+        const errorText = await response.text()
+        let errorData
+        try {
+          errorData = JSON.parse(errorText)
+        } catch {
+          errorData = { message: errorText || 'Errore nella rimozione del codice' }
+        }
+        throw new Error(errorData.message || 'Errore nella rimozione del codice')
+      }
+    } catch (err: any) {
+      console.error('Errore nella rimozione del codice promozionale:', err)
+      setError(err.message || 'Errore nella rimozione del codice promozionale')
+      throw err
+    } finally {
+      setLoadingCart(false)
+    }
+  }, [cart])
+
   // Carica regioni usando chiamate fetch dirette
   const fetchRegions = useCallback(async () => {
     try {
@@ -612,6 +728,8 @@ export function useMedusa(): UseMedusaReturn {
     setBillingAddress,
     addShippingMethod,
     addPaymentSession,
-    completeOrder
+    completeOrder,
+    applyDiscountCode,
+    removeDiscountCode
   }
 }

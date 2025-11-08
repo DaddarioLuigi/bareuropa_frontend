@@ -133,6 +133,14 @@ export interface MedusaCart {
     name: string
     amount: number
   }>
+  discounts?: Array<{
+    id: string
+    code: string
+    discount?: {
+      id: string
+      code: string
+    }
+  }>
 }
 
 // Client-side Medusa SDK for browser usage

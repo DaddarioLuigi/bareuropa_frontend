@@ -18,7 +18,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Separator } from "@/components/ui/separator"
 import { useCart } from "@/contexts/cart-context"
 import { useMedusa } from "@/hooks/use-medusa"
-import { CreditCard, Truck, MapPin, Lock } from "lucide-react"
+import { CreditCard, Truck, MapPin, Lock, Tag, X } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
@@ -56,6 +56,10 @@ export default function CheckoutPage() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState("")
   const [sameAsShipping, setSameAsShipping] = useState(true)
+  const [promoCode, setPromoCode] = useState("")
+  const [appliedPromoCode, setAppliedPromoCode] = useState<string | null>(null)
+  const [promoCodeError, setPromoCodeError] = useState<string | null>(null)
+  const [isApplyingPromoCode, setIsApplyingPromoCode] = useState(false)
 
 
   const [formData, setFormData] = useState({
@@ -85,7 +89,6 @@ export default function CheckoutPage() {
 
     // Additional
     notes: "",
-    newsletter: false,
     terms: false,
   })
 
@@ -207,9 +210,30 @@ export default function CheckoutPage() {
     )
   }
 
-  const subtotal = state.total
-  const shipping = subtotal >= 50 ? 0 : 5.9
-  const total = subtotal + shipping
+  // Calcola i totali usando il carrello Medusa se disponibile, altrimenti usa lo stato locale
+  const medusaSubtotal = medusa.cart ? (medusa.cart.subtotal || 0) / 100 : 0
+  const medusaDiscount = medusa.cart ? (medusa.cart.discount_total || 0) / 100 : 0
+  const medusaShipping = medusa.cart ? (medusa.cart.shipping_total || 0) / 100 : 0
+  const medusaTotal = medusa.cart ? (medusa.cart.total || 0) / 100 : 0
+
+  // Usa i valori di Medusa se disponibili, altrimenti calcola localmente
+  const subtotal = medusaSubtotal || state.total
+  const discount = medusaDiscount
+  const shipping = medusaShipping || (subtotal >= 50 ? 0 : 5.9)
+  const total = medusaTotal || (subtotal - discount + shipping)
+
+  // Sincronizza il codice promozionale applicato con il carrello Medusa
+  useEffect(() => {
+    if (medusa.cart && medusa.cart.discounts && medusa.cart.discounts.length > 0) {
+      const discountCode = medusa.cart.discounts[0]?.code || medusa.cart.discounts[0]?.discount?.code
+      if (discountCode && !appliedPromoCode) {
+        setAppliedPromoCode(discountCode.toUpperCase())
+      }
+    } else if (medusa.cart && (!medusa.cart.discounts || medusa.cart.discounts.length === 0) && appliedPromoCode) {
+      // Se non ci sono più discount nel carrello, rimuovi il codice applicato
+      setAppliedPromoCode(null)
+    }
+  }, [medusa.cart, appliedPromoCode])
 
   return (
     <div className="min-h-screen bg-background">
@@ -482,6 +506,88 @@ export default function CheckoutPage() {
                 </CardContent>
               </Card>
 
+              {/* Promo Code */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Tag className="h-5 w-5" />
+                    Codice Promozionale
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {appliedPromoCode ? (
+                    <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 rounded-md border border-green-200 dark:border-green-800">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-green-700 dark:text-green-300">
+                          Codice applicato: {appliedPromoCode}
+                        </span>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={async () => {
+                          try {
+                            await medusa.removeDiscountCode(appliedPromoCode)
+                            setAppliedPromoCode(null)
+                            setPromoCode("")
+                            setPromoCodeError(null)
+                          } catch (err) {
+                            console.error('Errore nella rimozione del codice:', err)
+                          }
+                        }}
+                        className="h-8 w-8 p-0 text-green-700 dark:text-green-300 hover:text-green-900 dark:hover:text-green-100"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Inserisci il codice promozionale"
+                          value={promoCode}
+                          onChange={(e) => {
+                            setPromoCode(e.target.value.toUpperCase())
+                            setPromoCodeError(null)
+                          }}
+                          className="flex-1"
+                        />
+                        <Button
+                          type="button"
+                          onClick={async () => {
+                            if (!promoCode.trim()) {
+                              setPromoCodeError("Inserisci un codice promozionale")
+                              return
+                            }
+                            
+                            setIsApplyingPromoCode(true)
+                            setPromoCodeError(null)
+                            
+                            try {
+                              await medusa.applyDiscountCode(promoCode.trim())
+                              setAppliedPromoCode(promoCode.trim().toUpperCase())
+                              setPromoCode("")
+                            } catch (err: any) {
+                              setPromoCodeError(err.message || "Codice promozionale non valido")
+                            } finally {
+                              setIsApplyingPromoCode(false)
+                            }
+                          }}
+                          disabled={isApplyingPromoCode || !promoCode.trim()}
+                          className="bg-accent hover:bg-accent/90"
+                        >
+                          {isApplyingPromoCode ? "Applicazione..." : "Applica"}
+                        </Button>
+                      </div>
+                      {promoCodeError && (
+                        <p className="text-sm text-red-600 dark:text-red-400">{promoCodeError}</p>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
               {/* Additional Notes */}
               <Card>
                 <CardHeader>
@@ -518,18 +624,6 @@ export default function CheckoutPage() {
                         Privacy Policy
                       </Link>
                       {" "}*
-                    </Label>
-                  </div>
-
-                  <div className="flex items-start gap-2 sm:gap-3">
-                    <Checkbox
-                      id="newsletter"
-                      checked={formData.newsletter}
-                      onCheckedChange={(checked) => handleInputChange("newsletter", checked as boolean)}
-                      className="mt-0.5 sm:mt-1 flex-shrink-0"
-                    />
-                    <Label htmlFor="newsletter" className="text-xs sm:text-sm leading-relaxed flex-1 min-w-0">
-                      Iscriviti alla newsletter per ricevere offerte speciali
                     </Label>
                   </div>
                 </CardContent>
@@ -573,6 +667,12 @@ export default function CheckoutPage() {
                       <span>Subtotale</span>
                       <span>€{subtotal.toFixed(2)}</span>
                     </div>
+                    {discount > 0 && (
+                      <div className="flex justify-between text-green-600 dark:text-green-400">
+                        <span>Sconto</span>
+                        <span>-€{discount.toFixed(2)}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between">
                       <span>Spedizione</span>
                       <span className={shipping === 0 ? "text-green-600" : ""}>
