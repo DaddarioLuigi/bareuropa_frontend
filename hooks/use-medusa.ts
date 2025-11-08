@@ -816,15 +816,21 @@ export function useMedusa(): UseMedusaReturn {
           const existingDiscounts = currentCart.discounts || []
           const newDiscounts = [...existingDiscounts, { code: codeToApply }]
           
+          const requestBody = {
+            discounts: newDiscounts
+          }
+          
+          console.log('[DISCOUNT CODE] Body richiesta aggiornamento carrello:', JSON.stringify(requestBody, null, 2))
+          console.log('[DISCOUNT CODE] Discount codes da inviare:', newDiscounts)
+          console.log('[DISCOUNT CODE] Codice da applicare:', codeToApply)
+          
           response = await fetch(`${baseUrl}/store/carts/${currentCart.id}`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
             },
-            body: JSON.stringify({
-              discounts: newDiscounts
-            })
+            body: JSON.stringify(requestBody)
           })
           
           console.log('[DISCOUNT CODE] Risposta HTTP (aggiornamento carrello):', {
@@ -867,6 +873,14 @@ export function useMedusa(): UseMedusaReturn {
           
           updatedCart = await response.json()
           cartData = updatedCart.cart || updatedCart
+          
+          // DEBUG: Stampa la risposta completa di Medusa
+          console.log('[DISCOUNT CODE] 🔍 Risposta completa da Medusa (aggiornamento carrello):', JSON.stringify(updatedCart, null, 2))
+          console.log('[DISCOUNT CODE] 🔍 Cart data estratto:', JSON.stringify(cartData, null, 2))
+          console.log('[DISCOUNT CODE] 🔍 Discounts nel carrello:', cartData.discounts)
+          console.log('[DISCOUNT CODE] 🔍 Tipo di discounts:', typeof cartData.discounts)
+          console.log('[DISCOUNT CODE] 🔍 È array?', Array.isArray(cartData.discounts))
+          console.log('[DISCOUNT CODE] 🔍 Tutte le chiavi del carrello:', Object.keys(cartData))
         } else {
           throw err
         }
@@ -876,8 +890,21 @@ export function useMedusa(): UseMedusaReturn {
         hasCart: !!cartData,
         discounts: cartData.discounts,
         discountsLength: cartData.discounts?.length || 0,
-        discountTotal: cartData.discount_total || 0
+        discountTotal: cartData.discount_total || 0,
+        cartDataFull: JSON.stringify(cartData, null, 2).substring(0, 1000)
       })
+      
+      // DEBUG: Verifica se ci sono altri campi che potrebbero contenere i discount codes
+      if (!cartData.discounts || (Array.isArray(cartData.discounts) && cartData.discounts.length === 0)) {
+        console.warn('[DISCOUNT CODE] ⚠️ ATTENZIONE: discounts è undefined/null/vuoto nel carrello!')
+        console.warn('[DISCOUNT CODE] Cercando campi alternativi...')
+        console.warn('[DISCOUNT CODE] cartData.discount_codes:', cartData.discount_codes)
+        console.warn('[DISCOUNT CODE] cartData.applied_discounts:', cartData.applied_discounts)
+        console.warn('[DISCOUNT CODE] cartData.promotions:', cartData.promotions)
+        console.warn('[DISCOUNT CODE] cartData.discount_rules:', cartData.discount_rules)
+        console.warn('[DISCOUNT CODE] Tutti i campi del carrello:', Object.keys(cartData))
+        console.warn('[DISCOUNT CODE] Struttura completa del carrello (primi 2000 caratteri):', JSON.stringify(cartData, null, 2).substring(0, 2000))
+      }
       
       // Verifica che il codice sia stato effettivamente applicato da Medusa
       // Controlla se ci sono discount codes nel carrello
