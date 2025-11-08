@@ -521,15 +521,33 @@ export function useMedusa(): UseMedusaReturn {
         }
       })
       
+      console.log('[COMPLETE ORDER] Request to:', `${baseUrl}/store/carts/${cart.id}/complete`)
+      console.log('[COMPLETE ORDER] Cart ID:', cart.id)
+      
       if (!response.ok) {
         const errorText = await response.text()
-        console.error('Errore nel completamento dell\'ordine:', errorText)
-        throw new Error(errorText)
+        console.error('[COMPLETE ORDER] Error response:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorText
+        })
+        
+        // Prova a parsare l'errore per ottenere un messaggio più specifico
+        let errorMessage = errorText
+        try {
+          const errorData = JSON.parse(errorText)
+          errorMessage = errorData.error || errorData.message || errorData.details || errorText
+          console.error('[COMPLETE ORDER] Parsed error:', errorData)
+        } catch {
+          // Se non è JSON, usa il testo così com'è
+        }
+        
+        throw new Error(errorMessage)
       }
       
       const orderData = await response.json()
       const order = orderData.order || orderData
-      console.log('Ordine completato:', order)
+      console.log('[COMPLETE ORDER] ✅ Ordine completato con successo:', order)
       
       // Rimuovi il carrello dal localStorage dopo il completamento
       localStorage.removeItem('medusa_cart_id')
