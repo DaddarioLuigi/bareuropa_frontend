@@ -603,9 +603,9 @@ export default function CheckoutPage() {
                 </CardContent>
               </Card>
 
-              {/* Terms and Newsletter */}
+              {/* Terms */}
               <Card>
-                <CardContent className="pt-6 space-y-4">
+                <CardContent className="pt-4 pb-4">
                   <div className="flex items-start gap-2 sm:gap-3">
                     <Checkbox
                       id="terms"
