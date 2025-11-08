@@ -537,7 +537,7 @@ export function useMedusa(): UseMedusaReturn {
           } catch {
             errorData = { message: errorText || 'Codice promozionale non valido' }
           }
-          const errorMessage = errorData.message || errorData.error?.message || errorData.error || 'Codice promozionale non valido o non esistente'
+          const errorMessage = errorData.message || errorData.error?.message || errorData.error || 'Codice promozionale non valido o già utilizzato'
           throw new Error(errorMessage)
         }
         
@@ -591,7 +591,7 @@ export function useMedusa(): UseMedusaReturn {
             } catch {
               errorData = { message: errorText || 'Codice promozionale non valido' }
             }
-            const errorMessage = errorData.message || errorData.error?.message || errorData.error || 'Codice promozionale non valido o non esistente'
+            const errorMessage = errorData.message || errorData.error?.message || errorData.error || 'Codice promozionale non valido o già utilizzato'
             throw new Error(errorMessage)
           }
           
@@ -651,7 +651,7 @@ export function useMedusa(): UseMedusaReturn {
           cartDataDiscounts: cartData.discounts,
           cartDataKeys: Object.keys(cartData)
         })
-        throw new Error('Codice promozionale non valido o non esistente su Medusa')
+        throw new Error('Codice promozionale non valido o già utilizzato')
       }
       
       if (!appliedCode || appliedCode.toUpperCase() !== codeToApply) {
