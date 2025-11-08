@@ -35,6 +35,7 @@ export interface UseMedusaReturn {
   completeOrder: () => Promise<any>
   applyDiscountCode: (code: string) => Promise<void>
   removeDiscountCode: (code: string) => Promise<void>
+  debugFetchPromotions: () => Promise<void>
 }  
 
 export function useMedusa(): UseMedusaReturn {
@@ -544,6 +545,93 @@ export function useMedusa(): UseMedusaReturn {
     }
   }, [cart])
 
+  // Funzione di debug per recuperare tutte le promozioni da Medusa
+  const debugFetchPromotions = useCallback(async () => {
+    try {
+      const baseUrl = '/api/medusa'
+      console.log('[DEBUG PROMOZIONI] Recupero tutte le promozioni da Medusa...')
+      
+      // Prova diversi endpoint possibili per le promozioni
+      const endpoints = [
+        '/store/promotions',
+        '/admin/promotions',
+        '/store/discounts',
+        '/admin/discounts'
+      ]
+      
+      for (const endpoint of endpoints) {
+        try {
+          console.log(`[DEBUG PROMOZIONI] Tentativo endpoint: ${endpoint}`)
+          const response = await fetch(`${baseUrl}${endpoint}`, {
+            headers: {
+              'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
+            }
+          })
+          
+          if (response.ok) {
+            const data = await response.json()
+            console.log(`[DEBUG PROMOZIONI] ✅ Endpoint ${endpoint} funziona!`)
+            console.log(`[DEBUG PROMOZIONI] Dati ricevuti:`, JSON.stringify(data, null, 2))
+            
+            // Cerca promozioni in diverse strutture possibili
+            const promotions = data.promotions || data.discounts || data.data || data
+            if (Array.isArray(promotions)) {
+              console.log(`[DEBUG PROMOZIONI] 📋 Trovate ${promotions.length} promozioni:`)
+              promotions.forEach((promo: any, index: number) => {
+                console.log(`[DEBUG PROMOZIONI] Promozione ${index + 1}:`, {
+                  id: promo.id,
+                  code: promo.code,
+                  type: promo.type,
+                  value: promo.value,
+                  is_active: promo.is_active,
+                  starts_at: promo.starts_at,
+                  ends_at: promo.ends_at,
+                  usage_limit: promo.usage_limit,
+                  usage_count: promo.usage_count,
+                  full: promo
+                })
+              })
+            } else if (promotions) {
+              console.log(`[DEBUG PROMOZIONI] 📋 Dati promozioni (non array):`, promotions)
+            }
+            return data
+          } else {
+            console.log(`[DEBUG PROMOZIONI] ❌ Endpoint ${endpoint} non disponibile (${response.status})`)
+          }
+        } catch (err) {
+          console.log(`[DEBUG PROMOZIONI] ❌ Errore su endpoint ${endpoint}:`, err)
+        }
+      }
+      
+      // Se nessun endpoint funziona, prova a recuperare le promozioni dal carrello se disponibile
+      if (cart) {
+        console.log('[DEBUG PROMOZIONI] Tentativo di recuperare promozioni dal carrello...')
+        try {
+          const cartResponse = await fetch(`${baseUrl}/store/carts/${cart.id}`, {
+            headers: {
+              'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
+            }
+          })
+          
+          if (cartResponse.ok) {
+            const cartData = await cartResponse.json()
+            const cartObj = cartData.cart || cartData
+            console.log('[DEBUG PROMOZIONI] Carrello completo:', JSON.stringify(cartObj, null, 2))
+            if (cartObj.discounts && cartObj.discounts.length > 0) {
+              console.log('[DEBUG PROMOZIONI] Discount codes nel carrello:', cartObj.discounts)
+            }
+          }
+        } catch (err) {
+          console.log('[DEBUG PROMOZIONI] Errore nel recupero del carrello:', err)
+        }
+      }
+      
+      console.log('[DEBUG PROMOZIONI] ⚠️ Nessun endpoint per le promozioni trovato')
+    } catch (err) {
+      console.error('[DEBUG PROMOZIONI] Errore generale:', err)
+    }
+  }, [cart])
+
   // Applica codice promozionale usando chiamate fetch dirette
   const applyDiscountCode = useCallback(async (code: string) => {
     setLoadingCart(true)
@@ -551,6 +639,10 @@ export function useMedusa(): UseMedusaReturn {
     try {
       const baseUrl = '/api/medusa'
       const codeToApply = code.toUpperCase().trim()
+      
+      // DEBUG: Recupera tutte le promozioni prima di applicare il codice
+      console.log('[DISCOUNT CODE] 🔍 DEBUG: Recupero tutte le promozioni disponibili...')
+      await debugFetchPromotions()
       
       // Se il carrello non è disponibile nello stato, prova a recuperarlo
       let currentCart = cart
@@ -1144,6 +1236,7 @@ export function useMedusa(): UseMedusaReturn {
     addPaymentSession,
     completeOrder,
     applyDiscountCode,
-    removeDiscountCode
+    removeDiscountCode,
+    debugFetchPromotions
   }
 }
