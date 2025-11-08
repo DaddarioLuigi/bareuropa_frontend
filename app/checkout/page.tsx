@@ -565,11 +565,18 @@ export default function CheckoutPage() {
                             setPromoCodeError(null)
                             
                             try {
+                              console.log('[CHECKOUT] Tentativo di applicare codice promozionale:', promoCode.trim())
                               await medusa.applyDiscountCode(promoCode.trim())
+                              console.log('[CHECKOUT] Codice applicato con successo, aggiornando UI')
                               setAppliedPromoCode(promoCode.trim().toUpperCase())
                               setPromoCode("")
+                              setPromoCodeError(null)
                             } catch (err: any) {
-                              setPromoCodeError(err.message || "Codice promozionale non valido")
+                              console.error('[CHECKOUT] Errore nell\'applicazione del codice:', err)
+                              console.error('[CHECKOUT] Messaggio errore:', err.message)
+                              const errorMessage = err.message || "Codice promozionale non valido"
+                              setPromoCodeError(errorMessage)
+                              console.log('[CHECKOUT] Errore impostato nell\'UI:', errorMessage)
                             } finally {
                               setIsApplyingPromoCode(false)
                             }

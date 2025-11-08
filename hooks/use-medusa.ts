@@ -408,7 +408,10 @@ export function useMedusa(): UseMedusaReturn {
 
   // Applica codice promozionale usando chiamate fetch dirette
   const applyDiscountCode = useCallback(async (code: string) => {
-    if (!cart) return
+    if (!cart) {
+      console.error('[DISCOUNT CODE] Nessun carrello disponibile')
+      throw new Error('Nessun carrello disponibile')
+    }
     
     setLoadingCart(true)
     
@@ -416,8 +419,21 @@ export function useMedusa(): UseMedusaReturn {
       const baseUrl = '/api/medusa'
       const codeToApply = code.toUpperCase().trim()
       
+      console.log('[DISCOUNT CODE] Tentativo di applicare codice:', {
+        code: codeToApply,
+        cartId: cart.id,
+        url: `${baseUrl}/store/carts/${cart.id}/discounts`
+      })
+      
       // Salva il discount_total prima dell'applicazione per confrontarlo dopo
       const previousDiscountTotal = cart.discount_total || 0
+      const previousDiscounts = cart.discounts || []
+      
+      console.log('[DISCOUNT CODE] Stato carrello prima:', {
+        previousDiscountTotal,
+        previousDiscounts: previousDiscounts.length,
+        previousDiscountCodes: previousDiscounts.map((d: any) => d.code || d.discount?.code)
+      })
       
       // Usa l'endpoint specifico per i discount codes di Medusa
       // Questo endpoint valida che il codice esista e sia valido prima di applicarlo
@@ -432,9 +448,19 @@ export function useMedusa(): UseMedusaReturn {
         })
       })
       
+      console.log('[DISCOUNT CODE] Risposta HTTP:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok
+      })
+      
       // Se la risposta non è OK, il codice non è valido o non esiste
       if (!response.ok) {
         const errorText = await response.text()
+        console.error('[DISCOUNT CODE] Errore HTTP:', {
+          status: response.status,
+          errorText
+        })
         let errorData
         try {
           errorData = JSON.parse(errorText)
@@ -443,20 +469,41 @@ export function useMedusa(): UseMedusaReturn {
         }
         // Estrai il messaggio di errore da Medusa
         const errorMessage = errorData.message || errorData.error?.message || errorData.error || 'Codice promozionale non valido o non esistente'
+        console.error('[DISCOUNT CODE] Errore validazione:', errorMessage)
         throw new Error(errorMessage)
       }
       
       const updatedCart = await response.json()
       const cartData = updatedCart.cart || updatedCart
       
+      console.log('[DISCOUNT CODE] Carrello aggiornato da Medusa:', {
+        hasCart: !!cartData,
+        discounts: cartData.discounts,
+        discountsLength: cartData.discounts?.length || 0,
+        discountTotal: cartData.discount_total || 0
+      })
+      
       // Verifica che il codice sia stato effettivamente applicato da Medusa
       // Controlla se ci sono discount codes nel carrello
       const hasDiscountCodes = cartData.discounts && cartData.discounts.length > 0
+      
+      console.log('[DISCOUNT CODE] Validazione:', {
+        hasDiscountCodes,
+        discountsArray: cartData.discounts,
+        discountsLength: cartData.discounts?.length || 0
+      })
       
       // Verifica che il codice applicato corrisponda a quello richiesto
       let appliedCode = null
       if (hasDiscountCodes) {
         appliedCode = cartData.discounts[0]?.code || cartData.discounts[0]?.discount?.code
+        console.log('[DISCOUNT CODE] Codice trovato nell\'array discounts:', {
+          appliedCode,
+          codeToApply,
+          match: appliedCode?.toUpperCase() === codeToApply
+        })
+      } else {
+        console.warn('[DISCOUNT CODE] Nessun codice trovato nell\'array discounts!')
       }
       
       // Validazione rigorosa: 
@@ -465,11 +512,23 @@ export function useMedusa(): UseMedusaReturn {
       // Medusa aggiunge il codice all'array discounts solo se esiste nel database e è valido
       if (!hasDiscountCodes) {
         // Il codice non è stato aggiunto all'array discounts, quindi non esiste o non è valido
-        throw new Error('Codice promozionale non valido o non esistente')
+        console.error('[DISCOUNT CODE] VALIDAZIONE FALLITA: Il codice non è stato aggiunto all\'array discounts')
+        console.error('[DISCOUNT CODE] Dettagli:', {
+          codeToApply,
+          cartDataDiscounts: cartData.discounts,
+          cartDataKeys: Object.keys(cartData)
+        })
+        throw new Error('Codice promozionale non valido o non esistente su Medusa')
       }
       
       if (!appliedCode || appliedCode.toUpperCase() !== codeToApply) {
         // Il codice non corrisponde a quello richiesto
+        console.error('[DISCOUNT CODE] VALIDAZIONE FALLITA: Il codice non corrisponde')
+        console.error('[DISCOUNT CODE] Dettagli:', {
+          codeToApply,
+          appliedCode,
+          match: appliedCode?.toUpperCase() === codeToApply
+        })
         throw new Error('Codice promozionale non valido')
       }
       
@@ -480,7 +539,7 @@ export function useMedusa(): UseMedusaReturn {
       
       // Se arriviamo qui, il codice è valido e applicato
       const newDiscountTotal = cartData.discount_total || 0
-      console.log('Codice promozionale applicato con successo:', {
+      console.log('[DISCOUNT CODE] ✅ Codice promozionale applicato con successo:', {
         code: codeToApply,
         appliedCode,
         previousDiscountTotal,
@@ -491,7 +550,8 @@ export function useMedusa(): UseMedusaReturn {
       
       setCart(cartData)
     } catch (err: any) {
-      console.error('Errore nell\'applicazione del codice promozionale:', err)
+      console.error('[DISCOUNT CODE] ❌ Errore nell\'applicazione del codice promozionale:', err)
+      console.error('[DISCOUNT CODE] Stack trace:', err.stack)
       setError(err.message || 'Errore nell\'applicazione del codice promozionale')
       throw err
     } finally {
