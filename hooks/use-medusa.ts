@@ -408,26 +408,81 @@ export function useMedusa(): UseMedusaReturn {
 
   // Applica codice promozionale usando chiamate fetch dirette
   const applyDiscountCode = useCallback(async (code: string) => {
-    if (!cart) {
-      console.error('[DISCOUNT CODE] Nessun carrello disponibile')
-      throw new Error('Nessun carrello disponibile')
-    }
-    
     setLoadingCart(true)
     
     try {
       const baseUrl = '/api/medusa'
       const codeToApply = code.toUpperCase().trim()
       
+      // Se il carrello non è disponibile nello stato, prova a recuperarlo
+      let currentCart = cart
+      let cartId: string | null = null
+      
+      if (!currentCart) {
+        console.log('[DISCOUNT CODE] Carrello non disponibile nello stato, recupero da cookie/localStorage...')
+        
+        // Prova a recuperare il cart_id dal cookie
+        const cookieCartId = typeof document !== 'undefined' 
+          ? document.cookie
+              .split('; ')
+              .find(row => row.startsWith('cart_id='))
+              ?.split('=')[1]
+          : null
+        
+        // Prova anche da localStorage
+        const localCartId = typeof window !== 'undefined' 
+          ? localStorage.getItem('cart_id') || localStorage.getItem('medusa_cart_id')
+          : null
+        
+        cartId = cookieCartId || localCartId || null
+        
+        if (cartId) {
+          console.log('[DISCOUNT CODE] Cart ID trovato:', cartId)
+          // Recupera il carrello da Medusa
+          try {
+            const response = await fetch(`${baseUrl}/store/carts/${cartId}`, {
+              headers: {
+                'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
+              }
+            })
+            
+            if (response.ok) {
+              const cartData = await response.json()
+              currentCart = cartData.cart || cartData
+              if (currentCart) {
+                setCart(currentCart)
+                console.log('[DISCOUNT CODE] Carrello recuperato da Medusa:', currentCart.id)
+              } else {
+                throw new Error('Carrello non valido ricevuto da Medusa')
+              }
+            } else {
+              console.error('[DISCOUNT CODE] Impossibile recuperare il carrello da Medusa')
+              throw new Error('Impossibile recuperare il carrello. Riprova più tardi.')
+            }
+          } catch (err) {
+            console.error('[DISCOUNT CODE] Errore nel recupero del carrello:', err)
+            throw new Error('Impossibile recuperare il carrello. Riprova più tardi.')
+          }
+        } else {
+          console.error('[DISCOUNT CODE] Nessun cart_id trovato in cookie o localStorage')
+          throw new Error('Nessun carrello disponibile. Aggiungi prodotti al carrello prima di applicare un codice promozionale.')
+        }
+      }
+      
+      if (!currentCart || !currentCart.id) {
+        console.error('[DISCOUNT CODE] Carrello non valido:', currentCart)
+        throw new Error('Carrello non valido. Riprova più tardi.')
+      }
+      
       console.log('[DISCOUNT CODE] Tentativo di applicare codice:', {
         code: codeToApply,
-        cartId: cart.id,
-        url: `${baseUrl}/store/carts/${cart.id}/discounts`
+        cartId: currentCart.id,
+        url: `${baseUrl}/store/carts/${currentCart.id}/discounts`
       })
       
       // Salva il discount_total prima dell'applicazione per confrontarlo dopo
-      const previousDiscountTotal = cart.discount_total || 0
-      const previousDiscounts = cart.discounts || []
+      const previousDiscountTotal = currentCart.discount_total || 0
+      const previousDiscounts = currentCart.discounts || []
       
       console.log('[DISCOUNT CODE] Stato carrello prima:', {
         previousDiscountTotal,
@@ -437,7 +492,7 @@ export function useMedusa(): UseMedusaReturn {
       
       // Usa l'endpoint specifico per i discount codes di Medusa
       // Questo endpoint valida che il codice esista e sia valido prima di applicarlo
-      const response = await fetch(`${baseUrl}/store/carts/${cart.id}/discounts`, {
+      const response = await fetch(`${baseUrl}/store/carts/${currentCart.id}/discounts`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
