@@ -25,9 +25,9 @@ import { useRouter } from "next/navigation"
 // Funzione helper per ottenere un nome user-friendly per i payment providers
 function getPaymentProviderName(providerId: string): string {
   const providerNames: Record<string, string> = {
-    'pp_stripe_stripe': 'Carta di Credito (Stripe)',
-    'stripe': 'Carta di Credito (Stripe)',
-    'pp_stripe': 'Carta di Credito (Stripe)',
+    'pp_stripe_stripe': 'Carta di Credito',
+    'stripe': 'Carta di Credito',
+    'pp_stripe': 'Carta di Credito',
     'paypal': 'PayPal',
     'pp_paypal': 'PayPal',
     'manual': 'Pagamento Manuale',
