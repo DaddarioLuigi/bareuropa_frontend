@@ -516,28 +516,52 @@ export function useMedusa(): UseMedusaReturn {
           contentType: response.headers.get('content-type')
         })
         
-        // Se l'endpoint specifico non esiste (404) o restituisce errore, prova con l'aggiornamento del carrello
-        if (!response.ok && response.status !== 404) {
+        // Se la risposta non è OK, prova a estrarre il messaggio di errore specifico da Medusa
+        if (!response.ok) {
           const errorText = await response.text()
           console.error('[DISCOUNT CODE] Errore HTTP:', {
             status: response.status,
-            errorText: errorText.substring(0, 200)
+            errorText: errorText.substring(0, 500)
           })
           
           // Se è un errore 500 con "Non-JSON response", significa che l'endpoint non esiste
           // o Medusa sta restituendo HTML invece di JSON
           if (response.status === 500 || response.status === 404) {
-            console.log('[DISCOUNT CODE] Endpoint discounts non disponibile, uso aggiornamento carrello')
-            throw new Error('ENDPOINT_NOT_AVAILABLE')
+            // Prova a parsare l'errore per vedere se contiene informazioni utili
+            let errorData
+            try {
+              errorData = JSON.parse(errorText)
+              // Se contiene un messaggio di errore specifico, usalo
+              if (errorData.error && errorData.error.includes('Non-JSON')) {
+                console.log('[DISCOUNT CODE] Endpoint discounts non disponibile, uso aggiornamento carrello')
+                throw new Error('ENDPOINT_NOT_AVAILABLE')
+              }
+              // Altrimenti usa il messaggio di errore di Medusa
+              const errorMessage = errorData.message || errorData.error?.message || errorData.error || 'Codice promozionale non valido'
+              throw new Error(errorMessage)
+            } catch (parseErr) {
+              // Se non riesce a parsare, l'endpoint non è disponibile
+              console.log('[DISCOUNT CODE] Endpoint discounts non disponibile, uso aggiornamento carrello')
+              throw new Error('ENDPOINT_NOT_AVAILABLE')
+            }
           }
           
+          // Per altri errori (400, 422, ecc.), Medusa potrebbe restituire un messaggio specifico
           let errorData
           try {
             errorData = JSON.parse(errorText)
           } catch {
             errorData = { message: errorText || 'Codice promozionale non valido' }
           }
-          const errorMessage = errorData.message || errorData.error?.message || errorData.error || 'Codice promozionale non valido o già utilizzato'
+          
+          // Estrai il messaggio di errore più specifico possibile
+          const errorMessage = errorData.message || 
+                               errorData.error?.message || 
+                               errorData.error || 
+                               (errorData.errors && errorData.errors[0]?.message) ||
+                               'Codice promozionale non valido'
+          
+          console.error('[DISCOUNT CODE] Messaggio errore da Medusa:', errorMessage)
           throw new Error(errorMessage)
         }
         
@@ -581,17 +605,26 @@ export function useMedusa(): UseMedusaReturn {
           
           if (!response.ok) {
             const errorText = await response.text()
-            console.error('[DISCOUNT CODE] Errore HTTP:', {
+            console.error('[DISCOUNT CODE] Errore HTTP (aggiornamento carrello):', {
               status: response.status,
-              errorText: errorText.substring(0, 200)
+              errorText: errorText.substring(0, 500)
             })
+            
             let errorData
             try {
               errorData = JSON.parse(errorText)
             } catch {
               errorData = { message: errorText || 'Codice promozionale non valido' }
             }
-            const errorMessage = errorData.message || errorData.error?.message || errorData.error || 'Codice promozionale non valido o già utilizzato'
+            
+            // Estrai il messaggio di errore più specifico possibile
+            const errorMessage = errorData.message || 
+                                 errorData.error?.message || 
+                                 errorData.error || 
+                                 (errorData.errors && errorData.errors[0]?.message) ||
+                                 'Codice promozionale non valido'
+            
+            console.error('[DISCOUNT CODE] Messaggio errore da Medusa (aggiornamento carrello):', errorMessage)
             throw new Error(errorMessage)
           }
           
@@ -642,16 +675,32 @@ export function useMedusa(): UseMedusaReturn {
       // Validazione rigorosa: 
       // 1. Il codice DEVE essere presente nell'array discounts (Medusa lo aggiunge solo se valido ed esistente)
       // 2. Il codice DEVE corrispondere esattamente a quello richiesto
-      // Medusa aggiunge il codice all'array discounts solo se esiste nel database e è valido
+      // Medusa aggiunge il codice all'array discounts solo se esiste nel database, è valido e attivo
       if (!hasDiscountCodes) {
-        // Il codice non è stato aggiunto all'array discounts, quindi non esiste o non è valido
+        // Il codice non è stato aggiunto all'array discounts
+        // Questo può significare:
+        // - Il codice non esiste
+        // - Il codice non è ancora attivo (data di inizio nel futuro)
+        // - Il codice è scaduto (data di fine nel passato)
+        // - Il codice non è applicabile ai prodotti nel carrello
+        // - Il codice ha raggiunto il limite di utilizzo
         console.error('[DISCOUNT CODE] VALIDAZIONE FALLITA: Il codice non è stato aggiunto all\'array discounts')
         console.error('[DISCOUNT CODE] Dettagli:', {
           codeToApply,
           cartDataDiscounts: cartData.discounts,
-          cartDataKeys: Object.keys(cartData)
+          cartDataKeys: Object.keys(cartData),
+          cartDataFull: JSON.stringify(cartData, null, 2).substring(0, 500)
         })
-        throw new Error('Codice promozionale non valido o già utilizzato')
+        
+        // Verifica se ci sono errori o warning nel carrello che potrebbero spiegare perché il codice non è stato applicato
+        const possibleReasons = [
+          'Il codice promozionale potrebbe non essere ancora attivo (verifica la data di inizio)',
+          'Il codice promozionale potrebbe essere scaduto (verifica la data di fine)',
+          'Il codice potrebbe non essere applicabile ai prodotti nel carrello',
+          'Il codice potrebbe aver raggiunto il limite di utilizzo'
+        ]
+        
+        throw new Error('Codice promozionale non valido. Verifica che il codice sia attivo e applicabile ai prodotti nel carrello.')
       }
       
       if (!appliedCode || appliedCode.toUpperCase() !== codeToApply) {
