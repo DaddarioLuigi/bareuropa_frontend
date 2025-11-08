@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { medusaClient, MedusaProduct, MedusaCart, convertMedusaProductToCartItem, convertMedusaCartToLocalCart } from "@/lib/medusa"
-import { sdk } from "@/lib/sdk"
 
 export interface UseMedusaReturn {
   // Prodotti
@@ -130,7 +129,7 @@ export function useMedusa(): UseMedusaReturn {
       
     } catch (err) {
       console.error('Errore nel caricamento dei prodotti:', err)
-      setError(`Errore nel caricamento dei prodotti: ${err.message}`)
+      setError(`Errore nel caricamento dei prodotti: ${err instanceof Error ? err.message : 'Errore sconosciuto'}`)
     } finally {
       setLoadingProducts(false)
     }
@@ -173,19 +172,34 @@ export function useMedusa(): UseMedusaReturn {
     }
   }, [getOrCreateCart])
 
-  // Aggiorna quantità di un item nel carrello usando JS SDK
+  // Aggiorna quantità di un item nel carrello usando fetch dirette
   const updateCartItem = useCallback(async (itemId: string, quantity: number) => {
     if (!cart) return
     
     setLoadingCart(true)
     
     try {
-      const { cart: updatedCart } = await sdk.store.cart.lineItem.update(cart.id, itemId, {
-        quantity
+      const baseUrl = '/api/medusa'
+      const response = await fetch(`${baseUrl}/store/carts/${cart.id}/line-items/${itemId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
+        },
+        body: JSON.stringify({
+          quantity
+        })
       })
       
-      setCart(updatedCart)
-      console.log('Item aggiornato nel carrello con JS SDK:', updatedCart)
+      if (response.ok) {
+        const updatedCart = await response.json()
+        setCart(updatedCart.cart)
+        console.log('Item aggiornato nel carrello:', updatedCart.cart)
+      } else {
+        const error = await response.text()
+        console.error('Errore nell\'aggiornamento del carrello:', error)
+        throw new Error(error)
+      }
     } catch (err) {
       console.error('Errore nell\'aggiornamento del carrello:', err)
       setError('Errore nell\'aggiornamento del carrello')
@@ -194,17 +208,30 @@ export function useMedusa(): UseMedusaReturn {
     }
   }, [cart])
 
-  // Rimuovi item dal carrello usando JS SDK
+  // Rimuovi item dal carrello usando fetch dirette
   const removeFromCart = useCallback(async (itemId: string) => {
     if (!cart) return
     
     setLoadingCart(true)
     
     try {
-      const { cart: updatedCart } = await sdk.store.cart.lineItem.delete(cart.id, itemId)
+      const baseUrl = '/api/medusa'
+      const response = await fetch(`${baseUrl}/store/carts/${cart.id}/line-items/${itemId}`, {
+        method: 'DELETE',
+        headers: {
+          'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
+        }
+      })
       
-      setCart(updatedCart)
-      console.log('Item rimosso dal carrello con JS SDK:', updatedCart)
+      if (response.ok) {
+        const updatedCart = await response.json()
+        setCart(updatedCart.cart)
+        console.log('Item rimosso dal carrello:', updatedCart.cart)
+      } else {
+        const error = await response.text()
+        console.error('Errore nella rimozione dal carrello:', error)
+        throw new Error(error)
+      }
     } catch (err) {
       console.error('Errore nella rimozione dal carrello:', err)
       setError('Errore nella rimozione dal carrello')
@@ -213,22 +240,36 @@ export function useMedusa(): UseMedusaReturn {
     }
   }, [cart])
 
-  // Svuota carrello usando JS SDK
+  // Svuota carrello usando fetch dirette
   const clearCart = useCallback(async () => {
     if (!cart) return
     
     setLoadingCart(true)
     
     try {
+      const baseUrl = '/api/medusa'
       // Rimuovi tutti gli item dal carrello
       for (const item of cart.items) {
-        await sdk.store.cart.lineItem.delete(cart.id, item.id)
+        await fetch(`${baseUrl}/store/carts/${cart.id}/line-items/${item.id}`, {
+          method: 'DELETE',
+          headers: {
+            'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
+          }
+        })
       }
       
       // Ricarica il carrello
-      const { cart: updatedCart } = await sdk.store.cart.retrieve(cart.id)
-      setCart(updatedCart)
-      console.log('Carrello svuotato con JS SDK:', updatedCart)
+      const response = await fetch(`${baseUrl}/store/carts/${cart.id}`, {
+        headers: {
+          'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
+        }
+      })
+      
+      if (response.ok) {
+        const cartData = await response.json()
+        setCart(cartData.cart)
+        console.log('Carrello svuotato:', cartData.cart)
+      }
     } catch (err) {
       console.error('Errore nello svuotamento del carrello:', err)
       setError('Errore nello svuotamento del carrello')
@@ -242,29 +283,47 @@ export function useMedusa(): UseMedusaReturn {
     return await getOrCreateCart()
   }, [getOrCreateCart])
 
-  // Imposta indirizzo di spedizione usando JS SDK
+  // Imposta indirizzo di spedizione usando fetch dirette
   const setShippingAddress = useCallback(async (address: any) => {
-    if (!cart) return
+    if (!cart) {
+      console.error('Errore nell\'impostazione dell\'indirizzo di spedizione: Nessun carrello disponibile')
+      throw new Error('Nessun carrello disponibile')
+    }
     
     setLoadingCart(true)
     
     try {
-      const { cart: updatedCart } = await sdk.store.cart.update(cart.id, {
-        shipping_address: address
+      const baseUrl = '/api/medusa'
+      const response = await fetch(`${baseUrl}/store/carts/${cart.id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
+        },
+        body: JSON.stringify({
+          shipping_address: address
+        })
       })
       
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Errore nell\'impostazione dell\'indirizzo di spedizione:', errorText)
+        throw new Error(errorText)
+      }
+      
+      const updatedCartData = await response.json()
+      const updatedCart = updatedCartData.cart || updatedCartData
       setCart(updatedCart)
-      console.log('Indirizzo spedizione impostato con JS SDK:', updatedCart)
+      console.log('Indirizzo spedizione impostato:', updatedCart)
       
       // Dopo aver impostato l'indirizzo, recupera i payment providers per la regione del carrello
       if (updatedCart.region?.id) {
         // Usa una chiamata diretta per evitare problemi di riferimento circolare
         try {
-          const baseUrl = '/api/medusa'
           const url = `${baseUrl}/store/payment-providers?region_id=${updatedCart.region.id}`
-          const response = await fetch(url)
-          if (response.ok) {
-            const data = await response.json()
+          const providersResponse = await fetch(url)
+          if (providersResponse.ok) {
+            const data = await providersResponse.json()
             const providers = data.payment_providers || []
             if (providers.length > 0) {
               setPaymentProviders(providers)
@@ -280,10 +339,9 @@ export function useMedusa(): UseMedusaReturn {
       if (updatedCart.region?.id) {
         // Usa una chiamata diretta per evitare problemi di riferimento circolare
         try {
-          const baseUrl = '/api/medusa'
-          const response = await fetch(`${baseUrl}/store/shipping-options?region_id=${updatedCart.region.id}`)
-          if (response.ok) {
-            const data = await response.json()
+          const shippingResponse = await fetch(`${baseUrl}/store/shipping-options?region_id=${updatedCart.region.id}`)
+          if (shippingResponse.ok) {
+            const data = await shippingResponse.json()
             const options = data.shipping_options || []
             if (options.length === 0) {
               const freeShipping = {
@@ -314,83 +372,163 @@ export function useMedusa(): UseMedusaReturn {
     } catch (err) {
       console.error('Errore nell\'impostazione dell\'indirizzo di spedizione:', err)
       setError('Errore nell\'impostazione dell\'indirizzo di spedizione')
+      throw err
     } finally {
       setLoadingCart(false)
     }
   }, [cart])
 
-  // Imposta indirizzo di fatturazione usando JS SDK
+  // Imposta indirizzo di fatturazione usando fetch dirette
   const setBillingAddress = useCallback(async (address: any) => {
-    if (!cart) return
+    if (!cart) {
+      console.error('Errore nell\'impostazione dell\'indirizzo di fatturazione: Nessun carrello disponibile')
+      throw new Error('Nessun carrello disponibile')
+    }
     
     setLoadingCart(true)
     
     try {
-      const { cart: updatedCart } = await sdk.store.cart.update(cart.id, {
-        billing_address: address
+      const baseUrl = '/api/medusa'
+      const response = await fetch(`${baseUrl}/store/carts/${cart.id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
+        },
+        body: JSON.stringify({
+          billing_address: address
+        })
       })
       
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Errore nell\'impostazione dell\'indirizzo di fatturazione:', errorText)
+        throw new Error(errorText)
+      }
+      
+      const updatedCartData = await response.json()
+      const updatedCart = updatedCartData.cart || updatedCartData
       setCart(updatedCart)
-      console.log('Indirizzo fatturazione impostato con JS SDK:', updatedCart)
+      console.log('Indirizzo fatturazione impostato:', updatedCart)
     } catch (err) {
       console.error('Errore nell\'impostazione dell\'indirizzo di fatturazione:', err)
       setError('Errore nell\'impostazione dell\'indirizzo di fatturazione')
+      throw err
     } finally {
       setLoadingCart(false)
     }
   }, [cart])
 
-  // Aggiungi metodo di spedizione usando JS SDK
+  // Aggiungi metodo di spedizione usando fetch dirette
   const addShippingMethod = useCallback(async (shippingMethodId: string) => {
-    if (!cart) return
+    if (!cart) {
+      console.error('Errore nell\'aggiunta del metodo di spedizione: Nessun carrello disponibile')
+      throw new Error('Nessun carrello disponibile')
+    }
     
     setLoadingCart(true)
     
     try {
-      const { cart: updatedCart } = await sdk.store.cart.addShippingMethod(cart.id, {
-        option_id: shippingMethodId
+      const baseUrl = '/api/medusa'
+      const response = await fetch(`${baseUrl}/store/carts/${cart.id}/shipping-methods`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
+        },
+        body: JSON.stringify({
+          option_id: shippingMethodId
+        })
       })
       
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Errore nell\'aggiunta del metodo di spedizione:', errorText)
+        throw new Error(errorText)
+      }
+      
+      const updatedCartData = await response.json()
+      const updatedCart = updatedCartData.cart || updatedCartData
       setCart(updatedCart)
-      console.log('Metodo spedizione aggiunto con JS SDK:', updatedCart)
+      console.log('Metodo spedizione aggiunto:', updatedCart)
     } catch (err) {
       console.error('Errore nell\'aggiunta del metodo di spedizione:', err)
       setError('Errore nell\'aggiunta del metodo di spedizione')
+      throw err
     } finally {
       setLoadingCart(false)
     }
   }, [cart])
 
-  // Aggiungi sessione di pagamento usando JS SDK
+  // Aggiungi sessione di pagamento usando fetch dirette
   const addPaymentSession = useCallback(async (providerId: string) => {
-    if (!cart) return
+    if (!cart) {
+      console.error('Errore nell\'aggiunta della sessione di pagamento: Nessun carrello disponibile')
+      throw new Error('Nessun carrello disponibile')
+    }
     
     setLoadingCart(true)
     
     try {
-      const { cart: updatedCart } = await sdk.store.cart.addPaymentSession(cart.id, {
-        provider_id: providerId
+      const baseUrl = '/api/medusa'
+      const response = await fetch(`${baseUrl}/store/carts/${cart.id}/payment-sessions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
+        },
+        body: JSON.stringify({
+          provider_id: providerId
+        })
       })
       
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Errore nell\'aggiunta della sessione di pagamento:', errorText)
+        throw new Error(errorText)
+      }
+      
+      const updatedCartData = await response.json()
+      const updatedCart = updatedCartData.cart || updatedCartData
       setCart(updatedCart)
-      console.log('Sessione pagamento aggiunta con JS SDK:', updatedCart)
+      console.log('Sessione pagamento aggiunta:', updatedCart)
     } catch (err) {
       console.error('Errore nell\'aggiunta della sessione di pagamento:', err)
       setError('Errore nell\'aggiunta della sessione di pagamento')
+      throw err
     } finally {
       setLoadingCart(false)
     }
   }, [cart])
 
-  // Completa l'ordine usando JS SDK
+  // Completa l'ordine usando fetch dirette
   const completeOrder = useCallback(async () => {
-    if (!cart) throw new Error('Nessun carrello disponibile')
+    if (!cart) {
+      console.error('Errore nel completamento dell\'ordine: Nessun carrello disponibile')
+      throw new Error('Nessun carrello disponibile')
+    }
     
     setLoadingCart(true)
     
     try {
-      const { order } = await sdk.store.cart.complete(cart.id)
-      console.log('Ordine completato con JS SDK:', order)
+      const baseUrl = '/api/medusa'
+      const response = await fetch(`${baseUrl}/store/carts/${cart.id}/complete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
+        }
+      })
+      
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Errore nel completamento dell\'ordine:', errorText)
+        throw new Error(errorText)
+      }
+      
+      const orderData = await response.json()
+      const order = orderData.order || orderData
+      console.log('Ordine completato:', order)
       
       // Rimuovi il carrello dal localStorage dopo il completamento
       localStorage.removeItem('medusa_cart_id')
