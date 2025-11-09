@@ -105,13 +105,43 @@ export default function CheckoutPage() {
         throw new Error('Nessun carrello disponibile')
       }
 
+      const baseUrl = '/api/medusa'
+      
+      // Recupera il codice paese corretto dalla regione del carrello
+      // Medusa usa codici ISO-2 in minuscolo (es: "it", "fr", "de")
+      let countryCode = "it" // Fallback a Italia
+      
+      if (medusa.cart?.region?.id) {
+        try {
+          // Recupera la regione completa con i paesi disponibili
+          const regionResponse = await fetch(`${baseUrl}/store/regions/${medusa.cart.region.id}`)
+          if (regionResponse.ok) {
+            const regionData = await regionResponse.json()
+            const region = regionData.region || regionData
+            // Cerca l'Italia nella lista dei paesi della regione
+            if (region.countries && Array.isArray(region.countries)) {
+              const italy = region.countries.find((c: any) => 
+                c.iso_2?.toLowerCase() === "it" || 
+                c.name?.toUpperCase() === "ITALY" ||
+                c.display_name?.toLowerCase() === "italy"
+              )
+              if (italy?.iso_2) {
+                countryCode = italy.iso_2.toLowerCase()
+              }
+            }
+          }
+        } catch (regionError) {
+          console.warn('Impossibile recuperare la regione, uso fallback "it":', regionError)
+        }
+      }
+
       // Imposta l'indirizzo di spedizione (senza email, non accettata dall'API Medusa nell'indirizzo)
       const shippingAddress = {
         first_name: formData.firstName,
         last_name: formData.lastName,
         address_1: formData.address,
         city: formData.city,
-        country_code: "IT", // Assumiamo Italia per questo esempio
+        country_code: countryCode, // Usa il codice paese corretto dalla regione
         postal_code: formData.postalCode,
         province: formData.province,
         phone: formData.phone
@@ -119,7 +149,6 @@ export default function CheckoutPage() {
 
       // Imposta sia l'indirizzo di spedizione che l'email in una singola chiamata
       // (l'email va nel carrello, non nell'indirizzo di spedizione)
-      const baseUrl = '/api/medusa'
       const cartUpdateBody: any = {
         shipping_address: shippingAddress
       }
@@ -155,7 +184,7 @@ export default function CheckoutPage() {
           last_name: formData.billingLastName,
           address_1: formData.billingAddress,
           city: formData.billingCity,
-          country_code: "IT",
+          country_code: countryCode, // Usa lo stesso codice paese
           postal_code: formData.billingPostalCode,
           province: formData.billingProvince
         }
