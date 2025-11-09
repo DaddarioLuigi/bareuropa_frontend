@@ -808,11 +808,102 @@ export function useMedusa(): UseMedusaReturn {
           throw new Error('ENDPOINT_NOT_AVAILABLE')
         }
       } catch (err: any) {
-        // Non usare fallback con campo 'discounts' - non è supportato dall'API di Medusa
-        // L'unico modo corretto per applicare un codice promozionale è usare l'endpoint specifico
-        // Se l'endpoint specifico fallisce, propaghiamo l'errore all'utente
-        console.error('[DISCOUNT CODE] Errore dall\'endpoint specifico:', err.message)
-        throw err
+        // L'endpoint specifico /discounts non esiste, proviamo con l'aggiornamento del carrello
+        // Usiamo POST /store/carts/{id} con il campo discounts
+        if (err.message.includes('Cannot POST') || err.message.includes('404') || err.message.includes('ENDPOINT_NOT_AVAILABLE')) {
+          console.log('[DISCOUNT CODE] Endpoint /discounts non disponibile, uso aggiornamento carrello con campo discounts')
+          
+          // Prepara i discount codes esistenti più il nuovo
+          const existingDiscounts = currentCart.discounts || []
+          // Evita duplicati
+          const existingCodes = existingDiscounts.map((d: any) => (d.code || d.discount?.code || '').toUpperCase())
+          if (!existingCodes.includes(codeToApply)) {
+            const newDiscounts = [...existingDiscounts, { code: codeToApply }]
+            
+            const requestBody = {
+              discounts: newDiscounts
+            }
+            
+            console.log('[DISCOUNT CODE] Body richiesta aggiornamento carrello:', JSON.stringify(requestBody, null, 2))
+            
+            try {
+              response = await fetch(`${baseUrl}/store/carts/${currentCart.id}`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
+                },
+                body: JSON.stringify(requestBody)
+              })
+              
+              console.log('[DISCOUNT CODE] Risposta HTTP (aggiornamento carrello):', {
+                status: response.status,
+                statusText: response.statusText,
+                ok: response.ok
+              })
+              
+              if (!response.ok) {
+                const errorText = await response.text()
+                console.error('[DISCOUNT CODE] Errore HTTP (aggiornamento carrello):', {
+                  status: response.status,
+                  errorText: errorText.substring(0, 500)
+                })
+                
+                let errorData
+                try {
+                  errorData = JSON.parse(errorText)
+                } catch {
+                  errorData = { message: errorText || 'Codice promozionale non valido' }
+                }
+                
+                // Se l'errore è "Unrecognized fields: 'discounts'", significa che il backend non supporta questo campo
+                const errorMessage = errorData.message || errorData.error?.message || errorData.error || ''
+                if (errorMessage.includes("Unrecognized fields: 'discounts'") || 
+                    errorMessage.includes("Unrecognized fields: discounts") ||
+                    (errorMessage.includes("discounts") && errorMessage.includes("Unrecognized"))) {
+                  console.error('[DISCOUNT CODE] Campo discounts non riconosciuto dal backend Medusa')
+                  throw new Error('FORMATO_DISCOUNT_NON_SUPPORTATO')
+                }
+                
+                const finalErrorMessage = errorMessage || 
+                                         (errorData.errors && Array.isArray(errorData.errors) && errorData.errors[0]?.message) ||
+                                         'Codice promozionale non valido'
+                
+                throw new Error(finalErrorMessage)
+              }
+              
+              const contentType = response.headers.get('content-type')
+              if (!contentType || !contentType.includes('application/json')) {
+                const errorText = await response.text()
+                console.error('[DISCOUNT CODE] Risposta non-JSON da Medusa:', errorText.substring(0, 200))
+                throw new Error('Medusa ha restituito una risposta non valida. Verifica che il codice promozionale esista.')
+              }
+              
+              updatedCart = await response.json()
+              cartData = updatedCart.cart || updatedCart
+              
+              console.log('[DISCOUNT CODE] ✅ Carrello aggiornato con codice promozionale:', {
+                discounts: cartData.discounts,
+                discountTotal: cartData.discount_total
+              })
+            } catch (fallbackErr: any) {
+              if (fallbackErr.message === 'FORMATO_DISCOUNT_NON_SUPPORTATO') {
+                // Se il formato discounts non è supportato, il backend Medusa non supporta questa funzionalità
+                // oppure richiede una configurazione diversa
+                console.error('[DISCOUNT CODE] Il campo discounts non è supportato da questa versione/configurazione di Medusa')
+                throw new Error('Il codice promozionale non può essere applicato tramite questa interfaccia. Contatta il supporto per verificare la configurazione del backend.')
+              }
+              throw fallbackErr
+            }
+          } else {
+            // Il codice è già applicato
+            console.log('[DISCOUNT CODE] Codice già applicato al carrello')
+            cartData = currentCart
+          }
+        } else {
+          // Per altri errori, propaghiamo l'errore originale
+          throw err
+        }
       }
       
       console.log('[DISCOUNT CODE] Carrello aggiornato da Medusa:', {
