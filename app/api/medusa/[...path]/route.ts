@@ -143,6 +143,94 @@ export async function POST(request: NextRequest) {
   }
 }
 
+export async function DELETE(request: NextRequest) {
+  const url = new URL(request.url)
+  const path = url.pathname.replace('/api/medusa', '')
+  
+  try {
+    const requestUrl = `${MEDUSA_BACKEND_URL}${path}${url.search}`
+    console.log('[PROXY] DELETE request to:', requestUrl)
+    
+    const response = await fetch(requestUrl, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-publishable-api-key': process.env.MEDUSA_PUBLISHABLE_API_KEY
+          || process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY
+          || '',
+      },
+    })
+    
+    console.log('[PROXY] DELETE Response status:', response.status, response.statusText)
+    
+    // Se la risposta non è OK, prova a leggere il testo dell'errore
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('[PROXY] DELETE Error response from Medusa:', {
+        status: response.status,
+        statusText: response.statusText,
+        errorText: errorText.substring(0, 1000),
+        path
+      })
+      
+      // Prova a parsare come JSON se possibile
+      try {
+        const errorData = JSON.parse(errorText)
+        return NextResponse.json({ 
+          error: errorData.message || errorData.error || 'Errore da Medusa',
+          details: errorData,
+          status: response.status
+        }, { status: response.status })
+      } catch {
+        // Se non è JSON, restituisci il testo
+        return NextResponse.json({ 
+          error: errorText || 'Errore da Medusa',
+          status: response.status
+        }, { status: response.status })
+      }
+    }
+    
+    // Controlla se la risposta è JSON
+    const contentType = response.headers.get('content-type')
+    if (!contentType || !contentType.includes('application/json')) {
+      const text = await response.text()
+      console.error('[PROXY] DELETE Non-JSON response:', {
+        contentType,
+        text: text.substring(0, 500),
+        path
+      })
+      return NextResponse.json({ 
+        error: 'Non-JSON response from backend',
+        contentType,
+        text: text.substring(0, 200)
+      }, { status: 500 })
+    }
+    
+    const data = await response.json()
+    console.log('[PROXY] DELETE Success response for:', path)
+    
+    return NextResponse.json(data, {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      },
+    })
+  } catch (error: any) {
+    console.error('[PROXY] DELETE Proxy error:', {
+      message: error.message,
+      stack: error.stack,
+      path,
+      url: request.url
+    })
+    return NextResponse.json({ 
+      error: 'Proxy failed',
+      details: error.message || 'Errore sconosciuto',
+      path
+    }, { status: 500 })
+  }
+}
+
 export async function OPTIONS() {
   return new NextResponse(null, {
     status: 200,

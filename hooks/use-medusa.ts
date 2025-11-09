@@ -764,49 +764,31 @@ export function useMedusa(): UseMedusaReturn {
           contentType: response.headers.get('content-type')
         })
         
-        // Se la risposta non è OK, prova a estrarre il messaggio di errore specifico da Medusa
+        // Se la risposta non è OK, estrai il messaggio di errore specifico da Medusa
         if (!response.ok) {
           const errorText = await response.text()
           console.error('[DISCOUNT CODE] Errore HTTP:', {
             status: response.status,
+            statusText: response.statusText,
             errorText: errorText.substring(0, 500)
           })
           
-          // Se è un errore 500 con "Non-JSON response", significa che l'endpoint non esiste
-          // o Medusa sta restituendo HTML invece di JSON
-          if (response.status === 500 || response.status === 404) {
-            // Prova a parsare l'errore per vedere se contiene informazioni utili
-            let errorData
-            try {
-              errorData = JSON.parse(errorText)
-              // Se contiene un messaggio di errore specifico, usalo
-              if (errorData.error && errorData.error.includes('Non-JSON')) {
-                console.log('[DISCOUNT CODE] Endpoint discounts non disponibile, uso aggiornamento carrello')
-                throw new Error('ENDPOINT_NOT_AVAILABLE')
-              }
-              // Altrimenti usa il messaggio di errore di Medusa
-              const errorMessage = errorData.message || errorData.error?.message || errorData.error || 'Codice promozionale non valido'
-              throw new Error(errorMessage)
-            } catch (parseErr) {
-              // Se non riesce a parsare, l'endpoint non è disponibile
-              console.log('[DISCOUNT CODE] Endpoint discounts non disponibile, uso aggiornamento carrello')
-              throw new Error('ENDPOINT_NOT_AVAILABLE')
-            }
-          }
-          
-          // Per altri errori (400, 422, ecc.), Medusa potrebbe restituire un messaggio specifico
+          // Prova a parsare l'errore come JSON
           let errorData
           try {
             errorData = JSON.parse(errorText)
           } catch {
+            // Se non è JSON, usa il testo come messaggio
             errorData = { message: errorText || 'Codice promozionale non valido' }
           }
           
           // Estrai il messaggio di errore più specifico possibile
+          // Medusa può restituire errori in diversi formati
           const errorMessage = errorData.message || 
                                errorData.error?.message || 
                                errorData.error || 
-                               (errorData.errors && errorData.errors[0]?.message) ||
+                               (errorData.errors && Array.isArray(errorData.errors) && errorData.errors[0]?.message) ||
+                               (errorData.details && errorData.details.message) ||
                                'Codice promozionale non valido'
           
           console.error('[DISCOUNT CODE] Messaggio errore da Medusa:', errorMessage)
@@ -826,82 +808,11 @@ export function useMedusa(): UseMedusaReturn {
           throw new Error('ENDPOINT_NOT_AVAILABLE')
         }
       } catch (err: any) {
-        // Se l'endpoint specifico non è disponibile, usa l'aggiornamento del carrello
-        if (err.message === 'ENDPOINT_NOT_AVAILABLE' || err.message.includes('Non-JSON')) {
-          console.log('[DISCOUNT CODE] Uso endpoint di aggiornamento carrello con campo discounts')
-          
-          // Prepara i discount codes esistenti più il nuovo
-          const existingDiscounts = currentCart.discounts || []
-          const newDiscounts = [...existingDiscounts, { code: codeToApply }]
-          
-          const requestBody = {
-            discounts: newDiscounts
-          }
-          
-          console.log('[DISCOUNT CODE] Body richiesta aggiornamento carrello:', JSON.stringify(requestBody, null, 2))
-          console.log('[DISCOUNT CODE] Discount codes da inviare:', newDiscounts)
-          console.log('[DISCOUNT CODE] Codice da applicare:', codeToApply)
-          
-          response = await fetch(`${baseUrl}/store/carts/${currentCart.id}`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
-            },
-            body: JSON.stringify(requestBody)
-          })
-          
-          console.log('[DISCOUNT CODE] Risposta HTTP (aggiornamento carrello):', {
-            status: response.status,
-            statusText: response.statusText,
-            ok: response.ok
-          })
-          
-          if (!response.ok) {
-            const errorText = await response.text()
-            console.error('[DISCOUNT CODE] Errore HTTP (aggiornamento carrello):', {
-              status: response.status,
-              errorText: errorText.substring(0, 500)
-            })
-            
-            let errorData
-            try {
-              errorData = JSON.parse(errorText)
-            } catch {
-              errorData = { message: errorText || 'Codice promozionale non valido' }
-            }
-            
-            // Estrai il messaggio di errore più specifico possibile
-            const errorMessage = errorData.message || 
-                                 errorData.error?.message || 
-                                 errorData.error || 
-                                 (errorData.errors && errorData.errors[0]?.message) ||
-                                 'Codice promozionale non valido'
-            
-            console.error('[DISCOUNT CODE] Messaggio errore da Medusa (aggiornamento carrello):', errorMessage)
-            throw new Error(errorMessage)
-          }
-          
-          const contentType = response.headers.get('content-type')
-          if (!contentType || !contentType.includes('application/json')) {
-            const errorText = await response.text()
-            console.error('[DISCOUNT CODE] Risposta non-JSON da Medusa:', errorText.substring(0, 200))
-            throw new Error('Medusa ha restituito una risposta non valida. Verifica che il codice promozionale esista.')
-          }
-          
-          updatedCart = await response.json()
-          cartData = updatedCart.cart || updatedCart
-          
-          // DEBUG: Stampa la risposta completa di Medusa
-          console.log('[DISCOUNT CODE] 🔍 Risposta completa da Medusa (aggiornamento carrello):', JSON.stringify(updatedCart, null, 2))
-          console.log('[DISCOUNT CODE] 🔍 Cart data estratto:', JSON.stringify(cartData, null, 2))
-          console.log('[DISCOUNT CODE] 🔍 Discounts nel carrello:', cartData.discounts)
-          console.log('[DISCOUNT CODE] 🔍 Tipo di discounts:', typeof cartData.discounts)
-          console.log('[DISCOUNT CODE] 🔍 È array?', Array.isArray(cartData.discounts))
-          console.log('[DISCOUNT CODE] 🔍 Tutte le chiavi del carrello:', Object.keys(cartData))
-        } else {
-          throw err
-        }
+        // Non usare fallback con campo 'discounts' - non è supportato dall'API di Medusa
+        // L'unico modo corretto per applicare un codice promozionale è usare l'endpoint specifico
+        // Se l'endpoint specifico fallisce, propaghiamo l'errore all'utente
+        console.error('[DISCOUNT CODE] Errore dall\'endpoint specifico:', err.message)
+        throw err
       }
       
       console.log('[DISCOUNT CODE] Carrello aggiornato da Medusa:', {
@@ -1026,33 +937,15 @@ export function useMedusa(): UseMedusaReturn {
       const baseUrl = '/api/medusa'
       const codeToRemove = code.toUpperCase().trim()
       
-      // Prova prima con l'endpoint specifico per rimuovere il discount code
-      let response = await fetch(`${baseUrl}/store/carts/${cart.id}/discounts/${codeToRemove}`, {
+      // Usa l'endpoint specifico per rimuovere il discount code
+      const response = await fetch(`${baseUrl}/store/carts/${cart.id}/discounts/${codeToRemove}`, {
         method: 'DELETE',
         headers: {
           'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
         }
       })
       
-      // Se l'endpoint specifico non funziona, aggiorna il carrello con un array vuoto di discount codes
       if (!response.ok) {
-        response = await fetch(`${baseUrl}/store/carts/${cart.id}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
-          },
-          body: JSON.stringify({
-            discounts: []
-          })
-        })
-      }
-      
-      if (response.ok) {
-        const updatedCart = await response.json()
-        setCart(updatedCart.cart)
-        console.log('Codice promozionale rimosso:', updatedCart.cart)
-      } else {
         const errorText = await response.text()
         let errorData
         try {
@@ -1060,8 +953,20 @@ export function useMedusa(): UseMedusaReturn {
         } catch {
           errorData = { message: errorText || 'Errore nella rimozione del codice' }
         }
-        throw new Error(errorData.message || 'Errore nella rimozione del codice')
+        
+        // Estrai il messaggio di errore più specifico possibile
+        const errorMessage = errorData.message || 
+                             errorData.error?.message || 
+                             errorData.error || 
+                             (errorData.errors && errorData.errors[0]?.message) ||
+                             'Errore nella rimozione del codice promozionale'
+        
+        throw new Error(errorMessage)
       }
+      
+      const updatedCart = await response.json()
+      setCart(updatedCart.cart || updatedCart)
+      console.log('Codice promozionale rimosso:', updatedCart.cart || updatedCart)
     } catch (err: any) {
       console.error('Errore nella rimozione del codice promozionale:', err)
       setError(err.message || 'Errore nella rimozione del codice promozionale')
