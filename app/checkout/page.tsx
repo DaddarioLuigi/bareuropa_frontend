@@ -105,7 +105,7 @@ export default function CheckoutPage() {
         throw new Error('Nessun carrello disponibile')
       }
 
-      // Imposta l'indirizzo di spedizione
+      // Imposta l'indirizzo di spedizione (senza email, non accettata dall'API Medusa nell'indirizzo)
       const shippingAddress = {
         first_name: formData.firstName,
         last_name: formData.lastName,
@@ -114,10 +114,38 @@ export default function CheckoutPage() {
         country_code: "IT", // Assumiamo Italia per questo esempio
         postal_code: formData.postalCode,
         province: formData.province,
-        phone: formData.phone,
-        email: formData.email
+        phone: formData.phone
       }
 
+      // Imposta sia l'indirizzo di spedizione che l'email in una singola chiamata
+      // (l'email va nel carrello, non nell'indirizzo di spedizione)
+      const baseUrl = '/api/medusa'
+      const cartUpdateBody: any = {
+        shipping_address: shippingAddress
+      }
+      
+      // Aggiungi l'email se presente (va nel carrello, non nell'indirizzo)
+      if (formData.email) {
+        cartUpdateBody.email = formData.email
+      }
+      
+      const cartUpdateResponse = await fetch(`${baseUrl}/store/carts/${medusa.cart.id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
+        },
+        body: JSON.stringify(cartUpdateBody)
+      })
+      
+      if (!cartUpdateResponse.ok) {
+        const errorText = await cartUpdateResponse.text()
+        console.error('Errore nell\'impostazione dell\'indirizzo di spedizione:', errorText)
+        throw new Error(errorText)
+      }
+      
+      // Aggiorna lo stato del carrello chiamando setShippingAddress che gestisce l'aggiornamento dello stato
+      // Questo evita duplicazioni e mantiene la coerenza con il resto del codice
       await medusa.setShippingAddress(shippingAddress)
 
       // Se l'indirizzo di fatturazione è diverso, impostalo
