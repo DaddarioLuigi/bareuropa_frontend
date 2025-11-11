@@ -431,13 +431,15 @@ export default function CheckoutPage() {
   const medusaSubtotal = medusa.cart ? (medusa.cart.subtotal || 0) : 0
   const medusaDiscount = medusa.cart ? (medusa.cart.discount_total || 0) : 0
   const medusaShipping = medusa.cart ? (medusa.cart.shipping_total || 0) : 0
+  const medusaTax = medusa.cart ? (medusa.cart.tax_total || 0) : 0
   const medusaTotal = medusa.cart ? (medusa.cart.total || 0) : 0
 
   // Usa i valori di Medusa se disponibili, altrimenti calcola localmente
   const subtotal = medusaSubtotal || state.total
   const discount = medusaDiscount
   const shipping = medusaShipping || (subtotal >= 50 ? 0 : 5.9)
-  const total = medusaTotal || (subtotal - discount + shipping)
+  const tax = medusaTax
+  const total = medusaTotal || (subtotal - discount + shipping + tax)
 
   // Sincronizza il codice promozionale applicato con il carrello Medusa
   useEffect(() => {
@@ -903,6 +905,12 @@ export default function CheckoutPage() {
                         {shipping === 0 ? "Gratuita" : `€${shipping.toFixed(2)}`}
                       </span>
                     </div>
+                    {tax > 0 && (
+                      <div className="flex justify-between">
+                        <span>IVA</span>
+                        <span>€{tax.toFixed(2)}</span>
+                      </div>
+                    )}
                   </div>
 
                   <Separator />
