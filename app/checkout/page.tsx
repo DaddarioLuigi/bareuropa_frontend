@@ -439,7 +439,12 @@ export default function CheckoutPage() {
     }
   }
 
-  if (state.items.length === 0) {
+  // Controlla se il carrello è vuoto usando sia il carrello Medusa che lo stato locale
+  const cartItems = medusa.cart?.items || []
+  const localItems = state.items || []
+  const hasItems = (cartItems.length > 0) || (localItems.length > 0)
+  
+  if (!hasItems) {
     return (
       <div className="min-h-screen bg-background">
         <Navigation />
@@ -471,17 +476,17 @@ export default function CheckoutPage() {
   const medusaTotal = medusa.cart ? (medusa.cart.total || 0) : 0
 
   // Usa i valori di Medusa se disponibili, altrimenti calcola localmente
-  // IMPORTANTE: Se l'IVA è già inclusa nei prezzi, dobbiamo sottrarla dal totale di Medusa
-  // perché Medusa potrebbe aggiungerla di nuovo. Il totale corretto è: subtotale + spedizione (senza IVA aggiuntiva)
+  // IMPORTANTE: L'IVA è già inclusa nei prezzi di Medusa
+  // Il subtotale è già il totale prodotti con IVA inclusa
   const subtotal = medusaSubtotal || state.total
   const discount = medusaDiscount
+  // Se non c'è shipping_total da Medusa, calcola in base al subtotale
   const shipping = medusaShipping || (subtotal >= 50 ? 0 : 5.9)
   
-  // Il totale deve essere: Totale prodotti + prezzo di spedizione
-  // Se c'è uno sconto, lo sottraiamo dal subtotale
-  // Se l'IVA è già inclusa nei prezzi, non aggiungiamo tax_total
+  // Il totale deve essere: Totale prodotti (con IVA inclusa) + spedizione - sconto
+  // Non aggiungiamo tax_total perché l'IVA è già inclusa nel subtotale
   const total = medusaSubtotal > 0
-    ? (medusaSubtotal - medusaDiscount + medusaShipping) // Totale prodotti (con IVA inclusa) + spedizione - sconto
+    ? (medusaSubtotal - medusaDiscount + shipping) // Totale prodotti (con IVA inclusa) + spedizione - sconto
     : (subtotal - discount + shipping)
 
   // Sincronizza il codice promozionale applicato con il carrello Medusa
@@ -910,25 +915,28 @@ export default function CheckoutPage() {
                   <div className="space-y-3">
                     {/* Usa gli items dal carrello Medusa per avere le quantità corrette */}
                     {(medusa.cart?.items && medusa.cart.items.length > 0
-                      ? medusa.cart.items.map((item) => {
-                          // Medusa v2: il subtotale è già in euro (vedi app/cart/page.tsx riga 218)
-                          // Ma i prezzi nelle varianti sono ancora in centesimi (vedi lib/medusa.ts riga 211)
-                          // Quindi dobbiamo convertirli dividendo per 100
-                          const itemPriceRaw = item.variant?.prices?.[0]?.amount || 0
-                          const itemPriceInEuros = itemPriceRaw / 100 // Converti da centesimi a euro
-                          const itemTotal = itemPriceInEuros * item.quantity
+                      ? medusa.cart.items.map((item: any) => {
+                          // Medusa v2: unit_price è già in euro (vedi app/cart/page.tsx riga 256)
+                          // Usa unit_price se disponibile, altrimenti calcola da variant.prices
+                          const itemPrice = item.unit_price || (item.variant?.prices?.[0]?.amount ? item.variant.prices[0].amount / 100 : 0)
+                          const itemTotal = itemPrice * item.quantity
+                          
+                          // Usa thumbnail come nella pagina cart: item.thumbnail || item.product?.thumbnail || item.variant?.product?.thumbnail
+                          const image = item.thumbnail || item.product?.thumbnail || item.variant?.product?.thumbnail || "/placeholder.svg"
+                          const productTitle = item.product_title || item.title || item.variant?.product?.title || item.product?.title || "Prodotto"
+                          
                           return (
                             <div key={item.id} className="flex gap-3">
                               <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0">
                                 <img
-                                  src={item.variant?.product?.thumbnail || "/placeholder.svg"}
-                                  alt={item.variant?.product?.title || "Prodotto"}
+                                  src={image}
+                                  alt={productTitle}
                                   className="w-full h-full object-cover"
                                 />
                               </div>
                               <div className="flex-1 min-w-0">
                                 <h4 className="font-medium text-sm line-clamp-2">
-                                  {item.variant?.product?.title || "Prodotto"}
+                                  {productTitle}
                                 </h4>
                                 <p className="text-xs text-muted-foreground">Qtà: {item.quantity}</p>
                                 <p className="text-sm font-semibold text-primary">

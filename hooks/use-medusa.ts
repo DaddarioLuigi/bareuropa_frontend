@@ -62,7 +62,8 @@ export function useMedusa(): UseMedusaReturn {
         try {
           const baseUrl = '/api/medusa'
           console.log('[GET OR CREATE CART] Tentativo di recuperare carrello:', existingCartId)
-          const response = await fetch(`${baseUrl}/store/carts/${existingCartId}`, {
+          // Espandi i dati necessari per avere thumbnail, product, variant, ecc.
+          const response = await fetch(`${baseUrl}/store/carts/${existingCartId}?expand=items,items.variant,items.variant.product,items.product,region,shipping_address,billing_address,payment_sessions,shipping_methods,discounts`, {
             headers: {
               'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
             }
@@ -1678,7 +1679,8 @@ export function useMedusa(): UseMedusaReturn {
   const reloadCart = useCallback(async (cartId: string) => {
     try {
       const baseUrl = '/api/medusa'
-      const cartResponse = await fetch(`${baseUrl}/store/carts/${cartId}`, {
+      // Espandi i dati necessari per avere thumbnail, product, variant, ecc.
+      const cartResponse = await fetch(`${baseUrl}/store/carts/${cartId}?expand=items,items.variant,items.variant.product,items.product,region,shipping_address,billing_address,payment_sessions,shipping_methods,discounts`, {
         headers: {
           'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
         }
