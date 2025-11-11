@@ -477,12 +477,11 @@ export default function CheckoutPage() {
   const discount = medusaDiscount
   const shipping = medusaShipping || (subtotal >= 50 ? 0 : 5.9)
   
-  // Se l'IVA è già inclusa nei prezzi, il totale dovrebbe essere subtotale + spedizione
-  // Se Medusa aggiunge l'IVA al totale, la sottraiamo
-  // Il totale di Medusa potrebbe essere: subtotale + spedizione + tax_total
-  // Ma se l'IVA è già nel subtotale, dobbiamo usare: subtotale + spedizione
-  const total = medusaTotal > 0 
-    ? (medusaSubtotal + medusaShipping - medusaDiscount) // Calcolo manuale senza IVA aggiuntiva
+  // Il totale deve essere: Totale prodotti + prezzo di spedizione
+  // Se c'è uno sconto, lo sottraiamo dal subtotale
+  // Se l'IVA è già inclusa nei prezzi, non aggiungiamo tax_total
+  const total = medusaSubtotal > 0
+    ? (medusaSubtotal - medusaDiscount + medusaShipping) // Totale prodotti (con IVA inclusa) + spedizione - sconto
     : (subtotal - discount + shipping)
 
   // Sincronizza il codice promozionale applicato con il carrello Medusa
@@ -909,24 +908,57 @@ export default function CheckoutPage() {
                 <CardContent className="space-y-4">
                   {/* Order Items */}
                   <div className="space-y-3">
-                    {state.items.map((item) => (
-                      <div key={item.id} className="flex gap-3">
-                        <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0">
-                          <img
-                            src={item.image || "/placeholder.svg"}
-                            alt={item.name}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-medium text-sm line-clamp-2">{item.name}</h4>
-                          <p className="text-xs text-muted-foreground">Qtà: {item.quantity}</p>
-                          <p className="text-sm font-semibold text-primary">
-                            €{(item.price * item.quantity).toFixed(2)}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
+                    {/* Usa gli items dal carrello Medusa per avere le quantità corrette */}
+                    {(medusa.cart?.items && medusa.cart.items.length > 0
+                      ? medusa.cart.items.map((item) => {
+                          // Medusa v2: il subtotale è già in euro (vedi app/cart/page.tsx riga 218)
+                          // I prezzi nelle varianti potrebbero essere in centesimi, quindi li convertiamo
+                          // Usiamo il prezzo della variante e lo convertiamo se necessario
+                          const itemPriceRaw = item.variant?.prices?.[0]?.amount || 0
+                          // Se il prezzo è molto grande (> 1000), probabilmente è in centesimi
+                          // Altrimenti è già in euro (come il subtotale)
+                          const itemPriceInEuros = itemPriceRaw > 1000 ? itemPriceRaw / 100 : itemPriceRaw
+                          const itemTotal = itemPriceInEuros * item.quantity
+                          return (
+                            <div key={item.id} className="flex gap-3">
+                              <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                                <img
+                                  src={item.variant?.product?.thumbnail || "/placeholder.svg"}
+                                  alt={item.variant?.product?.title || "Prodotto"}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-medium text-sm line-clamp-2">
+                                  {item.variant?.product?.title || "Prodotto"}
+                                </h4>
+                                <p className="text-xs text-muted-foreground">Qtà: {item.quantity}</p>
+                                <p className="text-sm font-semibold text-primary">
+                                  €{itemTotal.toFixed(2)}
+                                </p>
+                              </div>
+                            </div>
+                          )
+                        })
+                      : state.items.map((item) => (
+                          <div key={item.id} className="flex gap-3">
+                            <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                              <img
+                                src={item.image || "/placeholder.svg"}
+                                alt={item.name}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-medium text-sm line-clamp-2">{item.name}</h4>
+                              <p className="text-xs text-muted-foreground">Qtà: {item.quantity}</p>
+                              <p className="text-sm font-semibold text-primary">
+                                €{(item.price * item.quantity).toFixed(2)}
+                              </p>
+                            </div>
+                          </div>
+                        ))
+                    )}
                   </div>
 
                   <Separator />
