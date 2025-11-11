@@ -833,6 +833,14 @@ export function useMedusa(): UseMedusaReturn {
       
       // Verifica che la payment collection sia inizializzata PRIMA di completare l'ordine
       // Questo è obbligatorio in Medusa v2
+      // IMPORTANTE: Verifica sempre dal carrello aggiornato, non dallo stato locale
+      console.log('[COMPLETE ORDER] Verifica payment collection dal carrello aggiornato:', {
+        hasShippingAddress: !!updatedCart.shipping_address,
+        hasShippingMethods: updatedCart.shipping_methods?.length > 0,
+        hasPaymentCollection: !!updatedCart.payment_collection,
+        hasPaymentSessions: updatedCart.payment_sessions?.length > 0
+      })
+      
       if (!updatedCart.payment_collection && !updatedCart.payment_sessions?.length) {
         console.error('[COMPLETE ORDER] ❌ Payment collection non inizializzata!')
         
@@ -855,6 +863,11 @@ export function useMedusa(): UseMedusaReturn {
               const retryCartData = await retryCartResponse.json()
               const retryCart = retryCartData.cart || retryCartData
               
+              console.log('[COMPLETE ORDER] Retry', i + 1, ':', {
+                hasPaymentCollection: !!retryCart.payment_collection,
+                hasPaymentSessions: retryCart.payment_sessions?.length > 0
+              })
+              
               if (retryCart.payment_collection || retryCart.payment_sessions?.length > 0) {
                 console.log('[COMPLETE ORDER] ✅ Payment collection inizializzata dopo', (i + 1) * 500, 'ms')
                 updatedCart = retryCart
@@ -868,7 +881,11 @@ export function useMedusa(): UseMedusaReturn {
             throw new Error('Payment collection non è stata inizializzata. Assicurati che l\'indirizzo di spedizione e il metodo di spedizione siano stati impostati correttamente.')
           }
         } else {
-          throw new Error('Payment collection non può essere inizializzata: mancano indirizzo di spedizione o metodo di spedizione.')
+          console.error('[COMPLETE ORDER] ❌ Dati mancanti:', {
+            hasShippingAddress: !!updatedCart.shipping_address,
+            hasShippingMethods: updatedCart.shipping_methods?.length > 0
+          })
+          throw new Error('Payment collection non può essere inizializzata: mancano indirizzo di spedizione o metodo di spedizione. Assicurati di aver compilato tutti i campi obbligatori nel form di checkout.')
         }
       }
       

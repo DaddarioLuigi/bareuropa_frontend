@@ -243,22 +243,30 @@ export default function CheckoutPage() {
 
       // In Medusa v2, la payment collection deve essere inizializzata prima di aggiungere payment sessions
       // Verifica e inizializza la payment collection se necessario
-      if (medusa.cart?.shipping_address && medusa.cart?.shipping_methods?.length > 0) {
-        console.log('[CHECKOUT] Verifico se la payment collection è inizializzata...')
+      // IMPORTANTE: Ricarica sempre il carrello da Medusa per avere lo stato più recente
+      console.log('[CHECKOUT] Verifico se la payment collection è inizializzata...')
+      
+      const cartCheckResponse = await fetch(`${baseUrl}/store/carts/${medusa.cart.id}`, {
+        headers: {
+          'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
+        }
+      })
+      
+      if (cartCheckResponse.ok) {
+        const cartCheckData = await cartCheckResponse.json()
+        const currentCart = cartCheckData.cart || cartCheckData
         
-        // Ricarica il carrello per verificare lo stato attuale
-        const cartCheckResponse = await fetch(`${baseUrl}/store/carts/${medusa.cart.id}`, {
-          headers: {
-            'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
-          }
+        console.log('[CHECKOUT] Stato carrello da Medusa:', {
+          hasShippingAddress: !!currentCart.shipping_address,
+          hasShippingMethods: currentCart.shipping_methods?.length > 0,
+          hasPaymentCollection: !!currentCart.payment_collection,
+          hasPaymentSessions: currentCart.payment_sessions?.length > 0
         })
         
-        if (cartCheckResponse.ok) {
-          const cartCheckData = await cartCheckResponse.json()
-          const currentCart = cartCheckData.cart || cartCheckData
-          
-          // Se non c'è payment_collection, prova a inizializzarla
-          if (!currentCart.payment_collection && !currentCart.payment_sessions?.length) {
+        // Se non c'è payment_collection, prova a inizializzarla
+        if (!currentCart.payment_collection && !currentCart.payment_sessions?.length) {
+          // Verifica che shipping_address e shipping_methods siano presenti
+          if (currentCart.shipping_address && currentCart.shipping_methods?.length > 0) {
             console.log('[CHECKOUT] Payment collection non trovata, attendo l\'inizializzazione automatica...')
             
             // Attendi più tempo per permettere a Medusa di inizializzare la payment collection
@@ -278,15 +286,21 @@ export default function CheckoutPage() {
                 
                 if (retryCart.payment_collection || retryCart.payment_sessions?.length > 0) {
                   console.log('[CHECKOUT] ✅ Payment collection inizializzata dopo', (i + 1) * 500, 'ms')
-                  // Aggiorna il carrello nello stato
-                  await medusa.setShippingAddress(medusa.cart?.shipping_address || {})
+                  // Aggiorna il carrello nello stato con il carrello aggiornato
+                  await medusa.setShippingAddress(currentCart.shipping_address || {})
                   break
                 }
               }
             }
           } else {
-            console.log('[CHECKOUT] ✅ Payment collection già inizializzata')
+            console.error('[CHECKOUT] ❌ Payment collection non può essere inizializzata:', {
+              hasShippingAddress: !!currentCart.shipping_address,
+              hasShippingMethods: currentCart.shipping_methods?.length > 0
+            })
+            throw new Error('Payment collection non può essere inizializzata: mancano indirizzo di spedizione o metodo di spedizione. Assicurati di aver compilato tutti i campi obbligatori.')
           }
+        } else {
+          console.log('[CHECKOUT] ✅ Payment collection già inizializzata')
         }
       }
 
@@ -453,14 +467,23 @@ export default function CheckoutPage() {
   const medusaSubtotal = medusa.cart ? (medusa.cart.subtotal || 0) : 0
   const medusaDiscount = medusa.cart ? (medusa.cart.discount_total || 0) : 0
   const medusaShipping = medusa.cart ? (medusa.cart.shipping_total || 0) : 0
+  const medusaTax = medusa.cart ? (medusa.cart.tax_total || 0) : 0
   const medusaTotal = medusa.cart ? (medusa.cart.total || 0) : 0
 
   // Usa i valori di Medusa se disponibili, altrimenti calcola localmente
-  // Il totale di Medusa include già tutto (subtotale + spedizione + eventuali tasse)
+  // IMPORTANTE: Se l'IVA è già inclusa nei prezzi, dobbiamo sottrarla dal totale di Medusa
+  // perché Medusa potrebbe aggiungerla di nuovo. Il totale corretto è: subtotale + spedizione (senza IVA aggiuntiva)
   const subtotal = medusaSubtotal || state.total
   const discount = medusaDiscount
   const shipping = medusaShipping || (subtotal >= 50 ? 0 : 5.9)
-  const total = medusaTotal || (subtotal - discount + shipping)
+  
+  // Se l'IVA è già inclusa nei prezzi, il totale dovrebbe essere subtotale + spedizione
+  // Se Medusa aggiunge l'IVA al totale, la sottraiamo
+  // Il totale di Medusa potrebbe essere: subtotale + spedizione + tax_total
+  // Ma se l'IVA è già nel subtotale, dobbiamo usare: subtotale + spedizione
+  const total = medusaTotal > 0 
+    ? (medusaSubtotal + medusaShipping - medusaDiscount) // Calcolo manuale senza IVA aggiuntiva
+    : (subtotal - discount + shipping)
 
   // Sincronizza il codice promozionale applicato con il carrello Medusa
   useEffect(() => {
