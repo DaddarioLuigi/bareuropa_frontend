@@ -20,13 +20,24 @@ export const revalidate = 300
 
 export async function generateMetadata({ params }: { params: { handle: string } }): Promise<Metadata> {
   try {
-    const regionParam = MEDUSA_REGION_ID ? `region_id=${MEDUSA_REGION_ID}&` : ''
+    const regionParam = MEDUSA_REGION_ID ? `&region_id=${MEDUSA_REGION_ID}` : ''
+    const queryString = `handle=${encodeURIComponent(params.handle)}&limit=1${regionParam}`
     const data = await api(
-      `/store/products?${regionParam}handle=${encodeURIComponent(params.handle)}&limit=1`,
+      `/store/products?${queryString}`,
       { next: { revalidate: 300 } }
     )
-    const products = data.products ?? data
-    const product = Array.isArray(products) ? products[0] : undefined
+    
+    // Handle different response structures
+    let products: any[] = []
+    if (Array.isArray(data)) {
+      products = data
+    } else if (data?.products && Array.isArray(data.products)) {
+      products = data.products
+    } else if (data?.product) {
+      products = [data.product]
+    }
+    
+    const product = products[0]
     
     if (!product) {
       return {
@@ -44,6 +55,7 @@ export async function generateMetadata({ params }: { params: { handle: string } 
       },
     }
   } catch (error) {
+    console.error('Error in generateMetadata:', error)
     return {
       title: 'Prodotto - Bar Europa',
     }
@@ -115,18 +127,43 @@ interface ProductPageProps {
 
 async function ProductDetails({ params }: ProductPageProps) {
   try {
-    const regionParam = MEDUSA_REGION_ID ? `region_id=${MEDUSA_REGION_ID}&` : ''
+    const regionParam = MEDUSA_REGION_ID ? `&region_id=${MEDUSA_REGION_ID}` : ''
+    const queryString = `handle=${encodeURIComponent(params.handle)}&limit=1${regionParam}`
+    
+    console.log('[ProductPage] Fetching product with handle:', params.handle)
+    console.log('[ProductPage] Query string:', queryString)
+    
     const data = await api(
-      `/store/products?${regionParam}handle=${encodeURIComponent(params.handle)}&limit=1`,
+      `/store/products?${queryString}`,
       { next: { revalidate: 300 } }
     )
-    const products = data.products ?? data
-    const product: Product | undefined = Array.isArray(products) ? products[0] : undefined
+    
+    console.log('[ProductPage] API response structure:', {
+      isArray: Array.isArray(data),
+      hasProducts: !!data?.products,
+      hasProduct: !!data?.product,
+      keys: Object.keys(data || {})
+    })
+    
+    // Handle different response structures
+    let products: any[] = []
+    if (Array.isArray(data)) {
+      products = data
+    } else if (data?.products && Array.isArray(data.products)) {
+      products = data.products
+    } else if (data?.product) {
+      products = [data.product]
+    }
+    
+    const product: Product | undefined = products[0]
     let enrichedProduct: any | undefined
 
     if (!product) {
+      console.error('[ProductPage] Product not found for handle:', params.handle)
       notFound()
     }
+    
+    console.log('[ProductPage] Product found:', product.id, product.title)
 
     // Enrich categories/collection if missing
     if (product && (!product.categories || product.categories.length === 0) && !product.collection) {
@@ -370,7 +407,258 @@ async function ProductDetails({ params }: ProductPageProps) {
       </div>
     )
   } catch (error) {
-    console.error('Error fetching product:', error)
+    console.error('[ProductPage] Error fetching product:', error)
+    
+    // Try alternative approach: fetch all products and filter by handle
+    try {
+      console.log('[ProductPage] Trying fallback: fetch all products and filter by handle')
+      const regionParam = MEDUSA_REGION_ID ? `&region_id=${MEDUSA_REGION_ID}` : ''
+      const allProductsData = await api(
+        `/store/products?limit=1000${regionParam}`,
+        { next: { revalidate: 300 } }
+      )
+      
+      let allProducts: any[] = []
+      if (Array.isArray(allProductsData)) {
+        allProducts = allProductsData
+      } else if (allProductsData?.products && Array.isArray(allProductsData.products)) {
+        allProducts = allProductsData.products
+      }
+      
+      const foundProduct = allProducts.find((p: any) => p.handle === params.handle)
+      
+      if (foundProduct) {
+        console.log('[ProductPage] Product found via fallback:', foundProduct.id, foundProduct.title)
+        // Use the found product and continue with normal rendering
+        // We'll process it the same way as the normal flow
+        const product: Product = foundProduct
+        
+        // Enrich categories/collection if missing
+        if (product && (!product.categories || product.categories.length === 0) && !product.collection) {
+          try {
+            const enriched = await api(`/store/products/${product.id}`, { next: { revalidate: 300 } })
+            if (enriched && enriched.product) {
+              product.categories = enriched.product.categories || product.categories
+              product.collection = enriched.product.collection || product.collection
+            }
+          } catch {}
+        }
+
+        // Get price from the first variant
+        const firstVariant = product.variants?.[0]
+        const price = firstVariant?.calculated_price?.calculated_amount ?? 
+          (firstVariant?.prices?.[0]?.amount ? firstVariant.prices[0].amount / 100 : 0)
+        
+        const isDefaultOptionValue = (value?: string) => {
+          if (!value) return false
+          const v = value.toLowerCase()
+          return v === 'default option value' || v === 'default' || v === 'default option'
+        }
+
+        const toNumber = (v: unknown): number | undefined => {
+          if (v == null) return undefined
+          if (typeof v === 'number') return Number.isFinite(v) ? v : undefined
+          if (typeof v === 'string') {
+            const n = parseFloat(v.replace(',', '.'))
+            return Number.isNaN(n) ? undefined : n
+          }
+          return undefined
+        }
+
+        const formatWeight = (w?: number) => {
+          if (typeof w === 'number' && w > 0) {
+            if (w >= 1000) return `${(w / 1000).toFixed(2)} kg`
+            if (w <= 10) return `${w} kg`
+            return `${w} g`
+          }
+          return undefined
+        }
+
+        const formatDimensions = (l?: number, h?: number, w?: number) => {
+          const parts: string[] = []
+          if (typeof l === 'number' && l > 0) parts.push(`${l}`)
+          if (typeof h === 'number' && h > 0) parts.push(`${h}`)
+          if (typeof w === 'number' && w > 0) parts.push(`${w}`)
+          if (parts.length === 0) return undefined
+          return parts.join(' × ')
+        }
+
+        const getWeightLabel = (product: Product, variant?: Product['variants'][number]) => {
+          if (!variant) return 'N/A'
+          const byNumeric = formatWeight(variant.weight ?? toNumber(product.weight))
+          if (byNumeric) return byNumeric
+
+          const productWeightOption = product.options?.find(o => /peso|weight/i.test(o.title))
+          if (productWeightOption) {
+            const vo = variant.options?.find(o => o.option_id === productWeightOption.id)
+            if (vo && !isDefaultOptionValue(vo.value)) return vo.value
+          }
+
+          const guess = variant.options?.map(o => o.value).find(v => v && /(\d+\s?(g|kg))$/i.test(v))
+          if (guess) return guess
+
+          const firstNonDefault = variant.options?.map(o => o.value).find(v => v && !isDefaultOptionValue(v))
+          return firstNonDefault || 'N/A'
+        }
+
+        const weight = getWeightLabel(product, firstVariant)
+        const dims = formatDimensions(
+          firstVariant?.length ?? toNumber(product.length),
+          firstVariant?.height ?? toNumber(product.height),
+          firstVariant?.width ?? toNumber(product.width)
+        )
+        const category = product.collection?.title || "Generale"
+        const images = product.images || []
+        const mainImage = images.length > 0 ? images[0].url : (product.thumbnail || "/placeholder.svg")
+        
+        const hasMultipleVariants = !!(product.variants && product.variants.length > 1)
+
+        // Render the product page (same as normal flow)
+        return (
+          <div className="min-h-screen bg-background">
+            <Navigation />
+
+            <main id="main-content" className="pt-16">
+              <div className="bg-muted/30 py-4">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Link href="/" className="hover:text-primary">Home</Link>
+                    <span>/</span>
+                    <Link href="/products" className="hover:text-primary">Prodotti</Link>
+                    <span>/</span>
+                    <span className="text-foreground">{product.title}</span>
+                  </div>
+                </div>
+              </div>
+
+              <section className="py-12">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                  <Link href="/products" className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary mb-8">
+                    <ArrowLeft className="h-4 w-4" />
+                    Torna ai Prodotti
+                  </Link>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                    <ProductImageGallery main={mainImage} images={images} alt={product.title} />
+
+                    <div className="space-y-6">
+                      <div>
+                        <div className="flex items-center gap-3 mb-2">
+                          <Badge variant="outline">{category}</Badge>
+                        </div>
+
+                        <h1 className="font-display text-3xl font-bold text-primary mb-4">{product.title}</h1>
+
+                        <div className="mb-4 flex items-center gap-2">
+                          <LikeButton productId={product.id} />
+                        </div>
+
+                        {hasMultipleVariants ? (
+                          <div className="mb-6">
+                            <VariantSelector product={product} />
+                          </div>
+                        ) : (
+                          <div className="mb-6">
+                            <div className="flex items-center gap-3 mb-2">
+                              <span className="text-3xl font-bold text-primary">€{price.toFixed(2)}</span>
+                              <span className="text-sm text-muted-foreground">({weight})</span>
+                            </div>
+                            {dims && (
+                              <div className="text-xs text-muted-foreground">Dimensioni: {dims}</div>
+                            )}
+                          </div>
+                        )}
+
+                        <p className="text-muted-foreground leading-relaxed mb-6">{product.description}</p>
+                      </div>
+
+                      <AddToCartSection 
+                        product={product}
+                        price={price}
+                        weight={weight}
+                        image={mainImage}
+                        hasMultipleVariants={hasMultipleVariants}
+                      />
+
+                      <div className="grid grid-cols-3 gap-4 pt-6 border-t">
+                        <div className="text-center">
+                          <Truck className="h-6 w-6 mx-auto mb-2 text-accent" />
+                          <p className="text-sm font-medium">Spedizione Gratuita</p>
+                          <p className="text-xs text-muted-foreground">Ordini sopra €50</p>
+                        </div>
+                        <div className="text-center">
+                          <Shield className="h-6 w-6 mx-auto mb-2 text-accent" />
+                          <p className="text-sm font-medium">Qualità Garantita</p>
+                          <p className="text-xs text-muted-foreground">Prodotti artigianali</p>
+                        </div>
+                        <div className="text-center">
+                          <RotateCcw className="h-6 w-6 mx-auto mb-2 text-accent" />
+                          <p className="text-sm font-medium">Reso Facile</p>
+                          <p className="text-xs text-muted-foreground">Entro 14 giorni</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section className="py-12 bg-muted/30">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <Card>
+                      <CardContent className="p-6">
+                        <h3 className="font-display text-xl font-semibold mb-4">Descrizione</h3>
+                        <p className="text-muted-foreground leading-relaxed">
+                          {product.description || "Descrizione dettagliata non disponibile."}
+                        </p>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardContent className="p-6">
+                        <h3 className="font-display text-xl font-semibold mb-4">Informazioni</h3>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span>Peso:</span>
+                            <span className="font-medium">{weight}</span>
+                          </div>
+                          {dims && (
+                            <div className="flex justify-between">
+                              <span>Dimensioni:</span>
+                              <span className="font-medium">{dims}</span>
+                            </div>
+                          )}
+                          <div className="flex justify-between">
+                            <span>Categoria:</span>
+                            <span className="font-medium">{category}</span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardContent className="p-6">
+                        <h3 className="font-display text-xl font-semibold mb-4">Dettagli</h3>
+                        <div className="space-y-2 text-sm text-muted-foreground">
+                          <p>Prodotto artigianale italiano</p>
+                          <p>Ingredienti di prima qualità</p>
+                          <p>Preparato secondo tradizione</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+              </section>
+            </main>
+
+            <Footer />
+          </div>
+        )
+      }
+    } catch (fallbackError) {
+      console.error('[ProductPage] Fallback also failed:', fallbackError)
+    }
+    
     notFound()
   }
 }
