@@ -589,6 +589,38 @@ export function useMedusa(): UseMedusaReturn {
             return
           }
         }
+        
+        // In Medusa v2, potrebbe essere necessario inizializzare la payment collection
+        // Verifica se esiste una payment_collection nel carrello
+        if (!currentCart.payment_collection && currentCart.shipping_address && currentCart.shipping_methods?.length > 0) {
+          console.log('[PAYMENT SESSION] Tentativo di inizializzare payment collection...')
+          // In Medusa v2, la payment collection viene creata automaticamente quando si imposta
+          // l'indirizzo di spedizione e si aggiunge un metodo di spedizione, ma potrebbe essere necessario
+          // chiamare un endpoint specifico. Prova a recuperare il carrello aggiornato dopo aver impostato
+          // l'indirizzo e il metodo di spedizione.
+          const updatedCartResponse = await fetch(`${baseUrl}/store/carts/${cart.id}`, {
+            headers: {
+              'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
+            }
+          })
+          
+          if (updatedCartResponse.ok) {
+            const updatedCartData = await updatedCartResponse.json()
+            const updatedCart = updatedCartData.cart || updatedCartData
+            if (updatedCart.payment_collection || updatedCart.payment_sessions?.length > 0) {
+              console.log('[PAYMENT SESSION] Payment collection inizializzata automaticamente')
+              setCart(updatedCart)
+              // Se c'è già una payment session per questo provider, usala
+              if (updatedCart.payment_sessions && Array.isArray(updatedCart.payment_sessions)) {
+                const existingSession = updatedCart.payment_sessions.find((ps: any) => ps.provider_id === providerId)
+                if (existingSession) {
+                  console.log('[PAYMENT SESSION] Sessione già esistente per provider:', providerId)
+                  return
+                }
+              }
+            }
+          }
+        }
       }
       
       // Prova diversi endpoint possibili per creare la payment session
@@ -785,7 +817,7 @@ export function useMedusa(): UseMedusaReturn {
       }
       
       const cartCheckData = await cartCheckResponse.json()
-      const updatedCart = cartCheckData.cart || cartCheckData
+      let updatedCart = cartCheckData.cart || cartCheckData
       
       // Verifica che il carrello abbia items
       if (!updatedCart.items || updatedCart.items.length === 0) {
@@ -802,7 +834,33 @@ export function useMedusa(): UseMedusaReturn {
       // Verifica che il carrello abbia payment sessions
       if (!updatedCart.payment_sessions || updatedCart.payment_sessions.length === 0) {
         console.warn('[COMPLETE ORDER] ⚠️ Nessuna payment session nel carrello')
-        // Non bloccare, ma avvisa
+        
+        // In Medusa v2, la payment collection deve essere inizializzata prima di completare l'ordine
+        // Se non ci sono payment sessions, potrebbe essere necessario inizializzare la payment collection
+        // Prova a recuperare il carrello aggiornato dopo un breve delay per dare tempo a Medusa di inizializzare
+        if (updatedCart.shipping_address && updatedCart.shipping_methods?.length > 0) {
+          console.log('[COMPLETE ORDER] Tentativo di attendere l\'inizializzazione della payment collection...')
+          // Attendi un momento e riprova a recuperare il carrello
+          await new Promise(resolve => setTimeout(resolve, 500))
+          
+          const retryCartResponse = await fetch(`${baseUrl}/store/carts/${cart.id}`, {
+            headers: {
+              'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
+            }
+          })
+          
+          if (retryCartResponse.ok) {
+            const retryCartData = await retryCartResponse.json()
+            const retryCart = retryCartData.cart || retryCartData
+            if (retryCart.payment_sessions && retryCart.payment_sessions.length > 0) {
+              console.log('[COMPLETE ORDER] Payment sessions trovate dopo il retry')
+              updatedCart = retryCart
+            } else if (retryCart.payment_collection) {
+              console.log('[COMPLETE ORDER] Payment collection trovata, ma nessuna payment session')
+              updatedCart = retryCart
+            }
+          }
+        }
       }
       
       // Verifica che il totale sia > 0

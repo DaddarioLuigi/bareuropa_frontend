@@ -241,6 +241,33 @@ export default function CheckoutPage() {
         }
       }
 
+      // In Medusa v2, la payment collection deve essere inizializzata prima di aggiungere payment sessions
+      // Attendi un momento dopo aver aggiunto il metodo di spedizione per dare tempo a Medusa di inizializzare
+      // la payment collection automaticamente
+      if (medusa.cart?.shipping_address && medusa.cart?.shipping_methods?.length > 0) {
+        console.log('[CHECKOUT] Attendo l\'inizializzazione della payment collection...')
+        await new Promise(resolve => setTimeout(resolve, 500))
+        
+        // Ricarica il carrello per verificare se la payment collection è stata inizializzata
+        const baseUrl = '/api/medusa'
+        const cartRefreshResponse = await fetch(`${baseUrl}/store/carts/${medusa.cart.id}`, {
+          headers: {
+            'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
+          }
+        })
+        
+        if (cartRefreshResponse.ok) {
+          const cartRefreshData = await cartRefreshResponse.json()
+          const refreshedCart = cartRefreshData.cart || cartRefreshData
+          // Aggiorna il carrello nello stato con i dati più recenti
+          await medusa.setShippingAddress(medusa.cart?.shipping_address || {})
+          console.log('[CHECKOUT] Carrello aggiornato dopo l\'attesa:', {
+            payment_collection: !!refreshedCart.payment_collection,
+            payment_sessions: refreshedCart.payment_sessions?.length || 0
+          })
+        }
+      }
+
       // Aggiungi sessione di pagamento usando il provider selezionato da Medusa
       const providerId = paymentMethod
       if (!providerId) throw new Error('Nessun metodo di pagamento selezionato')
@@ -400,10 +427,11 @@ export default function CheckoutPage() {
   }
 
   // Calcola i totali usando il carrello Medusa se disponibile, altrimenti usa lo stato locale
-  const medusaSubtotal = medusa.cart ? (medusa.cart.subtotal || 0) / 100 : 0
-  const medusaDiscount = medusa.cart ? (medusa.cart.discount_total || 0) / 100 : 0
-  const medusaShipping = medusa.cart ? (medusa.cart.shipping_total || 0) / 100 : 0
-  const medusaTotal = medusa.cart ? (medusa.cart.total || 0) / 100 : 0
+  // Medusa v2 restituisce i prezzi già in euro, non in centesimi (vedi app/cart/page.tsx riga 218)
+  const medusaSubtotal = medusa.cart ? (medusa.cart.subtotal || 0) : 0
+  const medusaDiscount = medusa.cart ? (medusa.cart.discount_total || 0) : 0
+  const medusaShipping = medusa.cart ? (medusa.cart.shipping_total || 0) : 0
+  const medusaTotal = medusa.cart ? (medusa.cart.total || 0) : 0
 
   // Usa i valori di Medusa se disponibili, altrimenti calcola localmente
   const subtotal = medusaSubtotal || state.total
