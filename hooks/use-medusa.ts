@@ -55,11 +55,13 @@ export function useMedusa(): UseMedusaReturn {
   const getOrCreateCart = useCallback(async (): Promise<string> => {
     try {
       // Prima prova a recuperare un carrello esistente dal localStorage
-      const existingCartId = localStorage.getItem('medusa_cart_id')
+      // Prova sia 'cart_id' che 'medusa_cart_id' per compatibilità
+      let existingCartId = localStorage.getItem('medusa_cart_id') || localStorage.getItem('cart_id')
       
       if (existingCartId) {
         try {
           const baseUrl = '/api/medusa'
+          console.log('[GET OR CREATE CART] Tentativo di recuperare carrello:', existingCartId)
           const response = await fetch(`${baseUrl}/store/carts/${existingCartId}`, {
             headers: {
               'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
@@ -68,13 +70,31 @@ export function useMedusa(): UseMedusaReturn {
           
           if (response.ok) {
             const existingCart = await response.json()
-            setCart(existingCart.cart)
-            console.log('Carrello esistente recuperato:', existingCart.cart)
+            const cart = existingCart.cart || existingCart
+            setCart(cart)
+            
+            // Sincronizza entrambe le chiavi nel localStorage
+            localStorage.setItem('medusa_cart_id', existingCartId)
+            localStorage.setItem('cart_id', existingCartId)
+            
+            console.log('[GET OR CREATE CART] Carrello esistente recuperato:', {
+              id: cart.id,
+              items: cart.items?.length || 0,
+              total: cart.total
+            })
             return existingCartId
+          } else {
+            console.warn('[GET OR CREATE CART] Carrello non trovato, rimuovo dal localStorage')
+            localStorage.removeItem('medusa_cart_id')
+            localStorage.removeItem('cart_id')
+            existingCartId = null
           }
         } catch (err) {
+          console.error('[GET OR CREATE CART] Errore nel recupero del carrello:', err)
           // Se il carrello non esiste più, rimuovilo dal localStorage
           localStorage.removeItem('medusa_cart_id')
+          localStorage.removeItem('cart_id')
+          existingCartId = null
         }
       }
 
@@ -90,10 +110,18 @@ export function useMedusa(): UseMedusaReturn {
       
       if (response.ok) {
         const newCart = await response.json()
-        const cartId = newCart.cart.id
+        const cart = newCart.cart || newCart
+        const cartId = cart.id
+        
+        // Sincronizza entrambe le chiavi nel localStorage
         localStorage.setItem('medusa_cart_id', cartId)
-        setCart(newCart.cart)
-        console.log('Nuovo carrello creato:', newCart.cart)
+        localStorage.setItem('cart_id', cartId)
+        
+        setCart(cart)
+        console.log('[GET OR CREATE CART] Nuovo carrello creato:', {
+          id: cart.id,
+          items: cart.items?.length || 0
+        })
         return cartId
       } else {
         throw new Error('Errore nella creazione del carrello')
@@ -851,6 +879,7 @@ export function useMedusa(): UseMedusaReturn {
       
       // Rimuovi il carrello dal localStorage dopo il completamento
       localStorage.removeItem('medusa_cart_id')
+      localStorage.removeItem('cart_id')
       setCart(null)
       
       return order
@@ -1548,7 +1577,36 @@ export function useMedusa(): UseMedusaReturn {
 
   // Carica il carrello esistente all'avvio
   useEffect(() => {
-    getOrCreateCart().catch(console.error)
+    const initCart = async () => {
+      try {
+        const cartId = await getOrCreateCart()
+        console.log('[USE MEDUSA INIT] Carrello inizializzato:', cartId)
+        
+        // Dopo aver recuperato/creato il carrello, verifica che abbia items
+        const baseUrl = '/api/medusa'
+        const cartResponse = await fetch(`${baseUrl}/store/carts/${cartId}`, {
+          headers: {
+            'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
+          }
+        })
+        
+        if (cartResponse.ok) {
+          const cartData = await cartResponse.json()
+          const cart = cartData.cart || cartData
+          setCart(cart)
+          
+          console.log('[USE MEDUSA INIT] Carrello caricato:', {
+            id: cart.id,
+            items: cart.items?.length || 0,
+            total: cart.total
+          })
+        }
+      } catch (error) {
+        console.error('[USE MEDUSA INIT] Errore nell\'inizializzazione del carrello:', error)
+      }
+    }
+    
+    initCart()
     fetchRegions().catch(console.error)
   }, [getOrCreateCart, fetchRegions])
   
