@@ -831,36 +831,50 @@ export function useMedusa(): UseMedusaReturn {
         // Non bloccare, ma avvisa
       }
       
-      // Verifica che il carrello abbia payment sessions
-      if (!updatedCart.payment_sessions || updatedCart.payment_sessions.length === 0) {
-        console.warn('[COMPLETE ORDER] ⚠️ Nessuna payment session nel carrello')
+      // Verifica che la payment collection sia inizializzata PRIMA di completare l'ordine
+      // Questo è obbligatorio in Medusa v2
+      if (!updatedCart.payment_collection && !updatedCart.payment_sessions?.length) {
+        console.error('[COMPLETE ORDER] ❌ Payment collection non inizializzata!')
         
-        // In Medusa v2, la payment collection deve essere inizializzata prima di completare l'ordine
-        // Se non ci sono payment sessions, potrebbe essere necessario inizializzare la payment collection
-        // Prova a recuperare il carrello aggiornato dopo un breve delay per dare tempo a Medusa di inizializzare
+        // Se abbiamo shipping_address e shipping_methods, la payment collection dovrebbe essere inizializzata
+        // Prova a attendere e riprovare più volte
         if (updatedCart.shipping_address && updatedCart.shipping_methods?.length > 0) {
           console.log('[COMPLETE ORDER] Tentativo di attendere l\'inizializzazione della payment collection...')
-          // Attendi un momento e riprova a recuperare il carrello
-          await new Promise(resolve => setTimeout(resolve, 500))
           
-          const retryCartResponse = await fetch(`${baseUrl}/store/carts/${cart.id}`, {
-            headers: {
-              'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
-            }
-          })
-          
-          if (retryCartResponse.ok) {
-            const retryCartData = await retryCartResponse.json()
-            const retryCart = retryCartData.cart || retryCartData
-            if (retryCart.payment_sessions && retryCart.payment_sessions.length > 0) {
-              console.log('[COMPLETE ORDER] Payment sessions trovate dopo il retry')
-              updatedCart = retryCart
-            } else if (retryCart.payment_collection) {
-              console.log('[COMPLETE ORDER] Payment collection trovata, ma nessuna payment session')
-              updatedCart = retryCart
+          let paymentCollectionInitialized = false
+          for (let i = 0; i < 10; i++) {
+            await new Promise(resolve => setTimeout(resolve, 500))
+            
+            const retryCartResponse = await fetch(`${baseUrl}/store/carts/${cart.id}`, {
+              headers: {
+                'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
+              }
+            })
+            
+            if (retryCartResponse.ok) {
+              const retryCartData = await retryCartResponse.json()
+              const retryCart = retryCartData.cart || retryCartData
+              
+              if (retryCart.payment_collection || retryCart.payment_sessions?.length > 0) {
+                console.log('[COMPLETE ORDER] ✅ Payment collection inizializzata dopo', (i + 1) * 500, 'ms')
+                updatedCart = retryCart
+                paymentCollectionInitialized = true
+                break
+              }
             }
           }
+          
+          if (!paymentCollectionInitialized) {
+            throw new Error('Payment collection non è stata inizializzata. Assicurati che l\'indirizzo di spedizione e il metodo di spedizione siano stati impostati correttamente.')
+          }
+        } else {
+          throw new Error('Payment collection non può essere inizializzata: mancano indirizzo di spedizione o metodo di spedizione.')
         }
+      }
+      
+      // Verifica che il carrello abbia payment sessions
+      if (!updatedCart.payment_sessions || updatedCart.payment_sessions.length === 0) {
+        console.warn('[COMPLETE ORDER] ⚠️ Nessuna payment session nel carrello, ma payment collection è inizializzata')
       }
       
       // Verifica che il totale sia > 0

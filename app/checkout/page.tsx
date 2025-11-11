@@ -242,29 +242,52 @@ export default function CheckoutPage() {
       }
 
       // In Medusa v2, la payment collection deve essere inizializzata prima di aggiungere payment sessions
-      // Attendi un momento dopo aver aggiunto il metodo di spedizione per dare tempo a Medusa di inizializzare
-      // la payment collection automaticamente
+      // Verifica e inizializza la payment collection se necessario
+      const baseUrl = '/api/medusa'
       if (medusa.cart?.shipping_address && medusa.cart?.shipping_methods?.length > 0) {
-        console.log('[CHECKOUT] Attendo l\'inizializzazione della payment collection...')
-        await new Promise(resolve => setTimeout(resolve, 500))
+        console.log('[CHECKOUT] Verifico se la payment collection è inizializzata...')
         
-        // Ricarica il carrello per verificare se la payment collection è stata inizializzata
-        const baseUrl = '/api/medusa'
-        const cartRefreshResponse = await fetch(`${baseUrl}/store/carts/${medusa.cart.id}`, {
+        // Ricarica il carrello per verificare lo stato attuale
+        const cartCheckResponse = await fetch(`${baseUrl}/store/carts/${medusa.cart.id}`, {
           headers: {
             'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
           }
         })
         
-        if (cartRefreshResponse.ok) {
-          const cartRefreshData = await cartRefreshResponse.json()
-          const refreshedCart = cartRefreshData.cart || cartRefreshData
-          // Aggiorna il carrello nello stato con i dati più recenti
-          await medusa.setShippingAddress(medusa.cart?.shipping_address || {})
-          console.log('[CHECKOUT] Carrello aggiornato dopo l\'attesa:', {
-            payment_collection: !!refreshedCart.payment_collection,
-            payment_sessions: refreshedCart.payment_sessions?.length || 0
-          })
+        if (cartCheckResponse.ok) {
+          const cartCheckData = await cartCheckResponse.json()
+          const currentCart = cartCheckData.cart || cartCheckData
+          
+          // Se non c'è payment_collection, prova a inizializzarla
+          if (!currentCart.payment_collection && !currentCart.payment_sessions?.length) {
+            console.log('[CHECKOUT] Payment collection non trovata, attendo l\'inizializzazione automatica...')
+            
+            // Attendi più tempo per permettere a Medusa di inizializzare la payment collection
+            // La payment collection viene creata automaticamente quando shipping_address e shipping_methods sono impostati
+            for (let i = 0; i < 5; i++) {
+              await new Promise(resolve => setTimeout(resolve, 500))
+              
+              const retryResponse = await fetch(`${baseUrl}/store/carts/${medusa.cart.id}`, {
+                headers: {
+                  'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
+                }
+              })
+              
+              if (retryResponse.ok) {
+                const retryData = await retryResponse.json()
+                const retryCart = retryData.cart || retryData
+                
+                if (retryCart.payment_collection || retryCart.payment_sessions?.length > 0) {
+                  console.log('[CHECKOUT] ✅ Payment collection inizializzata dopo', (i + 1) * 500, 'ms')
+                  // Aggiorna il carrello nello stato
+                  await medusa.setShippingAddress(medusa.cart?.shipping_address || {})
+                  break
+                }
+              }
+            }
+          } else {
+            console.log('[CHECKOUT] ✅ Payment collection già inizializzata')
+          }
         }
       }
 
