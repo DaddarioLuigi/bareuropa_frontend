@@ -32,6 +32,7 @@ export interface UseMedusaReturn {
   setBillingAddress: (address: any) => Promise<void>
   addShippingMethod: (shippingMethodId: string) => Promise<void>
   addPaymentSession: (providerId: string) => Promise<void>
+  authorizePayment: (providerId: string, data?: any) => Promise<void>
   completeOrder: () => Promise<any>
   applyDiscountCode: (code: string) => Promise<void>
   removeDiscountCode: (code: string) => Promise<void>
@@ -496,6 +497,102 @@ export function useMedusa(): UseMedusaReturn {
     } catch (err) {
       console.error('Errore nell\'aggiunta della sessione di pagamento:', err)
       setError('Errore nell\'aggiunta della sessione di pagamento')
+      throw err
+    } finally {
+      setLoadingCart(false)
+    }
+  }, [cart])
+
+  // Autorizza la sessione di pagamento (necessario per Stripe e altri provider)
+  const authorizePayment = useCallback(async (providerId: string, data?: any) => {
+    if (!cart) {
+      console.error('Errore nell\'autorizzazione del pagamento: Nessun carrello disponibile')
+      throw new Error('Nessun carrello disponibile')
+    }
+    
+    setLoadingCart(true)
+    
+    try {
+      const baseUrl = '/api/medusa'
+      
+      // Trova la payment session per il provider
+      const paymentSessions = cart.payment_sessions || []
+      const paymentSession = paymentSessions.find((ps: any) => ps.provider_id === providerId)
+      
+      if (!paymentSession) {
+        throw new Error(`Nessuna sessione di pagamento trovata per il provider ${providerId}`)
+      }
+      
+      console.log('[AUTHORIZE PAYMENT] Authorizing payment session:', paymentSession.id)
+      
+      // Per Stripe, potrebbe essere necessario autorizzare con i dati della carta
+      // L'endpoint può variare a seconda della versione di Medusa
+      const authorizeUrl = `${baseUrl}/store/carts/${cart.id}/payment-sessions/${paymentSession.id}/authorize`
+      
+      const response = await fetch(authorizeUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
+        },
+        body: data ? JSON.stringify(data) : undefined
+      })
+      
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('[AUTHORIZE PAYMENT] Error response:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorText
+        })
+        
+        // Prova un endpoint alternativo (alcune versioni di Medusa usano un formato diverso)
+        if (response.status === 404) {
+          console.log('[AUTHORIZE PAYMENT] Trying alternative endpoint format...')
+          const altUrl = `${baseUrl}/store/carts/${cart.id}/payment-sessions/${providerId}/authorize`
+          const altResponse = await fetch(altUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
+            },
+            body: data ? JSON.stringify(data) : undefined
+          })
+          
+          if (!altResponse.ok) {
+            const altErrorText = await altResponse.text()
+            console.error('[AUTHORIZE PAYMENT] Alternative endpoint also failed:', altErrorText)
+            throw new Error(altErrorText || 'Errore nell\'autorizzazione del pagamento')
+          }
+          
+          const altUpdatedCartData = await altResponse.json()
+          const altUpdatedCart = altUpdatedCartData.cart || altUpdatedCartData
+          setCart(altUpdatedCart)
+          console.log('[AUTHORIZE PAYMENT] ✅ Pagamento autorizzato (alternative endpoint):', altUpdatedCart)
+          return
+        }
+        
+        throw new Error(errorText || 'Errore nell\'autorizzazione del pagamento')
+      }
+      
+      const updatedCartData = await response.json()
+      const updatedCart = updatedCartData.cart || updatedCartData
+      setCart(updatedCart)
+      console.log('[AUTHORIZE PAYMENT] ✅ Pagamento autorizzato con successo:', updatedCart)
+      
+      // Verifica che la payment session sia autorizzata
+      const updatedPaymentSessions = updatedCart.payment_sessions || []
+      const updatedPaymentSession = updatedPaymentSessions.find((ps: any) => ps.provider_id === providerId)
+      
+      if (updatedPaymentSession) {
+        console.log('[AUTHORIZE PAYMENT] Payment session status:', updatedPaymentSession.status)
+        if (updatedPaymentSession.status !== 'authorized' && updatedPaymentSession.status !== 'pending') {
+          console.warn('[AUTHORIZE PAYMENT] ⚠️ Payment session status is not authorized:', updatedPaymentSession.status)
+        }
+      }
+    } catch (err) {
+      console.error('[AUTHORIZE PAYMENT] Errore nell\'autorizzazione del pagamento:', err)
+      setError('Errore nell\'autorizzazione del pagamento')
       throw err
     } finally {
       setLoadingCart(false)
@@ -1275,6 +1372,7 @@ export function useMedusa(): UseMedusaReturn {
     setBillingAddress,
     addShippingMethod,
     addPaymentSession,
+    authorizePayment,
     completeOrder,
     applyDiscountCode,
     removeDiscountCode,

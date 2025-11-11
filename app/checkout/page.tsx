@@ -224,22 +224,78 @@ export default function CheckoutPage() {
 
       try {
         await medusa.addPaymentSession(providerId)
+        console.log('[CHECKOUT] Payment session aggiunta')
       } catch (error) {
-        console.warn('Impossibile aggiungere sessione di pagamento:', error)
+        console.error('[CHECKOUT] Errore nell\'aggiunta della sessione di pagamento:', error)
+        throw new Error('Impossibile aggiungere sessione di pagamento. Riprova.')
       }
 
-      // Completa l'ordine
+      // Autorizza il pagamento PRIMA di completare l'ordine
+      // Questo è cruciale per Stripe e altri provider di pagamento
+      try {
+        console.log('[CHECKOUT] Autorizzazione del pagamento...')
+        
+        // Per Stripe, potrebbe essere necessario passare i dati della carta
+        // Se il provider è Stripe e abbiamo i dati della carta, passali
+        let paymentData: any = undefined
+        if (providerId.includes('stripe') && formData.cardNumber && formData.cardName) {
+          // Nota: In produzione, i dati della carta dovrebbero essere processati tramite Stripe Elements
+          // o Stripe.js per sicurezza. Questo è solo un esempio.
+          // Per ora, Medusa gestirà l'autorizzazione con Stripe lato server.
+          paymentData = {
+            // I dati della carta vengono gestiti da Stripe lato server tramite Medusa
+            // Non inviamo direttamente i dati della carta per sicurezza
+          }
+        }
+        
+        await medusa.authorizePayment(providerId, paymentData)
+        console.log('[CHECKOUT] ✅ Pagamento autorizzato con successo')
+        
+        // Verifica che il pagamento sia stato autorizzato prima di procedere
+        if (medusa.cart?.payment_sessions) {
+          const paymentSession = medusa.cart.payment_sessions.find((ps: any) => ps.provider_id === providerId)
+          if (paymentSession && paymentSession.status === 'error') {
+            throw new Error('Il pagamento non è stato autorizzato. Verifica i dati della carta e riprova.')
+          }
+        }
+      } catch (error: any) {
+        console.error('[CHECKOUT] Errore nell\'autorizzazione del pagamento:', error)
+        throw new Error(error.message || 'Errore nell\'autorizzazione del pagamento. Verifica i dati e riprova.')
+      }
+
+      // Completa l'ordine solo dopo che il pagamento è stato autorizzato
+      console.log('[CHECKOUT] Completamento dell\'ordine...')
       const order = await medusa.completeOrder()
       
-      console.log('Ordine completato:', order)
+      console.log('[CHECKOUT] ✅ Ordine completato con successo:', order)
+      
+      // Verifica che l'ordine sia stato creato correttamente
+      if (!order || !order.id) {
+        throw new Error('L\'ordine non è stato creato correttamente. Contatta il supporto.')
+      }
+      
+      // Verifica lo stato del pagamento nell'ordine
+      if (order.payment_status && order.payment_status !== 'captured' && order.payment_status !== 'awaiting') {
+        console.warn('[CHECKOUT] ⚠️ Stato pagamento ordine:', order.payment_status)
+      }
       
       // Redirect alla pagina di successo
       router.push("/checkout/success")
       
-    } catch (error) {
-      console.error('Errore nel checkout:', error)
-      // In caso di errore, mostra un messaggio o mantieni l'utente nella pagina
-      alert('Si è verificato un errore durante il checkout. Riprova.')
+    } catch (error: any) {
+      console.error('[CHECKOUT] Errore nel checkout:', error)
+      
+      // Mostra un messaggio di errore più specifico
+      let errorMessage = 'Si è verificato un errore durante il checkout. Riprova.'
+      
+      if (error?.message) {
+        errorMessage = error.message
+      } else if (typeof error === 'string') {
+        errorMessage = error
+      }
+      
+      // Non fare redirect se c'è un errore
+      alert(errorMessage)
     } finally {
       setIsProcessing(false)
     }
