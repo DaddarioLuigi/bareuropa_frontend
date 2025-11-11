@@ -733,7 +733,67 @@ export function useMedusa(): UseMedusaReturn {
     
     try {
       const baseUrl = '/api/medusa'
-      const response = await fetch(`${baseUrl}/store/carts/${cart.id}/complete`, {
+      
+      // PRIMA di completare, recupera il carrello aggiornato da Medusa per assicurarsi di avere i dati più recenti
+      console.log('[COMPLETE ORDER] Recupero carrello aggiornato prima del complete...')
+      const cartCheckResponse = await fetch(`${baseUrl}/store/carts/${cart.id}`, {
+        headers: {
+          'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
+        }
+      })
+      
+      if (!cartCheckResponse.ok) {
+        throw new Error('Impossibile recuperare il carrello prima del completamento')
+      }
+      
+      const cartCheckData = await cartCheckResponse.json()
+      const updatedCart = cartCheckData.cart || cartCheckData
+      
+      // Verifica che il carrello abbia items
+      if (!updatedCart.items || updatedCart.items.length === 0) {
+        console.error('[COMPLETE ORDER] ❌ Carrello vuoto! Items:', updatedCart.items)
+        throw new Error('Il carrello è vuoto. Aggiungi prodotti prima di completare l\'ordine.')
+      }
+      
+      // Verifica che il carrello abbia shipping methods
+      if (!updatedCart.shipping_methods || updatedCart.shipping_methods.length === 0) {
+        console.warn('[COMPLETE ORDER] ⚠️ Nessun metodo di spedizione nel carrello')
+        // Non bloccare, ma avvisa
+      }
+      
+      // Verifica che il carrello abbia payment sessions
+      if (!updatedCart.payment_sessions || updatedCart.payment_sessions.length === 0) {
+        console.warn('[COMPLETE ORDER] ⚠️ Nessuna payment session nel carrello')
+        // Non bloccare, ma avvisa
+      }
+      
+      // Verifica che il totale sia > 0
+      const total = updatedCart.total || updatedCart.subtotal || 0
+      if (total === 0) {
+        console.error('[COMPLETE ORDER] ❌ Totale carrello è 0!')
+        console.error('[COMPLETE ORDER] Cart details:', {
+          items: updatedCart.items?.length || 0,
+          subtotal: updatedCart.subtotal,
+          total: updatedCart.total,
+          shipping_total: updatedCart.shipping_total,
+          discount_total: updatedCart.discount_total
+        })
+        throw new Error('Il totale dell\'ordine è 0. Verifica che ci siano prodotti nel carrello.')
+      }
+      
+      console.log('[COMPLETE ORDER] Carrello verificato:', {
+        items: updatedCart.items?.length || 0,
+        subtotal: updatedCart.subtotal,
+        total: updatedCart.total,
+        shipping_methods: updatedCart.shipping_methods?.length || 0,
+        payment_sessions: updatedCart.payment_sessions?.length || 0
+      })
+      
+      // Aggiorna lo stato del carrello con i dati più recenti
+      setCart(updatedCart)
+      
+      // Ora completa l'ordine
+      const response = await fetch(`${baseUrl}/store/carts/${updatedCart.id}/complete`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -741,8 +801,8 @@ export function useMedusa(): UseMedusaReturn {
         }
       })
       
-      console.log('[COMPLETE ORDER] Request to:', `${baseUrl}/store/carts/${cart.id}/complete`)
-      console.log('[COMPLETE ORDER] Cart ID:', cart.id)
+      console.log('[COMPLETE ORDER] Request to:', `${baseUrl}/store/carts/${updatedCart.id}/complete`)
+      console.log('[COMPLETE ORDER] Cart ID:', updatedCart.id)
       
       if (!response.ok) {
         const errorText = await response.text()
@@ -767,7 +827,27 @@ export function useMedusa(): UseMedusaReturn {
       
       const orderData = await response.json()
       const order = orderData.order || orderData
-      console.log('[COMPLETE ORDER] ✅ Ordine completato con successo:', order)
+      
+      console.log('[COMPLETE ORDER] ✅ Ordine completato con successo:', {
+        order_id: order.id,
+        display_id: order.display_id,
+        total: order.total,
+        items: order.items?.length || 0,
+        payment_status: order.payment_status,
+        payment_collections: order.payment_collections?.length || 0
+      })
+      
+      // Verifica che l'ordine abbia items
+      if (!order.items || order.items.length === 0) {
+        console.error('[COMPLETE ORDER] ❌ Ordine creato senza items!')
+        console.error('[COMPLETE ORDER] Order details:', JSON.stringify(order, null, 2))
+      }
+      
+      // Verifica che l'ordine abbia un totale > 0
+      if (order.total === 0) {
+        console.error('[COMPLETE ORDER] ❌ Ordine creato con totale 0!')
+        console.error('[COMPLETE ORDER] Order details:', JSON.stringify(order, null, 2))
+      }
       
       // Rimuovi il carrello dal localStorage dopo il completamento
       localStorage.removeItem('medusa_cart_id')
@@ -775,7 +855,7 @@ export function useMedusa(): UseMedusaReturn {
       
       return order
     } catch (err) {
-      console.error('Errore nel completamento dell\'ordine:', err)
+      console.error('[COMPLETE ORDER] Errore nel completamento dell\'ordine:', err)
       setError('Errore nel completamento dell\'ordine')
       throw err
     } finally {

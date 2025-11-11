@@ -105,6 +105,29 @@ export default function CheckoutPage() {
         throw new Error('Nessun carrello disponibile')
       }
 
+      // Verifica che il carrello abbia items PRIMA di procedere
+      if (!medusa.cart.items || medusa.cart.items.length === 0) {
+        console.error('[CHECKOUT] Carrello vuoto! Items:', medusa.cart.items)
+        throw new Error('Il carrello è vuoto. Aggiungi prodotti prima di procedere al checkout.')
+      }
+
+      // Verifica che il totale sia > 0
+      const cartTotal = medusa.cart.total || medusa.cart.subtotal || 0
+      if (cartTotal === 0) {
+        console.error('[CHECKOUT] Totale carrello è 0!', {
+          items: medusa.cart.items?.length || 0,
+          subtotal: medusa.cart.subtotal,
+          total: medusa.cart.total
+        })
+        throw new Error('Il totale dell\'ordine è 0. Verifica che ci siano prodotti nel carrello.')
+      }
+
+      console.log('[CHECKOUT] Carrello verificato:', {
+        items: medusa.cart.items?.length || 0,
+        subtotal: medusa.cart.subtotal,
+        total: medusa.cart.total
+      })
+
       const baseUrl = '/api/medusa'
       
       // Recupera il codice paese corretto dalla regione del carrello
