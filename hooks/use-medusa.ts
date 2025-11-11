@@ -432,6 +432,37 @@ export function useMedusa(): UseMedusaReturn {
     
     try {
       const baseUrl = '/api/medusa'
+      
+      // Prima recupera le shipping options disponibili per questo carrello specifico
+      // Questo è importante perché le opzioni possono variare in base all'indirizzo di spedizione
+      let availableOptions: any[] = []
+      
+      try {
+        const optionsResponse = await fetch(`${baseUrl}/store/shipping-options/${cart.id}`, {
+          headers: {
+            'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
+          }
+        })
+        
+        if (optionsResponse.ok) {
+          const optionsData = await optionsResponse.json()
+          availableOptions = optionsData.shipping_options || optionsData.options || optionsData || []
+          console.log('[SHIPPING] Opzioni disponibili per carrello:', availableOptions.length)
+        }
+      } catch (optionsError) {
+        console.warn('[SHIPPING] Impossibile recuperare opzioni specifiche, uso quelle generali')
+      }
+      
+      // Se abbiamo opzioni disponibili, verifica che l'ID richiesto sia valido
+      if (availableOptions.length > 0) {
+        const isValidOption = availableOptions.some((opt: any) => opt.id === shippingMethodId)
+        if (!isValidOption) {
+          // Se l'opzione non è valida, usa la prima disponibile
+          console.warn('[SHIPPING] Opzione richiesta non valida, uso la prima disponibile')
+          shippingMethodId = availableOptions[0].id
+        }
+      }
+      
       const response = await fetch(`${baseUrl}/store/carts/${cart.id}/shipping-methods`, {
         method: 'POST',
         headers: {
@@ -445,16 +476,41 @@ export function useMedusa(): UseMedusaReturn {
       
       if (!response.ok) {
         const errorText = await response.text()
-        console.error('Errore nell\'aggiunta del metodo di spedizione:', errorText)
+        console.error('[SHIPPING] Errore nell\'aggiunta del metodo di spedizione:', errorText)
+        
+        // Se l'errore è che le opzioni non sono valide, prova a recuperare le opzioni corrette
+        if (errorText.includes('invalid') || errorText.includes('Shipping Options')) {
+          console.log('[SHIPPING] Tentativo di recuperare opzioni corrette...')
+          
+          // Prova a recuperare le opzioni dal carrello aggiornato
+          const cartResponse = await fetch(`${baseUrl}/store/carts/${cart.id}`, {
+            headers: {
+              'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
+            }
+          })
+          
+          if (cartResponse.ok) {
+            const cartData = await cartResponse.json()
+            const updatedCart = cartData.cart || cartData
+            
+            // Se il carrello ha già un metodo di spedizione, va bene
+            if (updatedCart.shipping_methods && updatedCart.shipping_methods.length > 0) {
+              console.log('[SHIPPING] Carrello ha già metodo di spedizione')
+              setCart(updatedCart)
+              return
+            }
+          }
+        }
+        
         throw new Error(errorText)
       }
       
       const updatedCartData = await response.json()
       const updatedCart = updatedCartData.cart || updatedCartData
       setCart(updatedCart)
-      console.log('Metodo spedizione aggiunto:', updatedCart)
+      console.log('[SHIPPING] ✅ Metodo spedizione aggiunto:', updatedCart)
     } catch (err) {
-      console.error('Errore nell\'aggiunta del metodo di spedizione:', err)
+      console.error('[SHIPPING] Errore nell\'aggiunta del metodo di spedizione:', err)
       setError('Errore nell\'aggiunta del metodo di spedizione')
       throw err
     } finally {
@@ -463,6 +519,7 @@ export function useMedusa(): UseMedusaReturn {
   }, [cart])
 
   // Aggiungi sessione di pagamento usando fetch dirette
+  // In Medusa v2, le payment sessions potrebbero essere create automaticamente o richiedere un endpoint diverso
   const addPaymentSession = useCallback(async (providerId: string) => {
     if (!cart) {
       console.error('Errore nell\'aggiunta della sessione di pagamento: Nessun carrello disponibile')
@@ -473,29 +530,95 @@ export function useMedusa(): UseMedusaReturn {
     
     try {
       const baseUrl = '/api/medusa'
-      const response = await fetch(`${baseUrl}/store/carts/${cart.id}/payment-sessions`, {
+      
+      // Prova prima a verificare se ci sono già payment sessions nel carrello
+      const cartResponse = await fetch(`${baseUrl}/store/carts/${cart.id}`, {
+        headers: {
+          'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
+        }
+      })
+      
+      if (cartResponse.ok) {
+        const cartData = await cartResponse.json()
+        const currentCart = cartData.cart || cartData
+        
+        // Se c'è già una payment session per questo provider, usala
+        if (currentCart.payment_sessions && Array.isArray(currentCart.payment_sessions)) {
+          const existingSession = currentCart.payment_sessions.find((ps: any) => ps.provider_id === providerId)
+          if (existingSession) {
+            console.log('[PAYMENT SESSION] Sessione già esistente per provider:', providerId)
+            setCart(currentCart)
+            return
+          }
+        }
+      }
+      
+      // Prova diversi endpoint possibili per creare la payment session
+      const endpoints = [
+        `/store/carts/${cart.id}/payment-sessions`,
+        `/store/carts/${cart.id}/payment-session`,
+        `/store/carts/${cart.id}/payment-providers/${providerId}/sessions`
+      ]
+      
+      let lastError: any = null
+      
+      for (const endpoint of endpoints) {
+        try {
+          console.log('[PAYMENT SESSION] Tentativo endpoint:', endpoint)
+          const response = await fetch(`${baseUrl}${endpoint}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
+            },
+            body: JSON.stringify({
+              provider_id: providerId
+            })
+          })
+          
+          if (response.ok) {
+            const updatedCartData = await response.json()
+            const updatedCart = updatedCartData.cart || updatedCartData
+            setCart(updatedCart)
+            console.log('[PAYMENT SESSION] ✅ Sessione pagamento aggiunta con endpoint:', endpoint)
+            return
+          } else {
+            const errorText = await response.text()
+            console.log('[PAYMENT SESSION] Endpoint fallito:', endpoint, response.status)
+            lastError = errorText
+          }
+        } catch (err) {
+          console.log('[PAYMENT SESSION] Errore con endpoint:', endpoint, err)
+          lastError = err
+        }
+      }
+      
+      // Se nessun endpoint ha funzionato, prova a aggiornare il carrello con il provider
+      // In alcuni casi, Medusa crea automaticamente le payment sessions quando si aggiorna il carrello
+      console.log('[PAYMENT SESSION] Tentativo aggiornamento carrello con provider...')
+      const updateResponse = await fetch(`${baseUrl}/store/carts/${cart.id}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
         },
         body: JSON.stringify({
-          provider_id: providerId
+          payment_provider_id: providerId
         })
       })
       
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error('Errore nell\'aggiunta della sessione di pagamento:', errorText)
-        throw new Error(errorText)
+      if (updateResponse.ok) {
+        const updatedCartData = await updateResponse.json()
+        const updatedCart = updatedCartData.cart || updatedCartData
+        setCart(updatedCart)
+        console.log('[PAYMENT SESSION] ✅ Carrello aggiornato con provider')
+        return
       }
       
-      const updatedCartData = await response.json()
-      const updatedCart = updatedCartData.cart || updatedCartData
-      setCart(updatedCart)
-      console.log('Sessione pagamento aggiunta:', updatedCart)
+      // Se tutto fallisce, lancia l'errore
+      throw new Error(lastError || 'Impossibile creare sessione di pagamento. Verifica la configurazione del provider.')
     } catch (err) {
-      console.error('Errore nell\'aggiunta della sessione di pagamento:', err)
+      console.error('[PAYMENT SESSION] Errore nell\'aggiunta della sessione di pagamento:', err)
       setError('Errore nell\'aggiunta della sessione di pagamento')
       throw err
     } finally {

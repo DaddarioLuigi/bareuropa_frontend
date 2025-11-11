@@ -570,3 +570,350 @@ Proxy error: SyntaxError: Unexpected end of JSON input
  ✓ Compiled in 875ms (1851 modules)
  ✓ Compiled in 355ms (1851 modules)
  ✓ Compiled in 170ms (1851 modules)
+ ✓ Compiled in 887ms (1851 modules)
+ ✓ Compiled in 1156ms (1851 modules)
+ ✓ Compiled in 178ms (846 modules)
+ ✓ Compiled in 673ms (1851 modules)
+ ✓ Compiled in 442ms (1851 modules)
+ ✓ Compiled in 518ms (1851 modules)
+ ✓ Compiled in 191ms (1851 modules)
+ ✓ Compiled in 252ms (1851 modules)
+ ✓ Compiled in 802ms (1851 modules)
+ ✓ Compiled in 341ms (1851 modules)
+ ✓ Compiled in 401ms (1851 modules)
+ ✓ Compiled in 810ms (1851 modules)
+ ✓ Compiled in 387ms (1851 modules)
+ ✓ Compiled in 528ms (1851 modules)
+ ✓ Compiled in 837ms (1851 modules)
+ ✓ Compiled in 105ms (846 modules)
+ ✓ Compiled in 2.1s (1851 modules)
+ ✓ Compiled in 805ms (1851 modules)
+ ✓ Compiled in 653ms (1851 modules)
+ ✓ Compiled in 234ms (846 modules)
+ ✓ Compiled in 183ms (846 modules)
+ ✓ Compiled in 283ms (846 modules)
+ ✓ Compiled in 302ms (846 modules)
+ ✓ Compiled in 780ms (846 modules)
+ ✓ Compiled in 2.5s (846 modules)
+ ✓ Compiled in 6.1s (1851 modules)
+ ✓ Compiled in 5.6s (1851 modules)
+ ✓ Compiled in 465ms (846 modules)
+ ✓ Compiled in 100ms (846 modules)
+ ✓ Compiled in 242ms (846 modules)
+ ✓ Compiled in 888ms (1851 modules)
+ ✓ Compiled in 410ms (1851 modules)
+ ✓ Compiled in 256ms (1851 modules)
+ ✓ Compiled in 283ms (1851 modules)
+ ✓ Compiled in 224ms (1851 modules)
+ ✓ Compiled in 217ms (1851 modules)
+ ✓ Compiled in 321ms (1851 modules)
+ ✓ Compiled in 466ms (1851 modules)
+ ✓ Compiled in 1307ms (1851 modules)
+ ✓ Compiled in 513ms (1851 modules)
+ ✓ Compiled in 2.9s (1851 modules)
+ ✓ Compiled in 673ms (1851 modules)
+ ✓ Compiled in 1613ms (1851 modules)
+ ✓ Compiled in 357ms (1851 modules)
+ ✓ Compiled in 2s (1851 modules)
+ ✓ Compiled in 1275ms (1851 modules)
+ ✓ Compiled in 793ms (1851 modules)
+ ✓ Compiled in 608ms (1851 modules)
+ ✓ Compiled in 281ms (846 modules)
+ ✓ Compiled in 131ms (846 modules)
+ ✓ Compiled in 461ms (1851 modules)
+ ✓ Compiled in 608ms (1851 modules)
+ ✓ Compiled in 271ms (1851 modules)
+ ✓ Compiled in 251ms (846 modules)
+ ✓ Compiled in 127ms (1851 modules)
+ ✓ Compiled in 163ms (1851 modules)
+ ✓ Compiled in 319ms (1851 modules)
+ ✓ Compiled in 1178ms (1851 modules)
+ ✓ Compiled in 428ms (1851 modules)
+ ✓ Compiled in 285ms (1851 modules)
+ ✓ Compiled in 267ms (846 modules)
+ ✓ Compiled in 142ms (846 modules)
+ ✓ Compiled in 3.4s (1851 modules)
+ ✓ Compiled in 950ms (1851 modules)
+ ✓ Compiled in 314ms (1851 modules)
+ ✓ Compiled in 2.3s (1851 modules)
+ ✓ Compiled in 2.2s (1851 modules)
+ ✓ Compiled in 1875ms (1851 modules)
+ ✓ Compiled in 713ms (1851 modules)
+ ✓ Compiled in 1539ms (1851 modules)
+ ✓ Compiled in 644ms (1851 modules)
+ ✓ Compiled in 1110ms (1851 modules)
+ ✓ Compiled in 768ms (1851 modules)
+ ✓ Compiled in 254ms (1851 modules)
+ ✓ Compiled in 390ms (1851 modules)
+ ✓ Compiled in 378ms (1851 modules)
+ ✓ Compiled in 2s (1851 modules)
+[Error: ENOENT: no such file or directory, stat '/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/.next/cache/webpack/client-development/9.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/.next/cache/webpack/client-development/9.pack.gz'
+}
+ ⨯ unhandledRejection: [Error: ENOENT: no such file or directory, stat '/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/.next/cache/webpack/client-development/9.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/.next/cache/webpack/client-development/9.pack.gz'
+}
+ ⨯ unhandledRejection: [Error: ENOENT: no such file or directory, stat '/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/.next/cache/webpack/client-development/9.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/.next/cache/webpack/client-development/9.pack.gz'
+}
+[Error: ENOENT: no such file or directory, stat '/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/.next/cache/webpack/client-development/10.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/.next/cache/webpack/client-development/10.pack.gz'
+}
+ ⨯ unhandledRejection: [Error: ENOENT: no such file or directory, stat '/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/.next/cache/webpack/client-development/10.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/.next/cache/webpack/client-development/10.pack.gz'
+}
+ ⨯ unhandledRejection: [Error: ENOENT: no such file or directory, stat '/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/.next/cache/webpack/client-development/10.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/.next/cache/webpack/client-development/10.pack.gz'
+}
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, stat '/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/.next/cache/webpack/client-development/9.pack.gz'
+ ✓ Compiled in 358ms (1851 modules)
+ ✓ Compiled in 355ms (1851 modules)
+ ✓ Compiled in 584ms (1851 modules)
+ ✓ Compiled in 303ms (1851 modules)
+ ✓ Compiled in 1062ms (1851 modules)
+ ✓ Compiled in 579ms (1851 modules)
+ ✓ Compiled in 593ms (1851 modules)
+ ✓ Compiled in 6.5s (1851 modules)
+ ✓ Compiled in 657ms (1851 modules)
+ ✓ Compiled in 647ms (1851 modules)
+ ✓ Compiled in 374ms (1851 modules)
+ ✓ Compiled in 1855ms (1851 modules)
+[Error: ENOENT: no such file or directory, stat '/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/.next/cache/webpack/server-development/8.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/.next/cache/webpack/server-development/8.pack.gz'
+}
+ ⨯ unhandledRejection: [Error: ENOENT: no such file or directory, stat '/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/.next/cache/webpack/server-development/8.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/.next/cache/webpack/server-development/8.pack.gz'
+}
+ ⨯ unhandledRejection: [Error: ENOENT: no such file or directory, stat '/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/.next/cache/webpack/server-development/8.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/.next/cache/webpack/server-development/8.pack.gz'
+}
+[Error: ENOENT: no such file or directory, stat '/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/.next/cache/webpack/server-development/10.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/.next/cache/webpack/server-development/10.pack.gz'
+}
+ ⨯ unhandledRejection: [Error: ENOENT: no such file or directory, stat '/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/.next/cache/webpack/server-development/10.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/.next/cache/webpack/server-development/10.pack.gz'
+}
+ ⨯ unhandledRejection: [Error: ENOENT: no such file or directory, stat '/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/.next/cache/webpack/server-development/10.pack.gz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'stat',
+  path: '/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/.next/cache/webpack/server-development/10.pack.gz'
+}
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, stat '/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/.next/cache/webpack/server-development/8.pack.gz'
+ ✓ Compiled in 718ms (1851 modules)
+ ✓ Compiled in 82ms (846 modules)
+ ✓ Compiled in 2.9s (1851 modules)
+ ✓ Compiled in 291ms (1851 modules)
+ ✓ Compiled in 109ms (846 modules)
+ ✓ Compiled in 513ms (1851 modules)
+ ✓ Compiled in 677ms (1851 modules)
+ ✓ Compiled in 345ms (1851 modules)
+ ✓ Compiled in 930ms (1851 modules)
+ ✓ Compiled in 272ms (846 modules)
+ ✓ Compiled in 605ms (1851 modules)
+ ✓ Compiled in 317ms (1851 modules)
+ ✓ Compiled in 403ms (846 modules)
+ ✓ Compiled in 238ms (1851 modules)
+ ✓ Compiled in 2.1s (1851 modules)
+ ✓ Compiled in 11.1s (1851 modules)
+ ✓ Compiled in 1928ms (1851 modules)
+ ✓ Compiled in 1011ms (1851 modules)
+ ✓ Compiled in 1868ms (1851 modules)
+ ✓ Compiled in 1795ms (1851 modules)
+ ✓ Compiled in 1875ms (1851 modules)
+ ✓ Compiled in 345ms (1851 modules)
+ ✓ Compiled in 245ms (1851 modules)
+ ✓ Compiled in 1144ms (1851 modules)
+ ✓ Compiled in 555ms (1851 modules)
+ ✓ Compiled in 317ms (1853 modules)
+ ✓ Compiled in 529ms (1853 modules)
+ ✓ Compiled in 1460ms (1853 modules)
+ ✓ Compiled in 864ms (1853 modules)
+ ✓ Compiled in 1366ms (1853 modules)
+ ✓ Compiled in 337ms (1853 modules)
+ ✓ Compiled in 1984ms (1853 modules)
+ ✓ Compiled in 609ms (1853 modules)
+ ✓ Compiled in 3.6s (1853 modules)
+ ✓ Compiled in 515ms (1853 modules)
+ ✓ Compiled in 1722ms (1853 modules)
+ ✓ Compiled in 886ms (1853 modules)
+ ✓ Compiled in 385ms (1853 modules)
+ ✓ Compiled in 436ms (1853 modules)
+ ✓ Compiled in 1126ms (1853 modules)
+ ✓ Compiled in 1556ms (1853 modules)
+ ✓ Compiled in 476ms (1853 modules)
+ ✓ Compiled in 598ms (1853 modules)
+ ✓ Compiled in 240ms (1853 modules)
+ ✓ Compiled in 304ms (1853 modules)
+ ✓ Compiled in 189ms (1853 modules)
+ ✓ Compiled in 6.1s (1853 modules)
+ ✓ Compiled in 2.3s (1853 modules)
+ ✓ Compiled in 1912ms (1853 modules)
+ ✓ Compiled in 2.5s (1853 modules)
+ ✓ Compiled in 3.7s (1853 modules)
+ ✓ Compiled in 1593ms (1853 modules)
+ ✓ Compiled in 2.9s (1853 modules)
+ ✓ Compiled in 1997ms (1853 modules)
+ ✓ Compiled in 6.4s (1853 modules)
+ ✓ Compiled in 1072ms (1853 modules)
+ ✓ Compiled in 312ms (1853 modules)
+ ✓ Compiled in 583ms (1853 modules)
+ ✓ Compiled in 562ms (1853 modules)
+ ✓ Compiled in 185ms (1853 modules)
+ ✓ Compiled in 357ms (1853 modules)
+ ✓ Compiled in 554ms (1853 modules)
+ ✓ Compiled in 2.2s (1853 modules)
+ ✓ Compiled in 568ms (1853 modules)
+ ✓ Compiled in 189ms (1853 modules)
+ ✓ Compiled in 229ms (1853 modules)
+ ✓ Compiled in 200ms (1853 modules)
+ ✓ Compiled in 234ms (1853 modules)
+ ✓ Compiled in 260ms (1648 modules)
+ ✓ Compiled in 455ms (1648 modules)
+ ✓ Compiled in 292ms (1648 modules)
+ ✓ Compiled in 329ms (1648 modules)
+ ✓ Compiled in 475ms (1648 modules)
+ ✓ Compiled in 343ms (1648 modules)
+ ✓ Compiled in 1727ms (1648 modules)
+ ✓ Compiled in 1656ms (1648 modules)
+ ✓ Compiled in 392ms (1648 modules)
+ ✓ Compiled in 172ms (1648 modules)
+ ✓ Compiled in 1000ms (1648 modules)
+ ✓ Compiled in 425ms (1648 modules)
+ ✓ Compiled in 317ms (743 modules)
+ ✓ Compiled in 707ms (1648 modules)
+ ✓ Compiled in 2.2s (1648 modules)
+ ✓ Compiled in 2.6s (1648 modules)
+ ✓ Compiled in 573ms (1648 modules)
+ ✓ Compiled in 534ms (1648 modules)
+ ✓ Compiled in 735ms (1648 modules)
+ ✓ Compiled in 440ms (1648 modules)
+ ✓ Compiled in 305ms (1648 modules)
+ ✓ Compiled in 535ms (1648 modules)
+ ✓ Compiled in 523ms (1648 modules)
+ ✓ Compiled in 1020ms (1648 modules)
+ ✓ Compiled in 1547ms (1648 modules)
+ ✓ Compiled in 207ms (743 modules)
+ ✓ Compiled in 479ms (1648 modules)
+ ✓ Compiled in 185ms (1648 modules)
+ ✓ Compiled in 884ms (1648 modules)
+ ✓ Compiled in 456ms (1648 modules)
+ ✓ Compiled in 307ms (1648 modules)
+ ✓ Compiled in 434ms (1648 modules)
+ ✓ Compiled in 681ms (1648 modules)
+ ✓ Compiled in 229ms (1648 modules)
+ ⨯ ./app/checkout/page.tsx
+Error: 
+  [31mx[0m the name `baseUrl` is defined multiple times
+     ,-[[36;1;4m/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/app/checkout/page.tsx[0m:105:1]
+ [2m105[0m |         throw new Error('Nessun carrello disponibile')
+ [2m106[0m |       }
+ [2m107[0m | 
+ [2m108[0m |       const baseUrl = '/api/medusa'
+     : [31;1m            ^^^|^^^[0m
+     :                [31;1m`-- [31;1mprevious definition of `baseUrl` here[0m[0m
+ [2m109[0m |       
+ [2m110[0m |       // Recupera il codice paese corretto dalla regione del carrello
+ [2m111[0m |       // Medusa usa codici ISO-2 in minuscolo (es: "it", "fr", "de")
+ [2m112[0m |       let countryCode = "it" // Fallback a Italia
+ [2m113[0m |       
+ [2m114[0m |       if (medusa.cart?.region?.id) {
+ [2m115[0m |         try {
+ [2m116[0m |           // Recupera la regione completa con i paesi disponibili
+ [2m117[0m |           const regionResponse = await fetch(`${baseUrl}/store/regions/${medusa.cart.region.id}`)
+ [2m118[0m |           if (regionResponse.ok) {
+ [2m119[0m |             const regionData = await regionResponse.json()
+ [2m120[0m |             const region = regionData.region || regionData
+ [2m121[0m |             // Cerca l'Italia nella lista dei paesi della regione
+ [2m122[0m |             if (region.countries && Array.isArray(region.countries)) {
+ [2m123[0m |               const italy = region.countries.find((c: any) => 
+ [2m124[0m |                 c.iso_2?.toLowerCase() === "it" || 
+ [2m125[0m |                 c.name?.toUpperCase() === "ITALY" ||
+ [2m126[0m |                 c.display_name?.toLowerCase() === "italy"
+ [2m127[0m |               )
+ [2m128[0m |               if (italy?.iso_2) {
+ [2m129[0m |                 countryCode = italy.iso_2.toLowerCase()
+ [2m130[0m |               }
+ [2m131[0m |             }
+ [2m132[0m |           }
+ [2m133[0m |         } catch (regionError) {
+ [2m134[0m |           console.warn('Impossibile recuperare la regione, uso fallback "it":', regionError)
+ [2m135[0m |         }
+ [2m136[0m |       }
+ [2m137[0m | 
+ [2m138[0m |       // Imposta l'indirizzo di spedizione (senza email, non accettata dall'API Medusa nell'indirizzo)
+ [2m139[0m |       const shippingAddress = {
+ [2m140[0m |         first_name: formData.firstName,
+ [2m141[0m |         last_name: formData.lastName,
+ [2m142[0m |         address_1: formData.address,
+ [2m143[0m |         city: formData.city,
+ [2m144[0m |         country_code: countryCode, // Usa il codice paese corretto dalla regione
+ [2m145[0m |         postal_code: formData.postalCode,
+ [2m146[0m |         province: formData.province,
+ [2m147[0m |         phone: formData.phone
+ [2m148[0m |       }
+ [2m149[0m | 
+ [2m150[0m |       // Imposta sia l'indirizzo di spedizione che l'email in una singola chiamata
+ [2m151[0m |       // (l'email va nel carrello, non nell'indirizzo di spedizione)
+ [2m152[0m |       const baseUrl = '/api/medusa'
+     : [33;1m            ^^^|^^^[0m
+     :                [33;1m`-- [33;1m`baseUrl` redefined here[0m[0m
+ [2m153[0m |       const cartUpdateBody: any = {
+ [2m154[0m |         shipping_address: shippingAddress
+ [2m155[0m |       }
+     `----
+
+Import trace for requested module:
+./app/checkout/page.tsx
+ ✓ Compiled in 508ms (1634 modules)
+ ✓ Compiled in 1317ms (1648 modules)
+ ✓ Compiled in 6.6s (1648 modules)
+ ✓ Compiled in 616ms (1648 modules)
+ ✓ Compiled in 1491ms (1648 modules)
+ ✓ Compiled in 415ms (1648 modules)
+ ✓ Compiled in 616ms (1648 modules)
+ ✓ Compiled in 1098ms (1648 modules)
+ ✓ Compiled in 4.5s (1648 modules)
+ ✓ Compiled in 7.6s (1648 modules)
+ ✓ Compiled in 1905ms (1648 modules)
+ ✓ Compiled in 1142ms (1648 modules)
+ ✓ Compiled in 1206ms (1648 modules)
+ ✓ Compiled in 5.9s (1648 modules)
+ ✓ Compiled in 4.3s (1648 modules)
+ ✓ Compiled in 6.4s (1648 modules)
+ ✓ Compiled in 3.4s (1648 modules)
+ ✓ Compiled in 4.6s (1648 modules)
+ ✓ Compiled in 4.5s (1648 modules)
