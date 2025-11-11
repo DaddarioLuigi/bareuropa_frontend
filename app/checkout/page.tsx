@@ -243,7 +243,6 @@ export default function CheckoutPage() {
 
       // In Medusa v2, la payment collection deve essere inizializzata prima di aggiungere payment sessions
       // Verifica e inizializza la payment collection se necessario
-      const baseUrl = '/api/medusa'
       if (medusa.cart?.shipping_address && medusa.cart?.shipping_methods?.length > 0) {
         console.log('[CHECKOUT] Verifico se la payment collection è inizializzata...')
         
@@ -312,7 +311,6 @@ export default function CheckoutPage() {
             console.warn('[CHECKOUT] Endpoint payment-sessions non trovato, verifico se esistono già...')
             
             // Ricarica il carrello per vedere se ci sono payment sessions
-            const baseUrl = '/api/medusa'
             const cartCheck = await fetch(`${baseUrl}/store/carts/${medusa.cart?.id}`, {
               headers: {
                 'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
