@@ -912,12 +912,10 @@ export default function CheckoutPage() {
                     {(medusa.cart?.items && medusa.cart.items.length > 0
                       ? medusa.cart.items.map((item) => {
                           // Medusa v2: il subtotale è già in euro (vedi app/cart/page.tsx riga 218)
-                          // I prezzi nelle varianti potrebbero essere in centesimi, quindi li convertiamo
-                          // Usiamo il prezzo della variante e lo convertiamo se necessario
+                          // Ma i prezzi nelle varianti sono ancora in centesimi (vedi lib/medusa.ts riga 211)
+                          // Quindi dobbiamo convertirli dividendo per 100
                           const itemPriceRaw = item.variant?.prices?.[0]?.amount || 0
-                          // Se il prezzo è molto grande (> 1000), probabilmente è in centesimi
-                          // Altrimenti è già in euro (come il subtotale)
-                          const itemPriceInEuros = itemPriceRaw > 1000 ? itemPriceRaw / 100 : itemPriceRaw
+                          const itemPriceInEuros = itemPriceRaw / 100 // Converti da centesimi a euro
                           const itemTotal = itemPriceInEuros * item.quantity
                           return (
                             <div key={item.id} className="flex gap-3">
