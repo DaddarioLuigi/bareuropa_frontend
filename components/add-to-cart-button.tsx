@@ -50,11 +50,16 @@ export function AddToCartButton({
 
       console.log('Add to cart API response:', response)
 
-      // Store cartId in localStorage as backup
+      // Store cartId in localStorage as backup - sincronizza entrambe le chiavi
       const cartId = response.cartId || response.cart?.id
       if (cartId) {
+        // Sincronizza entrambe le chiavi per compatibilità con useMedusa
         localStorage.setItem('cart_id', cartId)
-        console.log('Stored cart_id in localStorage:', cartId)
+        localStorage.setItem('medusa_cart_id', cartId)
+        console.log('[ADD TO CART] Stored cart_id in localStorage (both keys):', cartId)
+        
+        // Emetti un evento custom per notificare altri componenti del cambio carrello
+        window.dispatchEvent(new CustomEvent('cartUpdated', { detail: { cartId } }))
       }
 
       // Add to local cart for UI (to show badge count)
