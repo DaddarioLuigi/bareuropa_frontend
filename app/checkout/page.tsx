@@ -62,6 +62,10 @@ export default function CheckoutPage() {
   const [isApplyingPromoCode, setIsApplyingPromoCode] = useState(false)
   const [fallbackCartItems, setFallbackCartItems] = useState<any[]>([])
   const [fallbackFetched, setFallbackFetched] = useState(false)
+  // Stato stabile per il riepilogo nel checkout (non soggetto ai reload di useMedusa)
+  const [summaryItems, setSummaryItems] = useState<any[]>([])
+  const [summaryLoading, setSummaryLoading] = useState<boolean>(false)
+  const [summaryCartId, setSummaryCartId] = useState<string | null>(null)
 
   const [formData, setFormData] = useState({
     // Shipping Information
@@ -563,6 +567,68 @@ export default function CheckoutPage() {
       window.removeEventListener('storage', handleStorageChange)
     }
   }, [])
+
+  // Fetch stabile del carrello per il riepilogo (evita sfarfallii quando useMedusa ricarica vuoto)
+  useEffect(() => {
+    let isMounted = true
+    const resolveCartId = (): string | null => {
+      return medusa.cart?.id || localStorage.getItem('medusa_cart_id') || localStorage.getItem('cart_id')
+    }
+    const fetchSummaryCart = async (cartId: string) => {
+      try {
+        setSummaryLoading(true)
+        const res = await fetch(`/api/medusa/store/carts/${cartId}`, {
+          method: 'GET',
+          headers: {
+            'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
+          }
+        })
+        if (!isMounted) return
+        if (res.ok) {
+          const data = await res.json()
+          const cart = data.cart || data
+          const items = Array.isArray(cart?.items) ? cart.items : []
+          // Se il server restituisce 0 items ma abbiamo già un fallback consistente, non sovrascrivere
+          if (items.length > 0) {
+            setSummaryItems(items)
+          } else if (fallbackCartItems.length > 0) {
+            // mantieni i fallback esistenti
+            setSummaryItems(fallbackCartItems)
+          } else {
+            setSummaryItems([])
+          }
+        } else {
+          // In caso di errore, non azzerare se abbiamo già items
+          if (summaryItems.length === 0 && fallbackCartItems.length === 0) {
+            setSummaryItems([])
+          }
+        }
+      } catch {
+        // Silenzia ma non azzerare per non creare sfarfallii
+      } finally {
+        if (isMounted) setSummaryLoading(false)
+      }
+    }
+    const cartId = resolveCartId()
+    if (cartId) {
+      setSummaryCartId(cartId)
+      fetchSummaryCart(cartId)
+    }
+    // Ascolta aggiornamenti carrello per ricaricare solo il riepilogo
+    const onCartUpdated = (e: CustomEvent) => {
+      const cid = e.detail?.cartId || resolveCartId()
+      if (cid) {
+        setSummaryCartId(cid)
+        fetchSummaryCart(cid)
+      }
+    }
+    window.addEventListener('cartUpdated', onCartUpdated as EventListener)
+    return () => {
+      isMounted = false
+      window.removeEventListener('cartUpdated', onCartUpdated as EventListener)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [medusa.cart?.id])
 
   // Fallback: recupera il carrello direttamente dal server se medusa.cart non ha items
   useEffect(() => {
@@ -1129,20 +1195,26 @@ export default function CheckoutPage() {
                     {/* Usa SEMPRE gli items dal carrello Medusa se disponibile per avere le quantità corrette */}
                     {/* IMPORTANTE: Non usare mai state.items perché ha sempre quantità 1 */}
                     {(() => {
-                      // Usa prima gli items dal carrello Medusa, poi il fallback dal server
+                      // Usa per primi gli items stabili del riepilogo, poi medusa.cart, poi il fallback
+                      const summaryStableItems = Array.isArray(summaryItems) && summaryItems.length > 0
+                        ? summaryItems
+                        : []
                       const medusaItems = medusa.cart?.items && medusa.cart.items.length > 0 
                         ? medusa.cart.items 
                         : []
                       
-                      // Se non ci sono items in medusa.cart ma c'è un fallback, usalo
-                      const itemsToDisplay = medusaItems.length > 0 
-                        ? medusaItems 
-                        : (fallbackCartItems.length > 0 ? fallbackCartItems : [])
+                      // Se non ci sono items nel riepilogo stabile o in medusa.cart ma c'è un fallback, usalo
+                      const itemsToDisplay = summaryStableItems.length > 0
+                        ? summaryStableItems
+                        : (medusaItems.length > 0 
+                          ? medusaItems 
+                          : (fallbackCartItems.length > 0 ? fallbackCartItems : []))
                       
                       // Log per debug dettagliato
                       console.log('[CHECKOUT RENDER] Stato items:', {
                         hasMedusaCart: !!medusa.cart,
                         medusaItemsLength: medusaItems.length,
+                        summaryItemsLength: summaryStableItems.length,
                         fallbackItemsLength: fallbackCartItems.length,
                         itemsToDisplayLength: itemsToDisplay.length,
                         medusaCartItems: medusa.cart?.items?.length || 0,
@@ -1157,7 +1229,7 @@ export default function CheckoutPage() {
                           quantity: item.quantity,
                           unit_price: item.unit_price,
                           product_title: item.product_title || item.title,
-                          source: medusaItems.length > 0 ? 'medusa.cart' : 'fallback'
+                          source: summaryStableItems.length > 0 ? 'summary' : (medusaItems.length > 0 ? 'medusa.cart' : 'fallback')
                         })))
                       } else {
                         console.log('[CHECKOUT RENDER] ⚠️ Nessun item da visualizzare')
@@ -1167,7 +1239,7 @@ export default function CheckoutPage() {
                         // Se non ci sono items nel carrello Medusa né nel fallback, mostra un messaggio
                         return (
                           <div className="text-center py-4 text-muted-foreground">
-                            Nessun prodotto nel carrello
+                            {summaryLoading ? 'Caricamento prodotti...' : 'Nessun prodotto nel carrello'}
                           </div>
                         )
                       }
