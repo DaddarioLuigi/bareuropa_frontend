@@ -475,9 +475,25 @@ export default function CheckoutPage() {
   const medusaTax = medusa.cart ? (medusa.cart.tax_total || 0) : 0
   const medusaTotal = medusa.cart ? (medusa.cart.total || 0) : 0
 
+  // Log per debug: verifica le quantità nel carrello Medusa
+  useEffect(() => {
+    if (medusa.cart?.items) {
+      console.log('[CHECKOUT] Carrello Medusa - Quantità items:', medusa.cart.items.map((item: any) => ({
+        id: item.id,
+        variant_id: item.variant_id,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        subtotal_item: (item.unit_price || 0) * (item.quantity || 1)
+      })))
+      console.log('[CHECKOUT] Carrello Medusa - Subtotal:', medusaSubtotal)
+      console.log('[CHECKOUT] Carrello Medusa - Total:', medusaTotal)
+    }
+  }, [medusa.cart, medusaSubtotal, medusaTotal])
+
   // Usa i valori di Medusa se disponibili, altrimenti calcola localmente
   // IMPORTANTE: L'IVA è già inclusa nei prezzi di Medusa
   // Il subtotale è già il totale prodotti con IVA inclusa
+  // IMPORTANTE: Usa sempre medusaSubtotal se disponibile, perché include le quantità corrette
   const subtotal = medusaSubtotal || state.total
   const discount = medusaDiscount
   // Se non c'è shipping_total da Medusa, calcola in base al subtotale
@@ -485,9 +501,44 @@ export default function CheckoutPage() {
   
   // Il totale deve essere: Totale prodotti (con IVA inclusa) + spedizione - sconto
   // Non aggiungiamo tax_total perché l'IVA è già inclusa nel subtotale
+  // IMPORTANTE: Usa sempre medusaSubtotal se disponibile, perché include le quantità corrette
   const total = medusaSubtotal > 0
     ? (medusaSubtotal - medusaDiscount + shipping) // Totale prodotti (con IVA inclusa) + spedizione - sconto
     : (subtotal - discount + shipping)
+
+  // Ricarica il carrello Medusa quando si apre il checkout per assicurarsi di avere le quantità corrette
+  // Usa un evento custom per forzare il ricaricamento del carrello in useMedusa
+  useEffect(() => {
+    const reloadCart = async () => {
+      try {
+        const cartId = localStorage.getItem('medusa_cart_id') || localStorage.getItem('cart_id')
+        if (cartId) {
+          // Emetti un evento custom per notificare useMedusa di ricaricare il carrello
+          window.dispatchEvent(new CustomEvent('cartUpdated', { detail: { cartId } }))
+          
+          console.log('[CHECKOUT] Evento cartUpdated emesso per ricaricare il carrello:', cartId)
+        }
+      } catch (error) {
+        console.error('[CHECKOUT] Errore nel ricaricamento del carrello:', error)
+      }
+    }
+    
+    // Ricarica il carrello quando si apre il checkout
+    reloadCart()
+    
+    // Ascolta anche i cambiamenti nel localStorage per ricaricare il carrello
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'cart_id' || e.key === 'medusa_cart_id') {
+        reloadCart()
+      }
+    }
+    
+    window.addEventListener('storage', handleStorageChange)
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+    }
+  }, [])
 
   // Sincronizza il codice promozionale applicato con il carrello Medusa
   useEffect(() => {
@@ -913,58 +964,68 @@ export default function CheckoutPage() {
                 <CardContent className="space-y-4">
                   {/* Order Items */}
                   <div className="space-y-3">
-                    {/* Usa gli items dal carrello Medusa per avere le quantità corrette */}
-                    {(medusa.cart?.items && medusa.cart.items.length > 0
-                      ? medusa.cart.items.map((item: any) => {
-                          // Medusa v2: unit_price è già in euro (vedi app/cart/page.tsx riga 256)
-                          // Usa unit_price se disponibile, altrimenti calcola da variant.prices
-                          const itemPrice = item.unit_price || (item.variant?.prices?.[0]?.amount ? item.variant.prices[0].amount / 100 : 0)
-                          const itemTotal = itemPrice * item.quantity
-                          
-                          // Usa thumbnail come nella pagina cart: item.thumbnail || item.product?.thumbnail || item.variant?.product?.thumbnail
-                          const image = item.thumbnail || item.product?.thumbnail || item.variant?.product?.thumbnail || "/placeholder.svg"
-                          const productTitle = item.product_title || item.title || item.variant?.product?.title || item.product?.title || "Prodotto"
-                          
-                          return (
-                            <div key={item.id} className="flex gap-3">
-                              <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0">
-                                <img
-                                  src={image}
-                                  alt={productTitle}
-                                  className="w-full h-full object-cover"
-                                />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <h4 className="font-medium text-sm line-clamp-2">
-                                  {productTitle}
-                                </h4>
-                                <p className="text-xs text-muted-foreground">Qtà: {item.quantity}</p>
-                                <p className="text-sm font-semibold text-primary">
-                                  €{itemTotal.toFixed(2)}
-                                </p>
-                              </div>
-                            </div>
-                          )
-                        })
-                      : state.items.map((item) => (
+                    {/* Usa SEMPRE gli items dal carrello Medusa se disponibile per avere le quantità corrette */}
+                    {/* IMPORTANTE: Non usare mai state.items perché ha sempre quantità 1 */}
+                    {(() => {
+                      // Forza l'uso del carrello Medusa se disponibile
+                      const itemsToDisplay = medusa.cart?.items && medusa.cart.items.length > 0 
+                        ? medusa.cart.items 
+                        : []
+                      
+                      // Log per debug
+                      if (itemsToDisplay.length > 0) {
+                        console.log('[CHECKOUT] Items da visualizzare:', itemsToDisplay.map((item: any) => ({
+                          id: item.id,
+                          variant_id: item.variant_id,
+                          quantity: item.quantity,
+                          unit_price: item.unit_price,
+                          product_title: item.product_title || item.title
+                        })))
+                      }
+                      
+                      if (itemsToDisplay.length === 0) {
+                        // Se non ci sono items nel carrello Medusa, mostra un messaggio
+                        return (
+                          <div className="text-center py-4 text-muted-foreground">
+                            Nessun prodotto nel carrello
+                          </div>
+                        )
+                      }
+                      
+                      return itemsToDisplay.map((item: any) => {
+                        // Medusa v2: unit_price è già in euro (vedi app/cart/page.tsx riga 256)
+                        // Usa unit_price se disponibile, altrimenti calcola da variant.prices
+                        const itemPrice = item.unit_price || (item.variant?.prices?.[0]?.amount ? item.variant.prices[0].amount / 100 : 0)
+                        // IMPORTANTE: Usa sempre item.quantity dal carrello Medusa, non dal carrello locale
+                        const itemQuantity = item.quantity || 1
+                        const itemTotal = itemPrice * itemQuantity
+                        
+                        // Usa thumbnail come nella pagina cart: item.thumbnail || item.product?.thumbnail || item.variant?.product?.thumbnail
+                        const image = item.thumbnail || item.product?.thumbnail || item.variant?.product?.thumbnail || "/placeholder.svg"
+                        const productTitle = item.product_title || item.title || item.variant?.product?.title || item.product?.title || "Prodotto"
+                        
+                        return (
                           <div key={item.id} className="flex gap-3">
                             <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0">
                               <img
-                                src={item.image || "/placeholder.svg"}
-                                alt={item.name}
+                                src={image}
+                                alt={productTitle}
                                 className="w-full h-full object-cover"
                               />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <h4 className="font-medium text-sm line-clamp-2">{item.name}</h4>
-                              <p className="text-xs text-muted-foreground">Qtà: {item.quantity}</p>
+                              <h4 className="font-medium text-sm line-clamp-2">
+                                {productTitle}
+                              </h4>
+                              <p className="text-xs text-muted-foreground">Qtà: {itemQuantity}</p>
                               <p className="text-sm font-semibold text-primary">
-                                €{(item.price * item.quantity).toFixed(2)}
+                                €{itemTotal.toFixed(2)}
                               </p>
                             </div>
                           </div>
-                        ))
-                    )}
+                        )
+                      })
+                    })()}
                   </div>
 
                   <Separator />
