@@ -61,6 +61,7 @@ export default function CheckoutPage() {
   const [promoCodeError, setPromoCodeError] = useState<string | null>(null)
   const [isApplyingPromoCode, setIsApplyingPromoCode] = useState(false)
   const [fallbackCartItems, setFallbackCartItems] = useState<any[]>([])
+  const [fallbackFetched, setFallbackFetched] = useState(false)
 
   const [formData, setFormData] = useState({
     // Shipping Information
@@ -534,6 +535,7 @@ export default function CheckoutPage() {
               if (cart.items && cart.items.length > 0) {
                 console.log('[CHECKOUT] Items recuperati all\'avvio:', cart.items.length)
                 setFallbackCartItems(cart.items)
+                setFallbackFetched(true)
               }
             }
           } catch (error) {
@@ -573,6 +575,14 @@ export default function CheckoutPage() {
         if (isMounted) {
           setFallbackCartItems([])
         }
+        return
+      }
+
+      // Se abbiamo già items nel fallback e medusa.cart non ha items,
+      // mantieni il fallback invece di azzerarlo (anche se subtotale è 0 o undefined)
+      // perché potrebbe essere un problema temporaneo di caricamento
+      if (fallbackCartItems.length > 0 && medusa.cart && (!medusa.cart.items || medusa.cart.items.length === 0)) {
+        console.log('[CHECKOUT FALLBACK] Mantengo items esistenti nel fallback (medusa.cart senza items)')
         return
       }
 
@@ -626,10 +636,16 @@ export default function CheckoutPage() {
             
             if (cart.items && cart.items.length > 0) {
               console.log('[CHECKOUT FALLBACK] ✅ Items recuperati dal server:', cart.items.length)
-              setFallbackCartItems(cart.items)
+              if (isMounted) {
+                setFallbackCartItems(cart.items)
+                setFallbackFetched(true)
+              }
             } else {
               console.log('[CHECKOUT FALLBACK] ⚠️ Nessun item nel carrello dal server')
-              setFallbackCartItems([])
+              // Non azzerare il fallback se abbiamo già items salvati
+              if (isMounted && fallbackCartItems.length === 0) {
+                setFallbackCartItems([])
+              }
             }
           } else if (isMounted) {
             const errorText = await response.text().catch(() => 'Unknown error')
@@ -644,24 +660,40 @@ export default function CheckoutPage() {
         }
       } else {
         console.log('[CHECKOUT FALLBACK] ⏭️ Condizioni non soddisfatte per il fallback')
+        // Non azzerare il fallback se abbiamo già items salvati e c'è un subtotale
         if (isMounted) {
-          setFallbackCartItems([])
+          const hasSubtotal = medusa.cart && (medusa.cart.subtotal > 0 || medusa.cart.total > 0)
+          if (!hasSubtotal || fallbackCartItems.length === 0) {
+            setFallbackCartItems([])
+          }
         }
       }
     }
 
     // Chiama immediatamente se medusa.cart è già caricato, altrimenti aspetta
-    if (medusa.cart && !medusa.loadingCart) {
-      fetchCartItemsFallback()
-    } else {
-      // Aggiungi un delay per aspettare che medusa.cart si carichi
-      const timeoutId = setTimeout(() => {
+    // Ma solo se non abbiamo già recuperato il fallback
+    if (!fallbackFetched && fallbackCartItems.length === 0) {
+      if (medusa.cart && !medusa.loadingCart) {
         fetchCartItemsFallback()
-      }, 1000)
+      } else {
+        // Aggiungi un delay per aspettare che medusa.cart si carichi
+        const timeoutId = setTimeout(() => {
+          fetchCartItemsFallback()
+        }, 1000)
 
-      return () => {
-        isMounted = false
-        clearTimeout(timeoutId)
+        return () => {
+          isMounted = false
+          clearTimeout(timeoutId)
+        }
+      }
+    } else if (fallbackCartItems.length > 0) {
+      // Se abbiamo già items nel fallback, verifica solo se medusa.cart ha items
+      // Se medusa.cart ha items, azzera il fallback
+      if (medusa.cart?.items && medusa.cart.items.length > 0) {
+        if (isMounted) {
+          setFallbackCartItems([])
+          setFallbackFetched(false)
+        }
       }
     }
 
