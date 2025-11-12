@@ -517,6 +517,28 @@ export default function CheckoutPage() {
           window.dispatchEvent(new CustomEvent('cartUpdated', { detail: { cartId } }))
           
           console.log('[CHECKOUT] Evento cartUpdated emesso per ricaricare il carrello:', cartId)
+          
+          // Recupera anche direttamente il carrello come fallback immediato
+          try {
+            const response = await fetch(`/api/medusa/store/carts/${cartId}`, {
+              method: 'GET',
+              headers: {
+                'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
+              }
+            })
+            
+            if (response.ok) {
+              const cartData = await response.json()
+              const cart = cartData.cart || cartData
+              
+              if (cart.items && cart.items.length > 0) {
+                console.log('[CHECKOUT] Items recuperati all\'avvio:', cart.items.length)
+                setFallbackCartItems(cart.items)
+              }
+            }
+          } catch (error) {
+            console.error('[CHECKOUT] Errore nel recupero iniziale del carrello:', error)
+          }
         }
       } catch (error) {
         console.error('[CHECKOUT] Errore nel ricaricamento del carrello:', error)
@@ -540,26 +562,45 @@ export default function CheckoutPage() {
     }
   }, [])
 
-  // Fallback: recupera il carrello direttamente dal server se medusa.cart non ha items ma ha un subtotale > 0
+  // Fallback: recupera il carrello direttamente dal server se medusa.cart non ha items
   useEffect(() => {
     let isMounted = true
     
     const fetchCartItemsFallback = async () => {
       // Se medusa.cart ha items, non serve il fallback
       if (medusa.cart?.items && medusa.cart.items.length > 0) {
+        console.log('[CHECKOUT FALLBACK] medusa.cart ha items, non serve fallback')
         if (isMounted) {
           setFallbackCartItems([])
         }
         return
       }
 
-      // Se medusa.cart ha un subtotale > 0 ma non ha items, recupera dal server
+      // Se medusa.cart esiste ma non ha items, recupera dal server
+      // Controlla anche se c'è un subtotale > 0 come indicatore che ci sono prodotti
       const hasSubtotal = medusa.cart && (medusa.cart.subtotal > 0 || medusa.cart.total > 0)
       const cartId = medusa.cart?.id || localStorage.getItem('medusa_cart_id') || localStorage.getItem('cart_id')
       
-      if (hasSubtotal && cartId && !medusa.loadingCart) {
+      console.log('[CHECKOUT FALLBACK] Stato:', {
+        hasMedusaCart: !!medusa.cart,
+        hasItems: !!(medusa.cart?.items && medusa.cart.items.length > 0),
+        itemsLength: medusa.cart?.items?.length || 0,
+        hasSubtotal,
+        subtotal: medusa.cart?.subtotal,
+        total: medusa.cart?.total,
+        cartId,
+        loadingCart: medusa.loadingCart
+      })
+      
+      // Chiama il fallback se:
+      // 1. medusa.cart esiste ma non ha items (undefined, null, o array vuoto), OPPURE
+      // 2. c'è un subtotale > 0 ma non ci sono items
+      const hasNoItems = !medusa.cart?.items || medusa.cart.items.length === 0
+      const shouldFetch = (medusa.cart && hasNoItems) || (hasSubtotal && cartId && hasNoItems)
+      
+      if (shouldFetch && cartId && !medusa.loadingCart) {
         try {
-          console.log('[CHECKOUT] Recupero items dal server come fallback, cartId:', cartId)
+          console.log('[CHECKOUT FALLBACK] Recupero items dal server, cartId:', cartId)
           const response = await fetch(`/api/medusa/store/carts/${cartId}`, {
             method: 'GET',
             headers: {
@@ -567,36 +608,65 @@ export default function CheckoutPage() {
             }
           })
           
+          console.log('[CHECKOUT FALLBACK] Response status:', response.status)
+          
           if (response.ok && isMounted) {
             const cartData = await response.json()
             const cart = cartData.cart || cartData
             
+            console.log('[CHECKOUT FALLBACK] Cart data:', {
+              hasCart: !!cart,
+              itemsLength: cart?.items?.length || 0,
+              items: cart?.items?.map((item: any) => ({
+                id: item.id,
+                quantity: item.quantity,
+                product_title: item.product_title || item.title
+              })) || []
+            })
+            
             if (cart.items && cart.items.length > 0) {
-              console.log('[CHECKOUT] Items recuperati dal server:', cart.items.length)
+              console.log('[CHECKOUT FALLBACK] ✅ Items recuperati dal server:', cart.items.length)
               setFallbackCartItems(cart.items)
             } else {
+              console.log('[CHECKOUT FALLBACK] ⚠️ Nessun item nel carrello dal server')
               setFallbackCartItems([])
             }
+          } else if (isMounted) {
+            const errorText = await response.text().catch(() => 'Unknown error')
+            console.error('[CHECKOUT FALLBACK] ❌ Errore nella risposta:', response.status, errorText)
+            setFallbackCartItems([])
           }
         } catch (error) {
-          console.error('[CHECKOUT] Errore nel recupero fallback del carrello:', error)
+          console.error('[CHECKOUT FALLBACK] ❌ Errore nel recupero fallback del carrello:', error)
           if (isMounted) {
             setFallbackCartItems([])
           }
         }
-      } else if (isMounted) {
-        setFallbackCartItems([])
+      } else {
+        console.log('[CHECKOUT FALLBACK] ⏭️ Condizioni non soddisfatte per il fallback')
+        if (isMounted) {
+          setFallbackCartItems([])
+        }
       }
     }
 
-    // Aggiungi un piccolo delay per evitare chiamate multiple durante il caricamento iniziale
-    const timeoutId = setTimeout(() => {
+    // Chiama immediatamente se medusa.cart è già caricato, altrimenti aspetta
+    if (medusa.cart && !medusa.loadingCart) {
       fetchCartItemsFallback()
-    }, 500)
+    } else {
+      // Aggiungi un delay per aspettare che medusa.cart si carichi
+      const timeoutId = setTimeout(() => {
+        fetchCartItemsFallback()
+      }, 1000)
+
+      return () => {
+        isMounted = false
+        clearTimeout(timeoutId)
+      }
+    }
 
     return () => {
       isMounted = false
-      clearTimeout(timeoutId)
     }
   }, [medusa.cart?.id, medusa.cart?.items?.length, medusa.cart?.subtotal, medusa.cart?.total, medusa.loadingCart])
 
@@ -1037,9 +1107,19 @@ export default function CheckoutPage() {
                         ? medusaItems 
                         : (fallbackCartItems.length > 0 ? fallbackCartItems : [])
                       
-                      // Log per debug
+                      // Log per debug dettagliato
+                      console.log('[CHECKOUT RENDER] Stato items:', {
+                        hasMedusaCart: !!medusa.cart,
+                        medusaItemsLength: medusaItems.length,
+                        fallbackItemsLength: fallbackCartItems.length,
+                        itemsToDisplayLength: itemsToDisplay.length,
+                        medusaCartItems: medusa.cart?.items?.length || 0,
+                        subtotal: medusa.cart?.subtotal,
+                        total: medusa.cart?.total
+                      })
+                      
                       if (itemsToDisplay.length > 0) {
-                        console.log('[CHECKOUT] Items da visualizzare:', itemsToDisplay.map((item: any) => ({
+                        console.log('[CHECKOUT RENDER] ✅ Items da visualizzare:', itemsToDisplay.map((item: any) => ({
                           id: item.id,
                           variant_id: item.variant_id,
                           quantity: item.quantity,
@@ -1047,6 +1127,8 @@ export default function CheckoutPage() {
                           product_title: item.product_title || item.title,
                           source: medusaItems.length > 0 ? 'medusa.cart' : 'fallback'
                         })))
+                      } else {
+                        console.log('[CHECKOUT RENDER] ⚠️ Nessun item da visualizzare')
                       }
                       
                       if (itemsToDisplay.length === 0) {
