@@ -106,43 +106,58 @@ export default function CheckoutPage() {
     setIsProcessing(true)
 
     try {
-      if (!medusa.cart) {
+      // Risolvi l'ID carrello in modo robusto
+      const resolvedCartId = medusa.cart?.id || summaryCartId || localStorage.getItem('medusa_cart_id') || localStorage.getItem('cart_id')
+      if (!resolvedCartId) {
         throw new Error('Nessun carrello disponibile')
       }
-
-      // Verifica che il carrello abbia items PRIMA di procedere
-      if (!medusa.cart.items || medusa.cart.items.length === 0) {
-        console.error('[CHECKOUT] Carrello vuoto! Items:', medusa.cart.items)
+      const baseUrl = '/api/medusa'
+      // Recupera SEMPRE il carrello più recente dal server
+      const fetchCart = async (cartId: string) => {
+        const res = await fetch(`${baseUrl}/store/carts/${cartId}`, {
+          headers: {
+            'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
+          }
+        })
+        if (!res.ok) {
+          const errorText = await res.text()
+          throw new Error(errorText || 'Impossibile recuperare il carrello')
+        }
+        const data = await res.json()
+        return data.cart || data
+      }
+      let currentCart = await fetchCart(resolvedCartId)
+      // Se il server dice 0 items ma abbiamo items stabili/fallback in UI, usali per validazione
+      const uiItemsCount = (Array.isArray(summaryItems) ? summaryItems.length : 0) || (Array.isArray(fallbackCartItems) ? fallbackCartItems.length : 0)
+      if ((!currentCart.items || currentCart.items.length === 0) && uiItemsCount > 0) {
+        console.warn('[CHECKOUT] Server cart senza items ma UI ha items, continuo con validazione UI')
+      } else if (!currentCart.items || currentCart.items.length === 0) {
+        console.error('[CHECKOUT] Carrello vuoto! Items:', currentCart.items)
         throw new Error('Il carrello è vuoto. Aggiungi prodotti prima di procedere al checkout.')
       }
-
-      // Verifica che il totale sia > 0
-      const cartTotal = medusa.cart.total || medusa.cart.subtotal || 0
-      if (cartTotal === 0) {
+      const currentTotal = currentCart.total ?? currentCart.subtotal ?? 0
+      if (currentTotal === 0) {
         console.error('[CHECKOUT] Totale carrello è 0!', {
-          items: medusa.cart.items?.length || 0,
-          subtotal: medusa.cart.subtotal,
-          total: medusa.cart.total
+          items: currentCart.items?.length || 0,
+          subtotal: currentCart.subtotal,
+          total: currentCart.total
         })
         throw new Error('Il totale dell\'ordine è 0. Verifica che ci siano prodotti nel carrello.')
       }
-
-      console.log('[CHECKOUT] Carrello verificato:', {
-        items: medusa.cart.items?.length || 0,
-        subtotal: medusa.cart.subtotal,
-        total: medusa.cart.total
+      console.log('[CHECKOUT] Carrello verificato (server):', {
+        items: currentCart.items?.length || 0,
+        subtotal: currentCart.subtotal,
+        total: currentCart.total
       })
 
-      const baseUrl = '/api/medusa'
-      
       // Recupera il codice paese corretto dalla regione del carrello
       // Medusa usa codici ISO-2 in minuscolo (es: "it", "fr", "de")
       let countryCode = "it" // Fallback a Italia
       
-      if (medusa.cart?.region?.id) {
+      if (currentCart?.region?.id) {
         try {
           // Recupera la regione completa con i paesi disponibili
-          const regionResponse = await fetch(`${baseUrl}/store/regions/${medusa.cart.region.id}`)
+          const regionResponse = await fetch(`${baseUrl}/store/regions/${currentCart.region.id}`)
           if (regionResponse.ok) {
             const regionData = await regionResponse.json()
             const region = regionData.region || regionData
@@ -186,7 +201,7 @@ export default function CheckoutPage() {
         cartUpdateBody.email = formData.email
       }
       
-      const cartUpdateResponse = await fetch(`${baseUrl}/store/carts/${medusa.cart.id}`, {
+      const cartUpdateResponse = await fetch(`${baseUrl}/store/carts/${resolvedCartId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -203,7 +218,11 @@ export default function CheckoutPage() {
       
       // Aggiorna lo stato del carrello chiamando setShippingAddress che gestisce l'aggiornamento dello stato
       // Questo evita duplicazioni e mantiene la coerenza con il resto del codice
-      await medusa.setShippingAddress(shippingAddress)
+      try {
+        await medusa.setShippingAddress(shippingAddress)
+      } catch {
+        // Non bloccare, proseguiamo con il cart aggiornato dal server
+      }
 
       // Se l'indirizzo di fatturazione è diverso, impostalo
       if (!sameAsShipping) {
@@ -216,31 +235,60 @@ export default function CheckoutPage() {
           postal_code: formData.billingPostalCode,
           province: formData.billingProvince
         }
-        await medusa.setBillingAddress(billingAddress)
+        try {
+          await medusa.setBillingAddress(billingAddress)
+        } catch {
+          // Ignora errori non bloccanti
+        }
       } else {
-        await medusa.setBillingAddress(shippingAddress)
+        try {
+          await medusa.setBillingAddress(shippingAddress)
+        } catch {
+          // Ignora errori non bloccanti
+        }
       }
 
       // Aggiungi metodo di spedizione da Medusa
       // Se ci sono opzioni disponibili, usa la prima, altrimenti usa spedizione gratuita
       try {
-        if (medusa.shippingOptions.length > 0) {
-          // Usa la prima opzione disponibile
-          await medusa.addShippingMethod(medusa.shippingOptions[0].id)
-        } else {
-          // Se non ci sono opzioni, prova con spedizione gratuita
-          try {
-            await medusa.addShippingMethod("free_shipping")
-          } catch (freeError) {
-            console.warn('Impossibile aggiungere spedizione gratuita:', freeError)
-            // Se anche questo fallisce, continua comunque (Medusa potrebbe gestirlo automaticamente)
+        // Prova a recuperare opzioni specifiche per il carrello corrente
+        let optionId: string | null = null
+        try {
+          const optRes = await fetch(`${baseUrl}/store/shipping-options/${resolvedCartId}`, {
+            headers: {
+              'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
+            }
+          })
+          if (optRes.ok) {
+            const optData = await optRes.json()
+            const options = optData.shipping_options || optData.options || []
+            if (Array.isArray(options) && options.length > 0) {
+              optionId = options[0].id
+            }
           }
+        } catch {}
+        if (optionId) {
+          await fetch(`${baseUrl}/store/carts/${resolvedCartId}/shipping-methods`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
+            },
+            body: JSON.stringify({ option_id: optionId })
+          })
         }
       } catch (error) {
         console.warn('Impossibile aggiungere metodo di spedizione:', error)
         // Prova con spedizione gratuita come fallback
         try {
-          await medusa.addShippingMethod("free_shipping")
+          await fetch(`${baseUrl}/store/carts/${resolvedCartId}/shipping-methods`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
+            },
+            body: JSON.stringify({ option_id: "free_shipping" })
+          })
         } catch (freeError) {
           console.warn('Impossibile aggiungere spedizione gratuita come fallback:', freeError)
         }
@@ -251,7 +299,7 @@ export default function CheckoutPage() {
       // IMPORTANTE: Ricarica sempre il carrello da Medusa per avere lo stato più recente
       console.log('[CHECKOUT] Verifico se la payment collection è inizializzata...')
       
-      const cartCheckResponse = await fetch(`${baseUrl}/store/carts/${medusa.cart.id}`, {
+      const cartCheckResponse = await fetch(`${baseUrl}/store/carts/${resolvedCartId}`, {
         headers: {
           'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
         }
@@ -279,7 +327,7 @@ export default function CheckoutPage() {
             for (let i = 0; i < 5; i++) {
               await new Promise(resolve => setTimeout(resolve, 500))
               
-              const retryResponse = await fetch(`${baseUrl}/store/carts/${medusa.cart.id}`, {
+              const retryResponse = await fetch(`${baseUrl}/store/carts/${resolvedCartId}`, {
                 headers: {
                   'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
                 }
@@ -315,14 +363,40 @@ export default function CheckoutPage() {
 
       // Verifica se c'è già una payment session per questo provider
       let paymentSessionExists = false
-      if (medusa.cart?.payment_sessions && Array.isArray(medusa.cart.payment_sessions)) {
-        paymentSessionExists = medusa.cart.payment_sessions.some((ps: any) => ps.provider_id === providerId)
+      {
+        const psCheck = await fetch(`${baseUrl}/store/carts/${resolvedCartId}`, {
+          headers: { 'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '' }
+        })
+        if (psCheck.ok) {
+          const psData = await psCheck.json()
+          const tmpCart = psData.cart || psData
+          paymentSessionExists = Array.isArray(tmpCart.payment_sessions) && tmpCart.payment_sessions.some((ps: any) => ps.provider_id === providerId)
+        }
       }
 
       if (!paymentSessionExists) {
         try {
-          await medusa.addPaymentSession(providerId)
-          console.log('[CHECKOUT] Payment session aggiunta')
+          // Prova endpoint standard
+          const psRes = await fetch(`${baseUrl}/store/carts/${resolvedCartId}/payment-sessions`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
+            },
+            body: JSON.stringify({ provider_id: providerId })
+          })
+          if (!psRes.ok) {
+            // Prova endpoint alternativo
+            await fetch(`${baseUrl}/store/carts/${resolvedCartId}`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
+              },
+              body: JSON.stringify({ payment_provider_id: providerId })
+            })
+          }
+          console.log('[CHECKOUT] Payment session aggiunta (direct API)')
         } catch (error: any) {
           // Se l'errore è 404, potrebbe significare che le payment sessions vengono create automaticamente
           // o che l'endpoint non esiste. In questo caso, verifica se ce ne sono già nel carrello
@@ -330,7 +404,7 @@ export default function CheckoutPage() {
             console.warn('[CHECKOUT] Endpoint payment-sessions non trovato, verifico se esistono già...')
             
             // Ricarica il carrello per vedere se ci sono payment sessions
-            const cartCheck = await fetch(`${baseUrl}/store/carts/${medusa.cart?.id}`, {
+            const cartCheck = await fetch(`${baseUrl}/store/carts/${resolvedCartId}`, {
               headers: {
                 'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
               }
@@ -343,7 +417,7 @@ export default function CheckoutPage() {
               if (updatedCart.payment_sessions && updatedCart.payment_sessions.length > 0) {
                 console.log('[CHECKOUT] Payment sessions già presenti nel carrello')
                 // Aggiorna il carrello nello stato
-                await medusa.setShippingAddress(medusa.cart?.shipping_address || {})
+                // no-op
                 paymentSessionExists = true
               } else {
                 console.warn('[CHECKOUT] Nessuna payment session trovata, continuo comunque')
@@ -379,18 +453,37 @@ export default function CheckoutPage() {
           }
         }
         
-        try {
-          await medusa.authorizePayment(providerId, paymentData)
-          console.log('[CHECKOUT] ✅ Pagamento autorizzato con successo')
-          
-          // Verifica che il pagamento sia stato autorizzato prima di procedere
-          if (medusa.cart?.payment_sessions) {
-            const paymentSession = medusa.cart.payment_sessions.find((ps: any) => ps.provider_id === providerId)
-            if (paymentSession && paymentSession.status === 'error') {
-              throw new Error('Il pagamento non è stato autorizzato. Verifica i dati della carta e riprova.')
-            }
+        // Autorizza via endpoint diretto
+        // Recupera la lista aggiornata di payment sessions
+        const psListRes = await fetch(`${baseUrl}/store/carts/${resolvedCartId}`, {
+          headers: { 'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '' }
+        })
+        let targetSessionId: string | null = null
+        if (psListRes.ok) {
+          const data = await psListRes.json()
+          const c = data.cart || data
+          const sess = Array.isArray(c.payment_sessions) ? c.payment_sessions.find((ps: any) => ps.provider_id === providerId) : null
+          targetSessionId = sess?.id || null
+        }
+        if (targetSessionId) {
+          const authRes = await fetch(`${baseUrl}/store/carts/${resolvedCartId}/payment-sessions/${targetSessionId}/authorize`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
+            },
+            body: paymentData ? JSON.stringify(paymentData) : undefined
+          })
+          if (!authRes.ok) {
+            const errText = await authRes.text()
+            throw new Error(errText || 'Autorizzazione pagamento fallita')
           }
-        } catch (authError: any) {
+          console.log('[CHECKOUT] ✅ Pagamento autorizzato con successo')
+        } else {
+          // Se non troviamo la sessione, proseguiamo: alcuni setup autorizzano in complete
+          console.warn('[CHECKOUT] Nessuna payment session trovata per autorizzare; il provider potrebbe autorizzare in complete')
+        }
+      } catch (authError: any) {
           // Se l'autorizzazione fallisce con 404, potrebbe essere che Medusa gestisca l'autorizzazione automaticamente
           if (authError?.status === 404 || authError?.message?.includes('404') || authError?.message?.includes('Cannot POST')) {
             console.warn('[CHECKOUT] Endpoint autorizzazione non trovato, Medusa potrebbe gestire automaticamente')
@@ -398,7 +491,6 @@ export default function CheckoutPage() {
           } else {
             throw authError
           }
-        }
       } catch (error: any) {
         console.error('[CHECKOUT] Errore nell\'autorizzazione del pagamento:', error)
         // Non bloccare il flusso se l'autorizzazione fallisce - Medusa potrebbe gestirla automaticamente
@@ -408,7 +500,24 @@ export default function CheckoutPage() {
 
       // Completa l'ordine solo dopo che il pagamento è stato autorizzato
       console.log('[CHECKOUT] Completamento dell\'ordine...')
-      const order = await medusa.completeOrder()
+      // Recupera carrello aggiornato e completa
+      currentCart = await fetchCart(resolvedCartId)
+      if (!currentCart.items || currentCart.items.length === 0) {
+        throw new Error('Il carrello è vuoto. Aggiungi prodotti prima di completare l\'ordine.')
+      }
+      const completeRes = await fetch(`${baseUrl}/store/carts/${resolvedCartId}/complete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
+        }
+      })
+      if (!completeRes.ok) {
+        const errorText = await completeRes.text()
+        throw new Error(errorText || 'Completamento ordine fallito')
+      }
+      const orderData = await completeRes.json()
+      const order = orderData.order || orderData
       
       console.log('[CHECKOUT] ✅ Ordine completato con successo:', order)
       
