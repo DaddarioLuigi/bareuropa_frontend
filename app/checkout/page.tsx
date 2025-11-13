@@ -1693,51 +1693,114 @@ export default function CheckoutPage() {
                       🔍 DEBUG - Carrello Utilizzato
                     </p>
                     <div className="text-xs text-yellow-700 dark:text-yellow-300 space-y-1 font-mono">
-                      <div>
-                        <strong>Cart ID:</strong> {(() => {
-                          const resolvedCartId = medusa.cart?.id || summaryCartId || localStorage.getItem('medusa_cart_id') || localStorage.getItem('cart_id') || 'N/A'
-                          return resolvedCartId
-                        })()}
-                      </div>
-                      <div>
-                        <strong>Fonte ID:</strong> {(() => {
-                          if (medusa.cart?.id) return 'medusa.cart.id'
-                          if (summaryCartId) return 'summaryCartId'
-                          if (localStorage.getItem('medusa_cart_id')) return 'localStorage (medusa_cart_id)'
-                          if (localStorage.getItem('cart_id')) return 'localStorage (cart_id)'
-                          return 'Nessuna fonte disponibile'
-                        })()}
-                      </div>
-                      <div>
-                        <strong>Items Count:</strong> {(() => {
-                          const summaryStableItems = Array.isArray(summaryItems) && summaryItems.length > 0 ? summaryItems : []
-                          const medusaItems = medusa.cart?.items && medusa.cart.items.length > 0 ? medusa.cart.items : []
-                          const itemsToDisplay = summaryStableItems.length > 0 ? summaryStableItems : (medusaItems.length > 0 ? medusaItems : (fallbackCartItems.length > 0 ? fallbackCartItems : []))
-                          return itemsToDisplay.length
-                        })()}
-                      </div>
-                      <div>
-                        <strong>Items Source:</strong> {(() => {
-                          const summaryStableItems = Array.isArray(summaryItems) && summaryItems.length > 0 ? summaryItems : []
-                          const medusaItems = medusa.cart?.items && medusa.cart.items.length > 0 ? medusa.cart.items : []
-                          if (summaryStableItems.length > 0) return 'summaryItems'
-                          if (medusaItems.length > 0) return 'medusa.cart.items'
-                          if (fallbackCartItems.length > 0) return 'fallbackCartItems'
-                          return 'Nessuna fonte'
-                        })()}
-                      </div>
-                      <div>
-                        <strong>Subtotale Medusa:</strong> €{medusaSubtotal.toFixed(2)}
-                      </div>
-                      <div>
-                        <strong>Totale Medusa:</strong> €{medusaTotal.toFixed(2)}
-                      </div>
-                      <div>
-                        <strong>Payment Sessions:</strong> {medusa.cart?.payment_sessions?.length || 0}
-                      </div>
-                      <div>
-                        <strong>Payment Provider:</strong> {paymentMethod || 'Nessuno selezionato'}
-                      </div>
+                      {(() => {
+                        const resolvedCartId = medusa.cart?.id || summaryCartId || localStorage.getItem('medusa_cart_id') || localStorage.getItem('cart_id') || 'N/A'
+                        const summaryStableItems = Array.isArray(summaryItems) && summaryItems.length > 0 ? summaryItems : []
+                        const medusaItems = medusa.cart?.items && medusa.cart.items.length > 0 ? medusa.cart.items : []
+                        const fallbackItems = Array.isArray(fallbackCartItems) && fallbackCartItems.length > 0 ? fallbackCartItems : []
+                        
+                        // Calcola totali per ogni fonte
+                        const calcTotal = (items: any[]) => {
+                          return items.reduce((sum, item) => {
+                            const price = item.unit_price || (item.variant?.prices?.[0]?.amount ? item.variant.prices[0].amount / 100 : 0)
+                            const qty = item.quantity || 1
+                            return sum + (price * qty)
+                          }, 0)
+                        }
+                        
+                        const summaryTotal = calcTotal(summaryStableItems)
+                        const medusaTotalCalc = calcTotal(medusaItems)
+                        const fallbackTotal = calcTotal(fallbackItems)
+                        
+                        return (
+                          <>
+                            <div className="font-bold mb-1">📦 ID Carrelli:</div>
+                            <div className="ml-2">
+                              <div>medusa.cart.id: {medusa.cart?.id || 'N/A'}</div>
+                              <div>summaryCartId: {summaryCartId || 'N/A'}</div>
+                              <div>localStorage (medusa_cart_id): {localStorage.getItem('medusa_cart_id') || 'N/A'}</div>
+                              <div>localStorage (cart_id): {localStorage.getItem('cart_id') || 'N/A'}</div>
+                              <div className="font-bold mt-1">→ Risolto: {resolvedCartId}</div>
+                            </div>
+                            
+                            <div className="font-bold mt-2 mb-1">📊 medusa.cart:</div>
+                            <div className="ml-2">
+                              <div>Items: {medusaItems.length} | Qty totale: {medusaItems.reduce((sum, it) => sum + (it.quantity || 1), 0)}</div>
+                              <div>Subtotale: €{medusaSubtotal.toFixed(2)} | Totale: €{medusaTotal.toFixed(2)}</div>
+                              <div>Totale calcolato da items: €{medusaTotalCalc.toFixed(2)}</div>
+                              {medusaItems.length > 0 && medusaItems.map((it: any, idx: number) => (
+                                <div key={idx} className="ml-2 text-[10px]">
+                                  - {it.product_title || it.title || 'N/A'}: qty={it.quantity || 1}, price=€{it.unit_price?.toFixed(2) || '0.00'}
+                                </div>
+                              ))}
+                            </div>
+                            
+                            <div className="font-bold mt-2 mb-1">📋 summaryItems:</div>
+                            <div className="ml-2">
+                              <div>Items: {summaryStableItems.length} | Qty totale: {summaryStableItems.reduce((sum, it) => sum + (it.quantity || 1), 0)}</div>
+                              <div>Totale calcolato: €{summaryTotal.toFixed(2)}</div>
+                              {summaryStableItems.length > 0 && summaryStableItems.map((it: any, idx: number) => (
+                                <div key={idx} className="ml-2 text-[10px]">
+                                  - {it.product_title || it.title || 'N/A'}: qty={it.quantity || 1}, price=€{it.unit_price?.toFixed(2) || '0.00'}
+                                </div>
+                              ))}
+                            </div>
+                            
+                            <div className="font-bold mt-2 mb-1">🔄 fallbackCartItems:</div>
+                            <div className="ml-2">
+                              <div>Items: {fallbackItems.length} | Qty totale: {fallbackItems.reduce((sum, it) => sum + (it.quantity || 1), 0)}</div>
+                              <div>Totale calcolato: €{fallbackTotal.toFixed(2)}</div>
+                              {fallbackItems.length > 0 && fallbackItems.map((it: any, idx: number) => (
+                                <div key={idx} className="ml-2 text-[10px]">
+                                  - {it.product_title || it.title || 'N/A'}: qty={it.quantity || 1}, price=€{it.unit_price?.toFixed(2) || '0.00'}
+                                </div>
+                              ))}
+                            </div>
+                            
+                            <div className="font-bold mt-2 mb-1">🎯 UI Display (usato nel riepilogo):</div>
+                            <div className="ml-2">
+                              {(() => {
+                                const itemsToDisplay = summaryStableItems.length > 0 ? summaryStableItems : (medusaItems.length > 0 ? medusaItems : fallbackItems)
+                                const displayTotal = calcTotal(itemsToDisplay)
+                                const displayQty = itemsToDisplay.reduce((sum, it) => sum + (it.quantity || 1), 0)
+                                return (
+                                  <>
+                                    <div>Source: {summaryStableItems.length > 0 ? 'summaryItems' : (medusaItems.length > 0 ? 'medusa.cart.items' : 'fallbackCartItems')}</div>
+                                    <div>Items: {itemsToDisplay.length} | Qty totale: {displayQty}</div>
+                                    <div>Totale calcolato: €{displayTotal.toFixed(2)}</div>
+                                    <div>Subtotale mostrato: €{subtotal.toFixed(2)}</div>
+                                    <div>Totale mostrato: €{total.toFixed(2)}</div>
+                                  </>
+                                )
+                              })()}
+                            </div>
+                            
+                            <div className="font-bold mt-2 mb-1">💳 Payment:</div>
+                            <div className="ml-2">
+                              <div>Sessions: {medusa.cart?.payment_sessions?.length || 0}</div>
+                              <div>Provider selezionato: {paymentMethod || 'Nessuno'}</div>
+                            </div>
+                            
+                            {(() => {
+                              const allCartIds = [
+                                medusa.cart?.id,
+                                summaryCartId,
+                                localStorage.getItem('medusa_cart_id'),
+                                localStorage.getItem('cart_id')
+                              ].filter(Boolean)
+                              const uniqueIds = [...new Set(allCartIds)]
+                              if (uniqueIds.length > 1) {
+                                return (
+                                  <div className="font-bold mt-2 text-red-600 dark:text-red-400">
+                                    ⚠️ ATTENZIONE: Trovati {uniqueIds.length} ID carrelli diversi! {uniqueIds.join(', ')}
+                                  </div>
+                                )
+                              }
+                              return null
+                            })()}
+                          </>
+                        )
+                      })()}
                     </div>
                   </div>
 
