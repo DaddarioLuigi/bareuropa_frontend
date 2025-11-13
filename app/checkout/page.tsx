@@ -126,11 +126,21 @@ export default function CheckoutPage() {
         }
         const data = await res.json()
         const cart = data.cart || data
-        // Valida struttura minima del carrello
-        if (!cart || typeof cart !== 'object' || (!cart.id && !Array.isArray(cart.items))) {
-          throw new Error('Risposta carrello non valida')
+        // Valida struttura minima del carrello ma non bloccare il flusso:
+        // alcuni proxy possono restituire OK con payload non standard.
+        if (!cart || typeof cart !== 'object') {
+          console.warn('[CHECKOUT] Risposta carrello non valida (tipo):', cart)
+          return { id: resolvedCartId, items: [] }
         }
-        return cart
+        if (!cart.id && !Array.isArray(cart.items)) {
+          console.warn('[CHECKOUT] Risposta carrello non valida (campi mancanti):', Object.keys(cart || {}))
+          // Fallback minimo per proseguire con la reidratazione server
+          return { id: resolvedCartId, items: [] }
+        }
+        return {
+          ...cart,
+          items: Array.isArray(cart.items) ? cart.items : []
+        }
       }
       // Se il carrello sul server è vuoto ma la UI ha items, reintegra gli items sul server
       const ensureServerCartHasItems = async (cartId: string) => {
