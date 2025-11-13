@@ -67,6 +67,32 @@ export default function CheckoutPage() {
   const [summaryLoading, setSummaryLoading] = useState<boolean>(false)
   const [summaryCartId, setSummaryCartId] = useState<string | null>(null)
 
+  // Sincronizza il cart_id dal cookie (usato nelle pagine server) al localStorage (usato nel client)
+  useEffect(() => {
+    const syncCartIdFromCookie = async () => {
+      try {
+        const res = await fetch('/api/cart/id', { cache: 'no-store' })
+        if (res.ok) {
+          const data = await res.json()
+          const cookieCartId = data?.cart_id
+          if (cookieCartId) {
+            const lsId = localStorage.getItem('medusa_cart_id') || localStorage.getItem('cart_id')
+            if (lsId !== cookieCartId) {
+              localStorage.setItem('medusa_cart_id', cookieCartId)
+              localStorage.setItem('cart_id', cookieCartId)
+              setSummaryCartId(cookieCartId)
+              window.dispatchEvent(new CustomEvent('cartUpdated', { detail: { cartId: cookieCartId } }))
+              console.log('[CHECKOUT] cart_id sincronizzato dal cookie:', cookieCartId)
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('[CHECKOUT] Impossibile sincronizzare cart_id dal cookie:', err)
+      }
+    }
+    syncCartIdFromCookie()
+  }, [])
+
   const [formData, setFormData] = useState({
     // Shipping Information
     firstName: "",

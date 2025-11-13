@@ -54,6 +54,38 @@ export function useMedusa(): UseMedusaReturn {
   // Ottieni o crea un carrello usando chiamate fetch dirette
   const getOrCreateCart = useCallback(async (): Promise<string> => {
     try {
+      // 0) Prova a recuperare il cart_id dal cookie via endpoint server per evitare disallineamenti
+      try {
+        const cookieRes = await fetch('/api/cart/id', { cache: 'no-store' })
+        if (cookieRes.ok) {
+          const { cart_id: cookieCartId } = await cookieRes.json()
+          if (cookieCartId) {
+            // Sincronizza localStorage e stato con il cart del cookie
+            localStorage.setItem('medusa_cart_id', cookieCartId)
+            localStorage.setItem('cart_id', cookieCartId)
+            const baseUrl = '/api/medusa'
+            const response = await fetch(`${baseUrl}/store/carts/${cookieCartId}?expand=items,items.variant,items.variant.product,items.product,region,shipping_address,billing_address,payment_sessions,shipping_methods,discounts`, {
+              headers: {
+                'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
+              }
+            })
+            if (response.ok) {
+              const existingCart = await response.json()
+              const cart = existingCart.cart || existingCart
+              setCart(cart)
+              console.log('[GET OR CREATE CART] Allineato al cart da cookie:', {
+                id: cart.id,
+                items: cart.items?.length || 0,
+                total: cart.total
+              })
+              return cookieCartId
+            }
+          }
+        }
+      } catch (cookieReadErr) {
+        console.warn('[GET OR CREATE CART] Impossibile leggere cart_id dal cookie:', cookieReadErr)
+      }
+
       // Prima prova a recuperare un carrello esistente dal localStorage
       // Prova sia 'cart_id' che 'medusa_cart_id' per compatibilità
       let existingCartId = localStorage.getItem('medusa_cart_id') || localStorage.getItem('cart_id')
