@@ -126,12 +126,74 @@ export default function CheckoutPage() {
         const data = await res.json()
         return data.cart || data
       }
+      // Se il carrello sul server è vuoto ma la UI ha items, reintegra gli items sul server
+      const ensureServerCartHasItems = async (cartId: string) => {
+        // Usa prima gli items del riepilogo stabile
+        const uiItems = (Array.isArray(summaryItems) && summaryItems.length > 0)
+          ? summaryItems
+          : (Array.isArray(fallbackCartItems) ? fallbackCartItems : [])
+        if (!uiItems || uiItems.length === 0) return
+        // Recupera lo stato attuale del carrello
+        let serverCart = await fetchCart(cartId)
+        const serverItems = Array.isArray(serverCart.items) ? serverCart.items : []
+        // Crea una mappa server: variant_id -> { id, quantity }
+        const serverByVariant: Record<string, { id: string, quantity: number }> = {}
+        for (const it of serverItems) {
+          if (it?.variant_id) {
+            serverByVariant[it.variant_id] = { id: it.id, quantity: it.quantity || 0 }
+          }
+        }
+        // Per ogni item UI, se assente su server lo aggiunge, se quantità diversa la aggiorna
+        for (const ui of uiItems) {
+          const variantId: string | undefined = ui?.variant_id
+          const qty: number = Number(ui?.quantity || 1)
+          if (!variantId || qty <= 0) continue
+          const serverLine = serverByVariant[variantId]
+          if (!serverLine) {
+            // Aggiungi line item
+            const addRes = await fetch(`${baseUrl}/store/carts/${cartId}/line-items`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
+              },
+              body: JSON.stringify({ variant_id: variantId, quantity: qty })
+            })
+            if (!addRes.ok) {
+              const txt = await addRes.text()
+              console.warn('[CHECKOUT] Impossibile aggiungere item al carrello server:', txt)
+            }
+          } else if (serverLine.quantity !== qty) {
+            // Aggiorna quantità
+            const updRes = await fetch(`${baseUrl}/store/carts/${cartId}/line-items/${serverLine.id}`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
+              },
+              body: JSON.stringify({ quantity: qty })
+            })
+            if (!updRes.ok) {
+              const txt = await updRes.text()
+              console.warn('[CHECKOUT] Impossibile aggiornare quantità item:', txt)
+            }
+          }
+        }
+        // Ricarica carrello dal server
+        serverCart = await fetchCart(cartId)
+        return serverCart
+      }
       let currentCart = await fetchCart(resolvedCartId)
       // Se il server dice 0 items ma abbiamo items stabili/fallback in UI, usali per validazione
       const uiItemsCount = (Array.isArray(summaryItems) ? summaryItems.length : 0) || (Array.isArray(fallbackCartItems) ? fallbackCartItems.length : 0)
       if ((!currentCart.items || currentCart.items.length === 0) && uiItemsCount > 0) {
-        console.warn('[CHECKOUT] Server cart senza items ma UI ha items, continuo con validazione UI')
-      } else if (!currentCart.items || currentCart.items.length === 0) {
+        console.warn('[CHECKOUT] Server cart senza items ma UI ha items: reintegro items sul server')
+        const hydrated = await ensureServerCartHasItems(resolvedCartId)
+        if (hydrated && Array.isArray(hydrated.items) && hydrated.items.length > 0) {
+          currentCart = hydrated
+        }
+      }
+      if (!currentCart.items || currentCart.items.length === 0) {
         console.error('[CHECKOUT] Carrello vuoto! Items:', currentCart.items)
         throw new Error('Il carrello è vuoto. Aggiungi prodotti prima di procedere al checkout.')
       }
@@ -254,7 +316,7 @@ export default function CheckoutPage() {
         // Prova a recuperare opzioni specifiche per il carrello corrente
         let optionId: string | null = null
         try {
-          const optRes = await fetch(`${baseUrl}/store/shipping-options/${resolvedCartId}`, {
+          const optRes = await fetch(`${baseUrl}/store/shipping-options?cart_id=${encodeURIComponent(resolvedCartId)}`, {
             headers: {
               'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
             }
