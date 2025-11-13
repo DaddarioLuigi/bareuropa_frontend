@@ -153,6 +153,32 @@ export default function CheckoutPage() {
       if (!resolvedCartId) {
         throw new Error('Nessun carrello disponibile')
       }
+      
+      // IMPORTANTE: Usa summaryItems come fonte primaria se disponibile
+      // summaryItems è la fonte più affidabile perché viene caricata direttamente dal server
+      const primaryUiItems = Array.isArray(summaryItems) && summaryItems.length > 0 
+        ? summaryItems 
+        : (Array.isArray(medusa.cart?.items) && medusa.cart.items.length > 0 
+          ? medusa.cart.items 
+          : (Array.isArray(fallbackCartItems) && fallbackCartItems.length > 0 
+            ? fallbackCartItems 
+            : []))
+      
+      console.log('[CHECKOUT][SUBMIT] Primary UI items source:', {
+        hasSummaryItems: Array.isArray(summaryItems) && summaryItems.length > 0,
+        summaryItemsCount: summaryItems.length,
+        hasMedusaItems: Array.isArray(medusa.cart?.items) && medusa.cart.items.length > 0,
+        medusaItemsCount: medusa.cart?.items?.length || 0,
+        hasFallbackItems: Array.isArray(fallbackCartItems) && fallbackCartItems.length > 0,
+        fallbackItemsCount: fallbackCartItems.length,
+        primaryUiItemsCount: primaryUiItems.length,
+        primaryUiItems: primaryUiItems.map((it: any) => ({ 
+          variant_id: it.variant_id, 
+          quantity: it.quantity, 
+          title: it.product_title || it.title 
+        }))
+      })
+      
       const baseUrl = '/api/medusa'
       // Recupera SEMPRE il carrello più recente dal server
       const fetchCart = async (cartId: string) => {
@@ -218,17 +244,17 @@ export default function CheckoutPage() {
         return normalized
       }
       // Se il carrello sul server è vuoto ma la UI ha items, reintegra gli items sul server
-      const ensureServerCartHasItems = async (cartId: string) => {
-        // Usa priorità: summaryItems -> medusa.cart.items -> fallbackCartItems
-        const summary = Array.isArray(summaryItems) && summaryItems.length > 0 ? summaryItems : []
-        const medusaItems = Array.isArray(medusa.cart?.items) && medusa.cart!.items.length > 0 ? medusa.cart!.items : []
-        const fallback = Array.isArray(fallbackCartItems) && fallbackCartItems.length > 0 ? fallbackCartItems : []
-        const uiItems = summary.length > 0 ? summary : (medusaItems.length > 0 ? medusaItems : fallback)
-        console.log('[CHECKOUT][HYDRATE] Selected UI items source:', summary.length > 0 ? 'summary' : (medusaItems.length > 0 ? 'medusa.cart' : 'fallback'), {
+      const ensureServerCartHasItems = async (cartId: string, uiItemsToUse: any[]) => {
+        // Usa gli items passati come parametro (già risolti con priorità summaryItems)
+        const uiItems = uiItemsToUse || []
+        console.log('[CHECKOUT][HYDRATE] Using UI items for hydration:', {
           count: uiItems.length,
           items: uiItems.map((it: any) => ({ variant_id: it.variant_id, quantity: it.quantity, title: it.product_title || it.title }))
         })
-        if (!uiItems || uiItems.length === 0) return
+        if (!uiItems || uiItems.length === 0) {
+          console.warn('[CHECKOUT][HYDRATE] Nessun item UI disponibile per idratazione')
+          return null
+        }
         // Recupera lo stato attuale del carrello
         let serverCart = await fetchCart(cartId)
         const serverItems = Array.isArray(serverCart.items) ? serverCart.items : []
@@ -304,34 +330,49 @@ export default function CheckoutPage() {
         })
         return serverCart
       }
+      // IMPORTANTE: Se abbiamo items UI (soprattutto summaryItems), idrata PRIMA il carrello sul server
+      // Questo assicura che il carrello sul server sia sempre sincronizzato con quello mostrato in UI
       let currentCart = await fetchCart(resolvedCartId)
-      // Se il server dice 0 items ma abbiamo items stabili/medusa/fallback in UI, usali per validazione
-      const uiItemsCount =
-        (Array.isArray(summaryItems) ? summaryItems.length : 0)
-        || (Array.isArray(medusa.cart?.items) ? medusa.cart!.items.length : 0)
-        || (Array.isArray(fallbackCartItems) ? fallbackCartItems.length : 0)
-      if ((!currentCart.items || currentCart.items.length === 0) && uiItemsCount > 0) {
-        console.warn('[CHECKOUT] Server cart senza items ma UI ha items: reintegro items sul server')
-        const hydrated = await ensureServerCartHasItems(resolvedCartId)
-        if (hydrated && Array.isArray(hydrated.items) && hydrated.items.length > 0) {
-          currentCart = hydrated
-        }
-        // Se ancora vuoto, attendi e riprova una volta (consistenza eventuale)
-        if (!currentCart.items || currentCart.items.length === 0) {
-          await new Promise(r => setTimeout(r, 400))
-          const retried = await fetchCart(resolvedCartId)
-          if (retried?.items?.length > 0) {
-            currentCart = retried
-          }
-        }
-        // Ulteriori retry se la UI continua ad avere items
-        if (!currentCart.items || currentCart.items.length === 0) {
-          for (let i = 0; i < 2; i++) {
+      
+      // Se abbiamo items UI ma il server non li ha, idrata immediatamente
+      if (primaryUiItems.length > 0) {
+        const serverItemsCount = Array.isArray(currentCart.items) ? currentCart.items.length : 0
+        const serverTotalQty = Array.isArray(currentCart.items) 
+          ? currentCart.items.reduce((sum, it) => sum + (it.quantity || 1), 0) 
+          : 0
+        const uiTotalQty = primaryUiItems.reduce((sum, it) => sum + (it.quantity || 1), 0)
+        
+        console.log('[CHECKOUT] Verifica sincronizzazione carrello:', {
+          serverItemsCount,
+          serverTotalQty,
+          uiItemsCount: primaryUiItems.length,
+          uiTotalQty,
+          needsHydration: serverItemsCount === 0 || serverTotalQty !== uiTotalQty
+        })
+        
+        // Se il server ha 0 items o quantità diverse, idrata
+        if (serverItemsCount === 0 || serverTotalQty !== uiTotalQty) {
+          console.warn('[CHECKOUT] Server cart non sincronizzato con UI: reintegro items sul server')
+          const hydrated = await ensureServerCartHasItems(resolvedCartId, primaryUiItems)
+          if (hydrated && Array.isArray(hydrated.items) && hydrated.items.length > 0) {
+            currentCart = hydrated
+            console.log('[CHECKOUT] ✅ Carrello idratato con successo:', {
+              itemsCount: hydrated.items.length,
+              totalQty: hydrated.items.reduce((sum: number, it: any) => sum + (it.quantity || 1), 0)
+            })
+          } else {
+            // Se ancora vuoto, attendi e riprova
             await new Promise(r => setTimeout(r, 500))
-            const again = await ensureServerCartHasItems(resolvedCartId)
-            if (again?.items?.length > 0) {
-              currentCart = again
-              break
+            const retried = await fetchCart(resolvedCartId)
+            if (retried?.items?.length > 0) {
+              currentCart = retried
+            } else {
+              // Ultimo tentativo di idratazione
+              console.warn('[CHECKOUT] Ultimo tentativo di idratazione...')
+              const finalHydrated = await ensureServerCartHasItems(resolvedCartId, primaryUiItems)
+              if (finalHydrated && Array.isArray(finalHydrated.items) && finalHydrated.items.length > 0) {
+                currentCart = finalHydrated
+              }
             }
           }
         }
@@ -712,23 +753,23 @@ export default function CheckoutPage() {
       console.log('[CHECKOUT] Completamento dell\'ordine...')
       // Recupera carrello aggiornato e completa
       currentCart = await fetchCart(resolvedCartId)
-      // Ultimo tentativo di idratazione se necessario
+      // Ultimo tentativo di idratazione se necessario usando primaryUiItems
       if (!currentCart.items || currentCart.items.length === 0) {
-        const hydrated = await ensureServerCartHasItems(resolvedCartId)
-        if (hydrated && hydrated.items?.length > 0) {
-          currentCart = hydrated
+        if (primaryUiItems.length > 0) {
+          console.warn('[CHECKOUT] Carrello vuoto prima del complete, idratazione con primaryUiItems...')
+          const hydrated = await ensureServerCartHasItems(resolvedCartId, primaryUiItems)
+          if (hydrated && hydrated.items?.length > 0) {
+            currentCart = hydrated
+          }
         }
       }
       // Ulteriori retry se la UI indica items
       if (!currentCart.items || currentCart.items.length === 0) {
-        const uiCount =
-          (Array.isArray(summaryItems) ? summaryItems.length : 0)
-          || (Array.isArray(medusa.cart?.items) ? medusa.cart!.items.length : 0)
-          || (Array.isArray(fallbackCartItems) ? fallbackCartItems.length : 0)
-        if (uiCount > 0) {
+        if (primaryUiItems.length > 0) {
+          console.warn('[CHECKOUT] Carrello ancora vuoto, retry con primaryUiItems...')
           for (let i = 0; i < 3; i++) {
             await new Promise(r => setTimeout(r, 500))
-            const retried = await ensureServerCartHasItems(resolvedCartId)
+            const retried = await ensureServerCartHasItems(resolvedCartId, primaryUiItems)
             if (retried?.items?.length > 0) {
               currentCart = retried
               break
@@ -741,16 +782,11 @@ export default function CheckoutPage() {
       
       // Se il carrello è ancora vuoto ma la UI ha items, prova un ultimo tentativo di idratazione
       if ((!currentCart.items || currentCart.items.length === 0) && !hasMonetaryTotalAtComplete) {
-        const finalUiCount =
-          (Array.isArray(summaryItems) ? summaryItems.length : 0)
-          || (Array.isArray(medusa.cart?.items) ? medusa.cart!.items.length : 0)
-          || (Array.isArray(fallbackCartItems) ? fallbackCartItems.length : 0)
-        
-        if (finalUiCount > 0) {
-          console.warn('[CHECKOUT] Carrello ancora vuoto dopo tutti i retry, ultimo tentativo di idratazione...')
+        if (primaryUiItems.length > 0) {
+          console.warn('[CHECKOUT] Carrello ancora vuoto dopo tutti i retry, ultimo tentativo di idratazione con primaryUiItems...')
           // Attendi un po' di più e riprova
           await new Promise(r => setTimeout(r, 1000))
-          const finalHydrated = await ensureServerCartHasItems(resolvedCartId)
+          const finalHydrated = await ensureServerCartHasItems(resolvedCartId, primaryUiItems)
           if (finalHydrated && finalHydrated.items?.length > 0) {
             currentCart = finalHydrated
             console.log('[CHECKOUT] ✅ Carrello idratato con successo dopo ultimo tentativo')
