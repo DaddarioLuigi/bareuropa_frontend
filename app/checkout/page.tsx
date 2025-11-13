@@ -220,8 +220,21 @@ export default function CheckoutPage() {
             currentCart = retried
           }
         }
+        // Ulteriori retry se la UI continua ad avere items
+        if (!currentCart.items || currentCart.items.length === 0) {
+          for (let i = 0; i < 2; i++) {
+            await new Promise(r => setTimeout(r, 500))
+            const again = await ensureServerCartHasItems(resolvedCartId)
+            if (again?.items?.length > 0) {
+              currentCart = again
+              break
+            }
+          }
+        }
       }
-      if (!currentCart.items || currentCart.items.length === 0) {
+      // Considera valido anche se il totale/subtotale è > 0
+      const hasMonetaryTotal = (Number(currentCart.total) > 0) || (Number(currentCart.subtotal) > 0)
+      if ((!currentCart.items || currentCart.items.length === 0) && !hasMonetaryTotal) {
         console.error('[CHECKOUT] Carrello vuoto! Items:', currentCart.items)
         throw new Error('Il carrello è vuoto. Aggiungi prodotti prima di procedere al checkout.')
       }
@@ -596,7 +609,26 @@ export default function CheckoutPage() {
           currentCart = hydrated
         }
       }
+      // Ulteriori retry se la UI indica items
       if (!currentCart.items || currentCart.items.length === 0) {
+        const uiCount =
+          (Array.isArray(summaryItems) ? summaryItems.length : 0)
+          || (Array.isArray(medusa.cart?.items) ? medusa.cart!.items.length : 0)
+          || (Array.isArray(fallbackCartItems) ? fallbackCartItems.length : 0)
+        if (uiCount > 0) {
+          for (let i = 0; i < 3; i++) {
+            await new Promise(r => setTimeout(r, 500))
+            const retried = await ensureServerCartHasItems(resolvedCartId)
+            if (retried?.items?.length > 0) {
+              currentCart = retried
+              break
+            }
+          }
+        }
+      }
+      // Considera valido anche se il totale/subtotale è > 0
+      const hasMonetaryTotalAtComplete = (Number(currentCart.total) > 0) || (Number(currentCart.subtotal) > 0)
+      if ((!currentCart.items || currentCart.items.length === 0) && !hasMonetaryTotalAtComplete) {
         throw new Error('Il carrello è vuoto. Aggiungi prodotti prima di completare l\'ordine.')
       }
       const completeRes = await fetch(`${baseUrl}/store/carts/${resolvedCartId}/complete`, {
