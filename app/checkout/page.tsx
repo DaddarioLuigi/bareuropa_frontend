@@ -108,6 +108,22 @@ export default function CheckoutPage() {
     try {
       // Risolvi l'ID carrello in modo robusto
       const resolvedCartId = medusa.cart?.id || summaryCartId || localStorage.getItem('medusa_cart_id') || localStorage.getItem('cart_id')
+      console.log('[CHECKOUT][SUBMIT] Resolved cartId:', resolvedCartId, {
+        medusaCartId: medusa.cart?.id,
+        summaryCartId,
+        ls_medusa_cart_id: localStorage.getItem('medusa_cart_id'),
+        ls_cart_id: localStorage.getItem('cart_id'),
+      })
+      // Log dello stato UI/Medusa
+      const dbgUiItems = (Array.isArray(summaryItems) && summaryItems.length > 0 ? summaryItems : (Array.isArray(fallbackCartItems) ? fallbackCartItems : [])) || []
+      console.log('[CHECKOUT][SUBMIT] UI items snapshot:', dbgUiItems.map((it: any) => ({
+        id: it.id, variant_id: it.variant_id, quantity: it.quantity, unit_price: it.unit_price, title: it.product_title || it.title
+      })))
+      console.log('[CHECKOUT][SUBMIT] medusa.cart snapshot:', medusa.cart ? {
+        id: medusa.cart.id,
+        items: medusa.cart.items?.map((it: any) => ({ id: it.id, variant_id: it.variant_id, quantity: it.quantity, unit_price: it.unit_price })) || [],
+        subtotal: medusa.cart.subtotal, total: medusa.cart.total
+      } : null)
       if (!resolvedCartId) {
         throw new Error('Nessun carrello disponibile')
       }
@@ -115,11 +131,14 @@ export default function CheckoutPage() {
       // Recupera SEMPRE il carrello più recente dal server
       const fetchCart = async (cartId: string) => {
         // Espandi per assicurare che items siano inclusi
-        const res = await fetch(`${baseUrl}/store/carts/${cartId}?expand=items,items.variant,items.variant.product,items.product,region,shipping_address,billing_address,payment_sessions,shipping_methods,discounts`, {
+        const url = `${baseUrl}/store/carts/${cartId}?expand=items,items.variant,items.variant.product,items.product,region,shipping_address,billing_address,payment_sessions,shipping_methods,discounts`
+        console.log('[CHECKOUT][FETCH CART] GET', url)
+        const res = await fetch(url, {
           headers: {
             'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
           }
         })
+        console.log('[CHECKOUT][FETCH CART] Response:', res.status, res.statusText)
         if (!res.ok) {
           const errorText = await res.text()
           throw new Error(errorText || 'Impossibile recuperare il carrello')
@@ -133,14 +152,20 @@ export default function CheckoutPage() {
           return { id: resolvedCartId, items: [] }
         }
         if (!cart.id && !Array.isArray(cart.items)) {
-          console.warn('[CHECKOUT] Risposta carrello non valida (campi mancanti):', Object.keys(cart || {}))
+          console.warn('[CHECKOUT] Risposta carrello non valida (campi mancanti):', Array.isArray(cart) ? 'array' : Object.keys(cart || {}))
           // Fallback minimo per proseguire con la reidratazione server
           return { id: resolvedCartId, items: [] }
         }
-        return {
+        const normalized = {
           ...cart,
           items: Array.isArray(cart.items) ? cart.items : []
         }
+        console.log('[CHECKOUT][FETCH CART] Normalized cart:', {
+          id: normalized.id,
+          items: normalized.items?.map((it: any) => ({ id: it.id, variant_id: it.variant_id, quantity: it.quantity, unit_price: it.unit_price })) || [],
+          subtotal: normalized.subtotal, total: normalized.total
+        })
+        return normalized
       }
       // Se il carrello sul server è vuoto ma la UI ha items, reintegra gli items sul server
       const ensureServerCartHasItems = async (cartId: string) => {
@@ -149,6 +174,10 @@ export default function CheckoutPage() {
         const medusaItems = Array.isArray(medusa.cart?.items) && medusa.cart!.items.length > 0 ? medusa.cart!.items : []
         const fallback = Array.isArray(fallbackCartItems) && fallbackCartItems.length > 0 ? fallbackCartItems : []
         const uiItems = summary.length > 0 ? summary : (medusaItems.length > 0 ? medusaItems : fallback)
+        console.log('[CHECKOUT][HYDRATE] Selected UI items source:', summary.length > 0 ? 'summary' : (medusaItems.length > 0 ? 'medusa.cart' : 'fallback'), {
+          count: uiItems.length,
+          items: uiItems.map((it: any) => ({ variant_id: it.variant_id, quantity: it.quantity, title: it.product_title || it.title }))
+        })
         if (!uiItems || uiItems.length === 0) return
         // Recupera lo stato attuale del carrello
         let serverCart = await fetchCart(cartId)
@@ -168,6 +197,7 @@ export default function CheckoutPage() {
           const serverLine = serverByVariant[variantId]
           if (!serverLine) {
             // Aggiungi line item
+            console.log('[CHECKOUT][HYDRATE] Adding line item:', { cartId, variantId, quantity: qty })
             const addRes = await fetch(`${baseUrl}/store/carts/${cartId}/line-items`, {
               method: 'POST',
               headers: {
@@ -176,12 +206,14 @@ export default function CheckoutPage() {
               },
               body: JSON.stringify({ variant_id: variantId, quantity: qty })
             })
+            console.log('[CHECKOUT][HYDRATE] Add line item response:', addRes.status, addRes.statusText)
             if (!addRes.ok) {
               const txt = await addRes.text()
               console.warn('[CHECKOUT] Impossibile aggiungere item al carrello server:', txt)
             }
           } else if (serverLine.quantity !== qty) {
             // Aggiorna quantità
+            console.log('[CHECKOUT][HYDRATE] Updating line item qty:', { cartId, lineId: serverLine.id, quantity: qty })
             const updRes = await fetch(`${baseUrl}/store/carts/${cartId}/line-items/${serverLine.id}`, {
               method: 'POST',
               headers: {
@@ -190,6 +222,7 @@ export default function CheckoutPage() {
               },
               body: JSON.stringify({ quantity: qty })
             })
+            console.log('[CHECKOUT][HYDRATE] Update line item response:', updRes.status, updRes.statusText)
             if (!updRes.ok) {
               const txt = await updRes.text()
               console.warn('[CHECKOUT] Impossibile aggiornare quantità item:', txt)
@@ -198,6 +231,10 @@ export default function CheckoutPage() {
         }
         // Ricarica carrello dal server
         serverCart = await fetchCart(cartId)
+        console.log('[CHECKOUT][HYDRATE] Server cart after hydrate:', {
+          id: serverCart?.id, items: serverCart?.items?.map((it: any) => ({ variant_id: it.variant_id, quantity: it.quantity })) || [],
+          subtotal: serverCart?.subtotal, total: serverCart?.total
+        })
         return serverCart
       }
       let currentCart = await fetchCart(resolvedCartId)
@@ -312,6 +349,7 @@ export default function CheckoutPage() {
         },
         body: JSON.stringify(cartUpdateBody)
       })
+      console.log('[CHECKOUT][SET SHIPPING+EMAIL] Response:', cartUpdateResponse.status, cartUpdateResponse.statusText)
       
       if (!cartUpdateResponse.ok) {
         const errorText = await cartUpdateResponse.text()
@@ -371,6 +409,7 @@ export default function CheckoutPage() {
           }
         } catch {}
         if (optionId) {
+          console.log('[CHECKOUT][ADD SHIPPING METHOD] Using option:', optionId)
           await fetch(`${baseUrl}/store/carts/${resolvedCartId}/shipping-methods`, {
             method: 'POST',
             headers: {
@@ -384,6 +423,7 @@ export default function CheckoutPage() {
         console.warn('Impossibile aggiungere metodo di spedizione:', error)
         // Prova con spedizione gratuita come fallback
         try {
+          console.log('[CHECKOUT][ADD SHIPPING METHOD] Trying free_shipping fallback')
           await fetch(`${baseUrl}/store/carts/${resolvedCartId}/shipping-methods`, {
             method: 'POST',
             headers: {
@@ -480,6 +520,7 @@ export default function CheckoutPage() {
       if (!paymentSessionExists) {
         try {
           // Prova endpoint standard
+          console.log('[CHECKOUT][PAYMENT SESSION] Creating for provider:', providerId)
           const psRes = await fetch(`${baseUrl}/store/carts/${resolvedCartId}/payment-sessions`, {
             method: 'POST',
             headers: {
@@ -490,6 +531,7 @@ export default function CheckoutPage() {
           })
           if (!psRes.ok) {
             // Prova endpoint alternativo
+            console.log('[CHECKOUT][PAYMENT SESSION] Fallback via cart update payment_provider_id')
             await fetch(`${baseUrl}/store/carts/${resolvedCartId}`, {
               method: 'POST',
               headers: {
@@ -569,6 +611,7 @@ export default function CheckoutPage() {
           targetSessionId = sess?.id || null
         }
         if (targetSessionId) {
+          console.log('[CHECKOUT][AUTHORIZE] POST authorize for session:', targetSessionId)
           const authRes = await fetch(`${baseUrl}/store/carts/${resolvedCartId}/payment-sessions/${targetSessionId}/authorize`, {
             method: 'POST',
             headers: {
@@ -631,6 +674,11 @@ export default function CheckoutPage() {
       if ((!currentCart.items || currentCart.items.length === 0) && !hasMonetaryTotalAtComplete) {
         throw new Error('Il carrello è vuoto. Aggiungi prodotti prima di completare l\'ordine.')
       }
+      console.log('[CHECKOUT][BEFORE COMPLETE] Cart snapshot:', {
+        id: currentCart.id,
+        items: currentCart.items?.map((it: any) => ({ id: it.id, variant_id: it.variant_id, quantity: it.quantity, unit_price: it.unit_price })) || [],
+        subtotal: currentCart.subtotal, total: currentCart.total
+      })
       const completeRes = await fetch(`${baseUrl}/store/carts/${resolvedCartId}/complete`, {
         method: 'POST',
         headers: {

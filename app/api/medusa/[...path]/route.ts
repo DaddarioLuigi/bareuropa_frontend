@@ -9,6 +9,8 @@ export async function GET(request: NextRequest) {
   const path = url.pathname.replace('/api/medusa', '')
   
   try {
+    const requestUrl = `${MEDUSA_BACKEND_URL}${path}${url.search}`
+    console.log('[PROXY][GET] Request to:', requestUrl)
     const response = await fetch(`${MEDUSA_BACKEND_URL}${path}${url.search}`, {
       method: 'GET',
       headers: {
@@ -18,6 +20,7 @@ export async function GET(request: NextRequest) {
           || '',
       },
     })
+    console.log('[PROXY][GET] Response status:', response.status, response.statusText)
     
     // Controlla se la risposta è JSON
     const contentType = response.headers.get('content-type')
@@ -28,6 +31,9 @@ export async function GET(request: NextRequest) {
     }
     
     const data = await response.json()
+    try {
+      console.log('[PROXY][GET] Response keys:', Array.isArray(data) ? 'array' : Object.keys(data || {}))
+    } catch {}
     
     return NextResponse.json(data, {
       headers: {
