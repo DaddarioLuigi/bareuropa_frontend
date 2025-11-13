@@ -265,76 +265,130 @@ export default function CheckoutPage() {
             serverByVariant[it.variant_id] = { id: it.id, quantity: it.quantity || 0 }
           }
         }
-        // Per ogni item UI, se assente su server lo aggiunge, se quantità diversa la aggiorna
+        
+        // Conta quanti items devono essere aggiunti/aggiornati
+        let itemsToAdd = 0
+        let itemsToUpdate = 0
         for (const ui of uiItems) {
           const variantId: string | undefined = ui?.variant_id
           const qty: number = Number(ui?.quantity || 1)
           if (!variantId || qty <= 0) continue
           const serverLine = serverByVariant[variantId]
           if (!serverLine) {
-            // Aggiungi line item
-            console.log('[CHECKOUT][HYDRATE] Adding line item:', { cartId, variantId, quantity: qty })
-            const addRes = await fetch(`${baseUrl}/store/carts/${cartId}/line-items`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
-              },
-              body: JSON.stringify({ variant_id: variantId, quantity: qty })
-            })
-            console.log('[CHECKOUT][HYDRATE] Add line item response:', addRes.status, addRes.statusText)
-            if (!addRes.ok) {
-              const txt = await addRes.text()
-              console.warn('[CHECKOUT] Impossibile aggiungere item al carrello server:', txt)
-            }
+            itemsToAdd++
           } else if (serverLine.quantity !== qty) {
-            // Aggiorna quantità
-            console.log('[CHECKOUT][HYDRATE] Updating line item qty:', { cartId, lineId: serverLine.id, quantity: qty })
-            const updRes = await fetch(`${baseUrl}/store/carts/${cartId}/line-items/${serverLine.id}`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
-              },
-              body: JSON.stringify({ quantity: qty })
-            })
-            console.log('[CHECKOUT][HYDRATE] Update line item response:', updRes.status, updRes.statusText)
-            if (!updRes.ok) {
-              const txt = await updRes.text()
-              console.warn('[CHECKOUT] Impossibile aggiornare quantità item:', txt)
-            }
+            itemsToUpdate++
           }
         }
-        // Attendi un momento per permettere al server di aggiornare il carrello
-        await new Promise(resolve => setTimeout(resolve, 300))
+        console.log('[CHECKOUT][HYDRATE] Items da aggiungere:', itemsToAdd, '| Items da aggiornare:', itemsToUpdate)
         
-        // Ricarica carrello dal server con retry
-        let retries = 3
+        // Per ogni item UI, se assente su server lo aggiunge, se quantità diversa la aggiorna
+        for (const ui of uiItems) {
+          const variantId: string | undefined = ui?.variant_id
+          const qty: number = Number(ui?.quantity || 1)
+          if (!variantId || qty <= 0) {
+            console.warn('[CHECKOUT][HYDRATE] Item non valido, skip:', { variantId, qty })
+            continue
+          }
+          const serverLine = serverByVariant[variantId]
+          if (!serverLine) {
+            // Aggiungi line item
+            console.log('[CHECKOUT][HYDRATE] Adding line item:', { cartId, variantId, quantity: qty })
+            try {
+              const addRes = await fetch(`${baseUrl}/store/carts/${cartId}/line-items`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
+                },
+                body: JSON.stringify({ variant_id: variantId, quantity: qty })
+              })
+              console.log('[CHECKOUT][HYDRATE] Add line item response:', addRes.status, addRes.statusText)
+              if (!addRes.ok) {
+                const txt = await addRes.text()
+                console.error('[CHECKOUT][HYDRATE] ❌ Errore aggiunta item:', txt)
+                // Non fermare il processo, continua con gli altri items
+              } else {
+                console.log('[CHECKOUT][HYDRATE] ✅ Item aggiunto con successo')
+              }
+            } catch (err) {
+              console.error('[CHECKOUT][HYDRATE] ❌ Eccezione durante aggiunta item:', err)
+            }
+            // Piccola pausa tra le aggiunte per evitare rate limiting
+            await new Promise(resolve => setTimeout(resolve, 200))
+          } else if (serverLine.quantity !== qty) {
+            // Aggiorna quantità
+            console.log('[CHECKOUT][HYDRATE] Updating line item qty:', { cartId, lineId: serverLine.id, oldQty: serverLine.quantity, newQty: qty })
+            try {
+              const updRes = await fetch(`${baseUrl}/store/carts/${cartId}/line-items/${serverLine.id}`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
+                },
+                body: JSON.stringify({ quantity: qty })
+              })
+              console.log('[CHECKOUT][HYDRATE] Update line item response:', updRes.status, updRes.statusText)
+              if (!updRes.ok) {
+                const txt = await updRes.text()
+                console.error('[CHECKOUT][HYDRATE] ❌ Errore aggiornamento quantità:', txt)
+              } else {
+                console.log('[CHECKOUT][HYDRATE] ✅ Quantità aggiornata con successo')
+              }
+            } catch (err) {
+              console.error('[CHECKOUT][HYDRATE] ❌ Eccezione durante aggiornamento:', err)
+            }
+            // Piccola pausa tra gli aggiornamenti
+            await new Promise(resolve => setTimeout(resolve, 200))
+          } else {
+            console.log('[CHECKOUT][HYDRATE] Item già sincronizzato:', { variantId, qty })
+          }
+        }
+        
+        // Attendi un momento per permettere al server di aggiornare il carrello
+        console.log('[CHECKOUT][HYDRATE] Attendo sincronizzazione server...')
+        await new Promise(resolve => setTimeout(resolve, 500))
+        
+        // Ricarica carrello dal server con retry più aggressivo
+        let retries = 5
+        let serverCartAfterHydrate: any = null
         while (retries > 0) {
-          serverCart = await fetchCart(cartId)
-          if (serverCart.items && serverCart.items.length > 0) {
+          serverCartAfterHydrate = await fetchCart(cartId)
+          const itemsCount = serverCartAfterHydrate.items?.length || 0
+          const totalQty = serverCartAfterHydrate.items?.reduce((sum: number, it: any) => sum + (it.quantity || 1), 0) || 0
+          const expectedQty = uiItems.reduce((sum, it) => sum + (it.quantity || 1), 0)
+          
+          console.log('[CHECKOUT][HYDRATE] Verifica carrello dopo idratazione (tentativo', 6 - retries, '/5):', {
+            itemsCount,
+            totalQty,
+            expectedQty,
+            match: itemsCount === uiItems.length && totalQty === expectedQty
+          })
+          
+          if (itemsCount > 0 && totalQty === expectedQty) {
+            console.log('[CHECKOUT][HYDRATE] ✅ Carrello sincronizzato correttamente!')
             break
           }
           retries--
           if (retries > 0) {
-            console.log('[CHECKOUT][HYDRATE] Carrello ancora vuoto, retry in 500ms...')
-            await new Promise(resolve => setTimeout(resolve, 500))
+            console.log('[CHECKOUT][HYDRATE] Carrello non ancora sincronizzato, retry in 600ms...')
+            await new Promise(resolve => setTimeout(resolve, 600))
           }
         }
         
         console.log('[CHECKOUT][HYDRATE] Server cart after hydrate:', {
-          id: serverCart?.id, 
-          itemsCount: serverCart?.items?.length || 0,
-          items: serverCart?.items?.map((it: any) => ({ variant_id: it.variant_id, quantity: it.quantity })) || [],
-          subtotal: serverCart?.subtotal, total: serverCart?.total
+          id: serverCartAfterHydrate?.id, 
+          itemsCount: serverCartAfterHydrate?.items?.length || 0,
+          items: serverCartAfterHydrate?.items?.map((it: any) => ({ variant_id: it.variant_id, quantity: it.quantity })) || [],
+          subtotal: serverCartAfterHydrate?.subtotal, total: serverCartAfterHydrate?.total
         })
-        return serverCart
+        return serverCartAfterHydrate
       }
-      // IMPORTANTE: Se abbiamo items UI (soprattutto summaryItems), idrata PRIMA il carrello sul server
-      // Questo assicura che il carrello sul server sia sempre sincronizzato con quello mostrato in UI
+      // IMPORTANTE: Se summaryItems ha dati, idrata SEMPRE il carrello sul server PRIMA di procedere
+      // Questo è CRITICO perché summaryItems è la fonte più affidabile (caricata direttamente dal server)
       let currentCart = await fetchCart(resolvedCartId)
       
-      // Se abbiamo items UI ma il server non li ha, idrata immediatamente
+      // Se summaryItems ha items, FORZA l'idratazione del carrello sul server
       if (primaryUiItems.length > 0) {
         const serverItemsCount = Array.isArray(currentCart.items) ? currentCart.items.length : 0
         const serverTotalQty = Array.isArray(currentCart.items) 
@@ -347,34 +401,60 @@ export default function CheckoutPage() {
           serverTotalQty,
           uiItemsCount: primaryUiItems.length,
           uiTotalQty,
-          needsHydration: serverItemsCount === 0 || serverTotalQty !== uiTotalQty
+          needsHydration: serverItemsCount === 0 || serverTotalQty !== uiTotalQty,
+          primarySource: Array.isArray(summaryItems) && summaryItems.length > 0 ? 'summaryItems' : 'other'
         })
         
-        // Se il server ha 0 items o quantità diverse, idrata
+        // Se il server ha 0 items o quantità diverse, idrata FORZATAMENTE
         if (serverItemsCount === 0 || serverTotalQty !== uiTotalQty) {
-          console.warn('[CHECKOUT] Server cart non sincronizzato con UI: reintegro items sul server')
-          const hydrated = await ensureServerCartHasItems(resolvedCartId, primaryUiItems)
-          if (hydrated && Array.isArray(hydrated.items) && hydrated.items.length > 0) {
-            currentCart = hydrated
-            console.log('[CHECKOUT] ✅ Carrello idratato con successo:', {
-              itemsCount: hydrated.items.length,
-              totalQty: hydrated.items.reduce((sum: number, it: any) => sum + (it.quantity || 1), 0)
-            })
-          } else {
-            // Se ancora vuoto, attendi e riprova
-            await new Promise(r => setTimeout(r, 500))
-            const retried = await fetchCart(resolvedCartId)
-            if (retried?.items?.length > 0) {
-              currentCart = retried
+          console.warn('[CHECKOUT] ⚠️ Server cart non sincronizzato con UI: FORZO idratazione con primaryUiItems')
+          
+          // Idrata con retry multipli
+          let hydrated: any = null
+          for (let attempt = 0; attempt < 3; attempt++) {
+            console.log(`[CHECKOUT][HYDRATE] Tentativo ${attempt + 1}/3 di idratazione...`)
+            hydrated = await ensureServerCartHasItems(resolvedCartId, primaryUiItems)
+            
+            if (hydrated && Array.isArray(hydrated.items) && hydrated.items.length > 0) {
+              const hydratedQty = hydrated.items.reduce((sum: number, it: any) => sum + (it.quantity || 1), 0)
+              console.log('[CHECKOUT] ✅ Carrello idratato con successo al tentativo', attempt + 1, ':', {
+                itemsCount: hydrated.items.length,
+                totalQty: hydratedQty,
+                expectedQty: uiTotalQty
+              })
+              
+              // Verifica che la quantità corrisponda
+              if (hydratedQty === uiTotalQty) {
+                currentCart = hydrated
+                break
+              } else {
+                console.warn('[CHECKOUT] ⚠️ Quantità idratata non corrisponde, riprovo...')
+                await new Promise(r => setTimeout(r, 500))
+              }
             } else {
-              // Ultimo tentativo di idratazione
-              console.warn('[CHECKOUT] Ultimo tentativo di idratazione...')
-              const finalHydrated = await ensureServerCartHasItems(resolvedCartId, primaryUiItems)
-              if (finalHydrated && Array.isArray(finalHydrated.items) && finalHydrated.items.length > 0) {
-                currentCart = finalHydrated
+              console.warn(`[CHECKOUT] ⚠️ Idratazione fallita al tentativo ${attempt + 1}, riprovo...`)
+              await new Promise(r => setTimeout(r, 500))
+            }
+          }
+          
+          // Se dopo tutti i tentativi il carrello è ancora vuoto, verifica una volta di più
+          if (!currentCart.items || currentCart.items.length === 0) {
+            console.warn('[CHECKOUT] ⚠️ Carrello ancora vuoto dopo idratazione, ultimo controllo...')
+            await new Promise(r => setTimeout(r, 800))
+            const finalCheck = await fetchCart(resolvedCartId)
+            if (finalCheck?.items?.length > 0) {
+              currentCart = finalCheck
+              console.log('[CHECKOUT] ✅ Carrello recuperato dopo ultimo controllo')
+            } else {
+              // Se summaryItems ha dati ma il server è ancora vuoto, è un problema serio
+              if (Array.isArray(summaryItems) && summaryItems.length > 0) {
+                console.error('[CHECKOUT] ❌ ERRORE CRITICO: summaryItems ha', summaryItems.length, 'items ma il server è vuoto dopo idratazione!')
+                throw new Error(`Impossibile sincronizzare il carrello. Il carrello contiene ${primaryUiItems.length} prodotti ma il server non li ha salvati. Riprova o contatta il supporto.`)
               }
             }
           }
+        } else {
+          console.log('[CHECKOUT] ✅ Carrello già sincronizzato con UI')
         }
       }
       // Considera valido anche se il totale/subtotale è > 0
@@ -782,6 +862,7 @@ export default function CheckoutPage() {
       
       // Se il carrello è ancora vuoto ma la UI ha items, prova un ultimo tentativo di idratazione
       if ((!currentCart.items || currentCart.items.length === 0) && !hasMonetaryTotalAtComplete) {
+        const finalUiCount = primaryUiItems.length
         if (primaryUiItems.length > 0) {
           console.warn('[CHECKOUT] Carrello ancora vuoto dopo tutti i retry, ultimo tentativo di idratazione con primaryUiItems...')
           // Attendi un po' di più e riprova
@@ -798,6 +879,10 @@ export default function CheckoutPage() {
               console.log('[CHECKOUT] ✅ Carrello ha totale > 0 anche senza items visibili')
             } else {
               console.error('[CHECKOUT] ❌ Carrello vuoto dopo tutti i tentativi! Items UI:', finalUiCount)
+              // Se summaryItems ha dati, è un errore critico
+              if (Array.isArray(summaryItems) && summaryItems.length > 0) {
+                throw new Error(`Impossibile completare l'ordine. Il carrello contiene ${finalUiCount} prodotti ma il server non li ha salvati. Riprova o contatta il supporto.`)
+              }
               throw new Error('Il carrello è vuoto. Aggiungi prodotti prima di completare l\'ordine.')
             }
           }
