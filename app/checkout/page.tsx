@@ -197,6 +197,17 @@ export default function CheckoutPage() {
         }
         const data = await res.json()
         
+        // Log completo della risposta per debug
+        console.log('[CHECKOUT][FETCH CART] Raw response data:', {
+          isArray: Array.isArray(data),
+          type: typeof data,
+          keys: Object.keys(data || {}),
+          hasCart: !!data.cart,
+          hasId: !!data.id,
+          hasItems: !!data.items,
+          fullData: JSON.stringify(data).substring(0, 1000) // Primi 1000 caratteri per non intasare
+        })
+        
         // Gestisci diversi formati di risposta
         let cart: any = null
         
@@ -207,19 +218,37 @@ export default function CheckoutPage() {
         }
         
         // Prova a estrarre il carrello dalla risposta
+        // Medusa può restituire: { cart: {...} } oppure direttamente il carrello
         if (data.cart && typeof data.cart === 'object' && !Array.isArray(data.cart)) {
           cart = data.cart
-        } else if (data.id || data.items) {
+          console.log('[CHECKOUT][FETCH CART] ✅ Carrello trovato in data.cart')
+        } else if (data.id || data.items || (typeof data === 'object' && !Array.isArray(data))) {
           // Se data ha già id o items, è già il carrello
+          // Oppure se è un oggetto (non array), potrebbe essere il carrello stesso
           cart = data
+          console.log('[CHECKOUT][FETCH CART] ✅ Carrello trovato direttamente in data')
         } else {
-          console.warn('[CHECKOUT] Risposta carrello non valida (struttura):', {
-            hasCart: !!data.cart,
-            hasId: !!data.id,
-            hasItems: !!data.items,
-            keys: Object.keys(data || {})
-          })
-          return { id: resolvedCartId, items: [] }
+          // Prova a cercare in altre chiavi comuni
+          const possibleKeys = Object.keys(data || {})
+          for (const key of possibleKeys) {
+            const value = data[key]
+            if (value && typeof value === 'object' && !Array.isArray(value) && (value.id || value.items)) {
+              console.log(`[CHECKOUT][FETCH CART] ✅ Carrello trovato in data.${key}`)
+              cart = value
+              break
+            }
+          }
+          
+          if (!cart) {
+            console.error('[CHECKOUT][FETCH CART] ❌ Risposta carrello non valida (struttura):', {
+              hasCart: !!data.cart,
+              hasId: !!data.id,
+              hasItems: !!data.items,
+              keys: Object.keys(data || {}),
+              fullData: JSON.stringify(data).substring(0, 500)
+            })
+            return { id: resolvedCartId, items: [] }
+          }
         }
         
         // Valida struttura minima del carrello
@@ -371,10 +400,21 @@ export default function CheckoutPage() {
                 // Prova a parsare la risposta per vedere il carrello aggiornato
                 try {
                   const responseJson = JSON.parse(responseText)
-                  console.log('[CHECKOUT][HYDRATE] Response cart:', {
-                    cartId: responseJson.cart?.id || responseJson.id,
-                    itemsCount: responseJson.cart?.items?.length || responseJson.items?.length || 0
+                  const updatedCart = responseJson.cart || responseJson
+                  console.log('[CHECKOUT][HYDRATE] Response cart from add API:', {
+                    cartId: updatedCart.id,
+                    itemsCount: updatedCart.items?.length || 0,
+                    items: updatedCart.items?.map((it: any) => ({ variant_id: it.variant_id, quantity: it.quantity })) || []
                   })
+                  // Salva il carrello aggiornato dalla risposta per usarlo dopo
+                  if (updatedCart.items && updatedCart.items.length > 0) {
+                    // Aggiorna la mappa serverByVariant con i nuovi items
+                    for (const item of updatedCart.items) {
+                      if (item?.variant_id) {
+                        serverByVariant[item.variant_id] = { id: item.id, quantity: item.quantity || 0 }
+                      }
+                    }
+                  }
                 } catch {
                   // Non è JSON, va bene
                 }
