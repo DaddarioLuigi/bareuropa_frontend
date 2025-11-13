@@ -114,7 +114,8 @@ export default function CheckoutPage() {
       const baseUrl = '/api/medusa'
       // Recupera SEMPRE il carrello più recente dal server
       const fetchCart = async (cartId: string) => {
-        const res = await fetch(`${baseUrl}/store/carts/${cartId}`, {
+        // Espandi per assicurare che items siano inclusi
+        const res = await fetch(`${baseUrl}/store/carts/${cartId}?expand=items,items.variant,items.variant.product,items.product,region,shipping_address,billing_address,payment_sessions,shipping_methods,discounts`, {
           headers: {
             'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
           }
@@ -124,14 +125,20 @@ export default function CheckoutPage() {
           throw new Error(errorText || 'Impossibile recuperare il carrello')
         }
         const data = await res.json()
-        return data.cart || data
+        const cart = data.cart || data
+        // Valida struttura minima del carrello
+        if (!cart || typeof cart !== 'object' || (!cart.id && !Array.isArray(cart.items))) {
+          throw new Error('Risposta carrello non valida')
+        }
+        return cart
       }
       // Se il carrello sul server è vuoto ma la UI ha items, reintegra gli items sul server
       const ensureServerCartHasItems = async (cartId: string) => {
-        // Usa prima gli items del riepilogo stabile
-        const uiItems = (Array.isArray(summaryItems) && summaryItems.length > 0)
-          ? summaryItems
-          : (Array.isArray(fallbackCartItems) ? fallbackCartItems : [])
+        // Usa priorità: summaryItems -> medusa.cart.items -> fallbackCartItems
+        const summary = Array.isArray(summaryItems) && summaryItems.length > 0 ? summaryItems : []
+        const medusaItems = Array.isArray(medusa.cart?.items) && medusa.cart!.items.length > 0 ? medusa.cart!.items : []
+        const fallback = Array.isArray(fallbackCartItems) && fallbackCartItems.length > 0 ? fallbackCartItems : []
+        const uiItems = summary.length > 0 ? summary : (medusaItems.length > 0 ? medusaItems : fallback)
         if (!uiItems || uiItems.length === 0) return
         // Recupera lo stato attuale del carrello
         let serverCart = await fetchCart(cartId)
@@ -184,13 +191,24 @@ export default function CheckoutPage() {
         return serverCart
       }
       let currentCart = await fetchCart(resolvedCartId)
-      // Se il server dice 0 items ma abbiamo items stabili/fallback in UI, usali per validazione
-      const uiItemsCount = (Array.isArray(summaryItems) ? summaryItems.length : 0) || (Array.isArray(fallbackCartItems) ? fallbackCartItems.length : 0)
+      // Se il server dice 0 items ma abbiamo items stabili/medusa/fallback in UI, usali per validazione
+      const uiItemsCount =
+        (Array.isArray(summaryItems) ? summaryItems.length : 0)
+        || (Array.isArray(medusa.cart?.items) ? medusa.cart!.items.length : 0)
+        || (Array.isArray(fallbackCartItems) ? fallbackCartItems.length : 0)
       if ((!currentCart.items || currentCart.items.length === 0) && uiItemsCount > 0) {
         console.warn('[CHECKOUT] Server cart senza items ma UI ha items: reintegro items sul server')
         const hydrated = await ensureServerCartHasItems(resolvedCartId)
         if (hydrated && Array.isArray(hydrated.items) && hydrated.items.length > 0) {
           currentCart = hydrated
+        }
+        // Se ancora vuoto, attendi e riprova una volta (consistenza eventuale)
+        if (!currentCart.items || currentCart.items.length === 0) {
+          await new Promise(r => setTimeout(r, 400))
+          const retried = await fetchCart(resolvedCartId)
+          if (retried?.items?.length > 0) {
+            currentCart = retried
+          }
         }
       }
       if (!currentCart.items || currentCart.items.length === 0) {
@@ -564,6 +582,13 @@ export default function CheckoutPage() {
       console.log('[CHECKOUT] Completamento dell\'ordine...')
       // Recupera carrello aggiornato e completa
       currentCart = await fetchCart(resolvedCartId)
+      // Ultimo tentativo di idratazione se necessario
+      if (!currentCart.items || currentCart.items.length === 0) {
+        const hydrated = await ensureServerCartHasItems(resolvedCartId)
+        if (hydrated && hydrated.items?.length > 0) {
+          currentCart = hydrated
+        }
+      }
       if (!currentCart.items || currentCart.items.length === 0) {
         throw new Error('Il carrello è vuoto. Aggiungi prodotti prima di completare l\'ordine.')
       }
