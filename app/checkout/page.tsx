@@ -266,13 +266,36 @@ export default function CheckoutPage() {
           }
         }
         
+        // Valida e logga la struttura degli items
+        console.log('[CHECKOUT][HYDRATE] Validazione items UI:', {
+          totalItems: uiItems.length,
+          itemsStructure: uiItems.map((it: any) => ({
+            hasVariantId: !!it.variant_id,
+            variantId: it.variant_id,
+            hasQuantity: typeof it.quantity !== 'undefined',
+            quantity: it.quantity,
+            hasId: !!it.id,
+            id: it.id,
+            fullKeys: Object.keys(it)
+          }))
+        })
+        
         // Conta quanti items devono essere aggiunti/aggiornati
         let itemsToAdd = 0
         let itemsToUpdate = 0
+        let invalidItems = 0
         for (const ui of uiItems) {
-          const variantId: string | undefined = ui?.variant_id
+          const variantId: string | undefined = ui?.variant_id || ui?.variant?.id
           const qty: number = Number(ui?.quantity || 1)
-          if (!variantId || qty <= 0) continue
+          if (!variantId || qty <= 0) {
+            invalidItems++
+            console.warn('[CHECKOUT][HYDRATE] Item non valido per idratazione:', {
+              variantId,
+              quantity: qty,
+              item: ui
+            })
+            continue
+          }
           const serverLine = serverByVariant[variantId]
           if (!serverLine) {
             itemsToAdd++
@@ -280,42 +303,93 @@ export default function CheckoutPage() {
             itemsToUpdate++
           }
         }
-        console.log('[CHECKOUT][HYDRATE] Items da aggiungere:', itemsToAdd, '| Items da aggiornare:', itemsToUpdate)
+        console.log('[CHECKOUT][HYDRATE] Items da aggiungere:', itemsToAdd, '| Items da aggiornare:', itemsToUpdate, '| Items non validi:', invalidItems)
         
         // Per ogni item UI, se assente su server lo aggiunge, se quantità diversa la aggiorna
+        let successfulAdds = 0
+        let failedAdds = 0
         for (const ui of uiItems) {
-          const variantId: string | undefined = ui?.variant_id
+          // Supporta sia variant_id diretto che variant.id annidato
+          const variantId: string | undefined = ui?.variant_id || ui?.variant?.id
           const qty: number = Number(ui?.quantity || 1)
           if (!variantId || qty <= 0) {
-            console.warn('[CHECKOUT][HYDRATE] Item non valido, skip:', { variantId, qty })
+            console.warn('[CHECKOUT][HYDRATE] Item non valido, skip:', { 
+              variantId, 
+              qty, 
+              hasVariantId: !!ui?.variant_id,
+              hasVariantObject: !!ui?.variant,
+              variantObjectId: ui?.variant?.id,
+              fullItem: ui 
+            })
             continue
           }
           const serverLine = serverByVariant[variantId]
           if (!serverLine) {
             // Aggiungi line item
-            console.log('[CHECKOUT][HYDRATE] Adding line item:', { cartId, variantId, quantity: qty })
+            console.log('[CHECKOUT][HYDRATE] Adding line item:', { cartId, variantId, quantity: qty, item: ui })
             try {
+              const requestBody = { variant_id: variantId, quantity: qty }
+              console.log('[CHECKOUT][HYDRATE] Request body:', JSON.stringify(requestBody))
+              console.log('[CHECKOUT][HYDRATE] Request URL:', `${baseUrl}/store/carts/${cartId}/line-items`)
+              
               const addRes = await fetch(`${baseUrl}/store/carts/${cartId}/line-items`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
                   'x-publishable-api-key': process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || '',
                 },
-                body: JSON.stringify({ variant_id: variantId, quantity: qty })
+                body: JSON.stringify(requestBody)
               })
-              console.log('[CHECKOUT][HYDRATE] Add line item response:', addRes.status, addRes.statusText)
+              
+              const responseText = await addRes.text()
+              console.log('[CHECKOUT][HYDRATE] Add line item response:', {
+                status: addRes.status,
+                statusText: addRes.statusText,
+                ok: addRes.ok,
+                responseText: responseText.substring(0, 500) // Limita a 500 caratteri per non intasare i log
+              })
+              
               if (!addRes.ok) {
-                const txt = await addRes.text()
-                console.error('[CHECKOUT][HYDRATE] ❌ Errore aggiunta item:', txt)
+                failedAdds++
+                console.error('[CHECKOUT][HYDRATE] ❌ Errore aggiunta item:', {
+                  variantId,
+                  quantity: qty,
+                  status: addRes.status,
+                  error: responseText
+                })
+                // Prova a parsare come JSON per vedere se c'è un messaggio di errore più dettagliato
+                try {
+                  const errorJson = JSON.parse(responseText)
+                  console.error('[CHECKOUT][HYDRATE] ❌ Dettagli errore:', errorJson)
+                } catch {
+                  // Non è JSON, usa il testo così com'è
+                }
                 // Non fermare il processo, continua con gli altri items
               } else {
+                successfulAdds++
                 console.log('[CHECKOUT][HYDRATE] ✅ Item aggiunto con successo')
+                // Prova a parsare la risposta per vedere il carrello aggiornato
+                try {
+                  const responseJson = JSON.parse(responseText)
+                  console.log('[CHECKOUT][HYDRATE] Response cart:', {
+                    cartId: responseJson.cart?.id || responseJson.id,
+                    itemsCount: responseJson.cart?.items?.length || responseJson.items?.length || 0
+                  })
+                } catch {
+                  // Non è JSON, va bene
+                }
               }
-            } catch (err) {
-              console.error('[CHECKOUT][HYDRATE] ❌ Eccezione durante aggiunta item:', err)
+            } catch (err: any) {
+              failedAdds++
+              console.error('[CHECKOUT][HYDRATE] ❌ Eccezione durante aggiunta item:', {
+                variantId,
+                quantity: qty,
+                error: err.message,
+                stack: err.stack
+              })
             }
             // Piccola pausa tra le aggiunte per evitare rate limiting
-            await new Promise(resolve => setTimeout(resolve, 200))
+            await new Promise(resolve => setTimeout(resolve, 300))
           } else if (serverLine.quantity !== qty) {
             // Aggiorna quantità
             console.log('[CHECKOUT][HYDRATE] Updating line item qty:', { cartId, lineId: serverLine.id, oldQty: serverLine.quantity, newQty: qty })
@@ -345,9 +419,25 @@ export default function CheckoutPage() {
           }
         }
         
+        // Riepilogo delle operazioni
+        console.log('[CHECKOUT][HYDRATE] Riepilogo operazioni:', {
+          totalItems: uiItems.length,
+          successfulAdds,
+          failedAdds,
+          itemsToAdd,
+          itemsToUpdate
+        })
+        
+        if (failedAdds > 0) {
+          console.error('[CHECKOUT][HYDRATE] ⚠️ Alcuni items non sono stati aggiunti!', {
+            failed: failedAdds,
+            successful: successfulAdds
+          })
+        }
+        
         // Attendi un momento per permettere al server di aggiornare il carrello
         console.log('[CHECKOUT][HYDRATE] Attendo sincronizzazione server...')
-        await new Promise(resolve => setTimeout(resolve, 500))
+        await new Promise(resolve => setTimeout(resolve, 800))
         
         // Ricarica carrello dal server con retry più aggressivo
         let retries = 5
@@ -358,21 +448,34 @@ export default function CheckoutPage() {
           const totalQty = serverCartAfterHydrate.items?.reduce((sum: number, it: any) => sum + (it.quantity || 1), 0) || 0
           const expectedQty = uiItems.reduce((sum, it) => sum + (it.quantity || 1), 0)
           
+          // Verifica anche i variant_id per assicurarsi che siano tutti presenti
+          const serverVariantIds = new Set(serverCartAfterHydrate.items?.map((it: any) => it.variant_id) || [])
+          const uiVariantIds = new Set(uiItems.map((it: any) => it.variant_id).filter(Boolean))
+          const missingVariants = [...uiVariantIds].filter(id => !serverVariantIds.has(id))
+          
           console.log('[CHECKOUT][HYDRATE] Verifica carrello dopo idratazione (tentativo', 6 - retries, '/5):', {
             itemsCount,
             totalQty,
             expectedQty,
-            match: itemsCount === uiItems.length && totalQty === expectedQty
+            match: itemsCount === uiItems.length && totalQty === expectedQty,
+            serverVariantIds: [...serverVariantIds],
+            uiVariantIds: [...uiVariantIds],
+            missingVariants
           })
           
-          if (itemsCount > 0 && totalQty === expectedQty) {
+          if (itemsCount > 0 && totalQty === expectedQty && missingVariants.length === 0) {
             console.log('[CHECKOUT][HYDRATE] ✅ Carrello sincronizzato correttamente!')
             break
           }
+          
+          if (missingVariants.length > 0) {
+            console.warn('[CHECKOUT][HYDRATE] ⚠️ Varianti mancanti sul server:', missingVariants)
+          }
+          
           retries--
           if (retries > 0) {
-            console.log('[CHECKOUT][HYDRATE] Carrello non ancora sincronizzato, retry in 600ms...')
-            await new Promise(resolve => setTimeout(resolve, 600))
+            console.log('[CHECKOUT][HYDRATE] Carrello non ancora sincronizzato, retry in 800ms...')
+            await new Promise(resolve => setTimeout(resolve, 800))
           }
         }
         
@@ -382,6 +485,12 @@ export default function CheckoutPage() {
           items: serverCartAfterHydrate?.items?.map((it: any) => ({ variant_id: it.variant_id, quantity: it.quantity })) || [],
           subtotal: serverCartAfterHydrate?.subtotal, total: serverCartAfterHydrate?.total
         })
+        
+        // Se ci sono stati errori e il carrello è ancora vuoto, logga un avviso
+        if (failedAdds > 0 && (!serverCartAfterHydrate?.items || serverCartAfterHydrate.items.length === 0)) {
+          console.error('[CHECKOUT][HYDRATE] ❌ ERRORE CRITICO: Tutti gli items sono falliti durante l\'aggiunta!')
+        }
+        
         return serverCartAfterHydrate
       }
       // IMPORTANTE: Se summaryItems ha dati, idrata SEMPRE il carrello sul server PRIMA di procedere
