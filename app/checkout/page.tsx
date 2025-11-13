@@ -170,24 +170,48 @@ export default function CheckoutPage() {
           throw new Error(errorText || 'Impossibile recuperare il carrello')
         }
         const data = await res.json()
-        const cart = data.cart || data
-        // Valida struttura minima del carrello ma non bloccare il flusso:
-        // alcuni proxy possono restituire OK con payload non standard.
-        if (!cart || typeof cart !== 'object') {
-          console.warn('[CHECKOUT] Risposta carrello non valida (tipo):', cart)
+        
+        // Gestisci diversi formati di risposta
+        let cart: any = null
+        
+        // Se data è un array, non è un formato valido per un carrello
+        if (Array.isArray(data)) {
+          console.warn('[CHECKOUT] Risposta è un array invece di un oggetto carrello:', data.length, 'elementi')
           return { id: resolvedCartId, items: [] }
         }
-        if (!cart.id && !Array.isArray(cart.items)) {
-          console.warn('[CHECKOUT] Risposta carrello non valida (campi mancanti):', Array.isArray(cart) ? 'array' : Object.keys(cart || {}))
-          // Fallback minimo per proseguire con la reidratazione server
+        
+        // Prova a estrarre il carrello dalla risposta
+        if (data.cart && typeof data.cart === 'object' && !Array.isArray(data.cart)) {
+          cart = data.cart
+        } else if (data.id || data.items) {
+          // Se data ha già id o items, è già il carrello
+          cart = data
+        } else {
+          console.warn('[CHECKOUT] Risposta carrello non valida (struttura):', {
+            hasCart: !!data.cart,
+            hasId: !!data.id,
+            hasItems: !!data.items,
+            keys: Object.keys(data || {})
+          })
           return { id: resolvedCartId, items: [] }
         }
+        
+        // Valida struttura minima del carrello
+        if (!cart || typeof cart !== 'object' || Array.isArray(cart)) {
+          console.warn('[CHECKOUT] Risposta carrello non valida (tipo):', typeof cart, Array.isArray(cart))
+          return { id: resolvedCartId, items: [] }
+        }
+        
+        // Normalizza il carrello assicurandosi che items sia sempre un array
         const normalized = {
+          id: cart.id || resolvedCartId,
           ...cart,
           items: Array.isArray(cart.items) ? cart.items : []
         }
+        
         console.log('[CHECKOUT][FETCH CART] Normalized cart:', {
           id: normalized.id,
+          itemsCount: normalized.items?.length || 0,
           items: normalized.items?.map((it: any) => ({ id: it.id, variant_id: it.variant_id, quantity: it.quantity, unit_price: it.unit_price })) || [],
           subtotal: normalized.subtotal, total: normalized.total
         })
@@ -255,10 +279,27 @@ export default function CheckoutPage() {
             }
           }
         }
-        // Ricarica carrello dal server
-        serverCart = await fetchCart(cartId)
+        // Attendi un momento per permettere al server di aggiornare il carrello
+        await new Promise(resolve => setTimeout(resolve, 300))
+        
+        // Ricarica carrello dal server con retry
+        let retries = 3
+        while (retries > 0) {
+          serverCart = await fetchCart(cartId)
+          if (serverCart.items && serverCart.items.length > 0) {
+            break
+          }
+          retries--
+          if (retries > 0) {
+            console.log('[CHECKOUT][HYDRATE] Carrello ancora vuoto, retry in 500ms...')
+            await new Promise(resolve => setTimeout(resolve, 500))
+          }
+        }
+        
         console.log('[CHECKOUT][HYDRATE] Server cart after hydrate:', {
-          id: serverCart?.id, items: serverCart?.items?.map((it: any) => ({ variant_id: it.variant_id, quantity: it.quantity })) || [],
+          id: serverCart?.id, 
+          itemsCount: serverCart?.items?.length || 0,
+          items: serverCart?.items?.map((it: any) => ({ variant_id: it.variant_id, quantity: it.quantity })) || [],
           subtotal: serverCart?.subtotal, total: serverCart?.total
         })
         return serverCart
@@ -697,8 +738,36 @@ export default function CheckoutPage() {
       }
       // Considera valido anche se il totale/subtotale è > 0
       const hasMonetaryTotalAtComplete = (Number(currentCart.total) > 0) || (Number(currentCart.subtotal) > 0)
+      
+      // Se il carrello è ancora vuoto ma la UI ha items, prova un ultimo tentativo di idratazione
       if ((!currentCart.items || currentCart.items.length === 0) && !hasMonetaryTotalAtComplete) {
-        throw new Error('Il carrello è vuoto. Aggiungi prodotti prima di completare l\'ordine.')
+        const finalUiCount =
+          (Array.isArray(summaryItems) ? summaryItems.length : 0)
+          || (Array.isArray(medusa.cart?.items) ? medusa.cart!.items.length : 0)
+          || (Array.isArray(fallbackCartItems) ? fallbackCartItems.length : 0)
+        
+        if (finalUiCount > 0) {
+          console.warn('[CHECKOUT] Carrello ancora vuoto dopo tutti i retry, ultimo tentativo di idratazione...')
+          // Attendi un po' di più e riprova
+          await new Promise(r => setTimeout(r, 1000))
+          const finalHydrated = await ensureServerCartHasItems(resolvedCartId)
+          if (finalHydrated && finalHydrated.items?.length > 0) {
+            currentCart = finalHydrated
+            console.log('[CHECKOUT] ✅ Carrello idratato con successo dopo ultimo tentativo')
+          } else {
+            // Se anche questo fallisce, verifica se almeno il totale è > 0
+            const finalCheck = await fetchCart(resolvedCartId)
+            if (finalCheck && ((Number(finalCheck.total) > 0) || (Number(finalCheck.subtotal) > 0))) {
+              currentCart = finalCheck
+              console.log('[CHECKOUT] ✅ Carrello ha totale > 0 anche senza items visibili')
+            } else {
+              console.error('[CHECKOUT] ❌ Carrello vuoto dopo tutti i tentativi! Items UI:', finalUiCount)
+              throw new Error('Il carrello è vuoto. Aggiungi prodotti prima di completare l\'ordine.')
+            }
+          }
+        } else {
+          throw new Error('Il carrello è vuoto. Aggiungi prodotti prima di completare l\'ordine.')
+        }
       }
       console.log('[CHECKOUT][BEFORE COMPLETE] Cart snapshot:', {
         id: currentCart.id,
