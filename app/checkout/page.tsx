@@ -1687,6 +1687,60 @@ export default function CheckoutPage() {
                     <span className="text-primary">€{total.toFixed(2)}</span>
                   </div>
 
+                  {/* Debug Info */}
+                  <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md">
+                    <p className="text-xs font-semibold text-yellow-800 dark:text-yellow-200 mb-2">
+                      🔍 DEBUG - Carrello Utilizzato
+                    </p>
+                    <div className="text-xs text-yellow-700 dark:text-yellow-300 space-y-1 font-mono">
+                      <div>
+                        <strong>Cart ID:</strong> {(() => {
+                          const resolvedCartId = medusa.cart?.id || summaryCartId || localStorage.getItem('medusa_cart_id') || localStorage.getItem('cart_id') || 'N/A'
+                          return resolvedCartId
+                        })()}
+                      </div>
+                      <div>
+                        <strong>Fonte ID:</strong> {(() => {
+                          if (medusa.cart?.id) return 'medusa.cart.id'
+                          if (summaryCartId) return 'summaryCartId'
+                          if (localStorage.getItem('medusa_cart_id')) return 'localStorage (medusa_cart_id)'
+                          if (localStorage.getItem('cart_id')) return 'localStorage (cart_id)'
+                          return 'Nessuna fonte disponibile'
+                        })()}
+                      </div>
+                      <div>
+                        <strong>Items Count:</strong> {(() => {
+                          const summaryStableItems = Array.isArray(summaryItems) && summaryItems.length > 0 ? summaryItems : []
+                          const medusaItems = medusa.cart?.items && medusa.cart.items.length > 0 ? medusa.cart.items : []
+                          const itemsToDisplay = summaryStableItems.length > 0 ? summaryStableItems : (medusaItems.length > 0 ? medusaItems : (fallbackCartItems.length > 0 ? fallbackCartItems : []))
+                          return itemsToDisplay.length
+                        })()}
+                      </div>
+                      <div>
+                        <strong>Items Source:</strong> {(() => {
+                          const summaryStableItems = Array.isArray(summaryItems) && summaryItems.length > 0 ? summaryItems : []
+                          const medusaItems = medusa.cart?.items && medusa.cart.items.length > 0 ? medusa.cart.items : []
+                          if (summaryStableItems.length > 0) return 'summaryItems'
+                          if (medusaItems.length > 0) return 'medusa.cart.items'
+                          if (fallbackCartItems.length > 0) return 'fallbackCartItems'
+                          return 'Nessuna fonte'
+                        })()}
+                      </div>
+                      <div>
+                        <strong>Subtotale Medusa:</strong> €{medusaSubtotal.toFixed(2)}
+                      </div>
+                      <div>
+                        <strong>Totale Medusa:</strong> €{medusaTotal.toFixed(2)}
+                      </div>
+                      <div>
+                        <strong>Payment Sessions:</strong> {medusa.cart?.payment_sessions?.length || 0}
+                      </div>
+                      <div>
+                        <strong>Payment Provider:</strong> {paymentMethod || 'Nessuno selezionato'}
+                      </div>
+                    </div>
+                  </div>
+
                   <Button
                     type="submit"
                     size="lg"
