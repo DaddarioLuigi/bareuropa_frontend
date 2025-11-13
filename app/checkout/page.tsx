@@ -563,18 +563,15 @@ export default function CheckoutPage() {
           // Se non troviamo la sessione, proseguiamo: alcuni setup autorizzano in complete
           console.warn('[CHECKOUT] Nessuna payment session trovata per autorizzare; il provider potrebbe autorizzare in complete')
         }
-      } catch (authError: any) {
-          // Se l'autorizzazione fallisce con 404, potrebbe essere che Medusa gestisca l'autorizzazione automaticamente
-          if (authError?.status === 404 || authError?.message?.includes('404') || authError?.message?.includes('Cannot POST')) {
-            console.warn('[CHECKOUT] Endpoint autorizzazione non trovato, Medusa potrebbe gestire automaticamente')
-            // Continua comunque, Medusa potrebbe autorizzare automaticamente durante il complete
-          } else {
-            throw authError
-          }
       } catch (error: any) {
-        console.error('[CHECKOUT] Errore nell\'autorizzazione del pagamento:', error)
+        // Se l'autorizzazione fallisce con 404, potrebbe essere che Medusa gestisca l'autorizzazione automaticamente
+        if (error?.status === 404 || error?.message?.includes('404') || error?.message?.includes('Cannot POST')) {
+          console.warn('[CHECKOUT] Endpoint autorizzazione non trovato, Medusa potrebbe gestire automaticamente')
+          // Continua comunque, Medusa potrebbe autorizzare automaticamente durante il complete
+        } else {
+          console.error('[CHECKOUT] Errore nell\'autorizzazione del pagamento:', error)
+        }
         // Non bloccare il flusso se l'autorizzazione fallisce - Medusa potrebbe gestirla automaticamente
-        // Ma avvisa l'utente
         console.warn('[CHECKOUT] Continuo comunque - Medusa potrebbe autorizzare automaticamente durante il complete')
       }
 
