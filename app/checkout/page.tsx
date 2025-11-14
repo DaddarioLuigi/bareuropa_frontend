@@ -133,6 +133,78 @@ function extractOrderFromCompleteResponse(data: any): any | null {
   return null
 }
 
+function describePaymentAuthorizationFailure(payload: any): string | null {
+  if (!payload || typeof payload !== "object") {
+    return null
+  }
+
+  const defaultMessage =
+    (typeof payload.error === "string" && payload.error) ||
+    payload.error?.message ||
+    payload.error?.type ||
+    payload.message ||
+    null
+
+  const cart = payload.cart || payload.data || {}
+  const paymentCollection =
+    cart.payment_collection || payload.payment_collection || cart.data?.payment_collection
+  const sessions =
+    paymentCollection?.payment_sessions ||
+    cart.payment_sessions ||
+    cart.data?.payment_sessions ||
+    []
+
+  const allSessionStatuses = new Set<string>()
+  const providerSpecificStatuses = new Set<string>()
+
+  if (Array.isArray(sessions)) {
+    for (const session of sessions) {
+      if (!session || typeof session !== "object") {
+        continue
+      }
+
+      if (typeof session.status === "string") {
+        allSessionStatuses.add(session.status.toLowerCase())
+      }
+
+      const providerStatus = session.data?.status
+      if (typeof providerStatus === "string") {
+        providerSpecificStatuses.add(providerStatus.toLowerCase())
+      }
+    }
+
+  if (providerSpecificStatuses.has("requires_payment_method")) {
+    return (
+      "Il pagamento con carta non è stato autorizzato perché manca un metodo di pagamento valido. " +
+      "Se stai usando Stripe, inserisci i dati della carta o scegli un altro metodo e riprova."
+    )
+  }
+
+  if (providerSpecificStatuses.has("requires_action") || providerSpecificStatuses.has("requires_confirmation")) {
+    return (
+      "Il pagamento richiede un'ulteriore conferma (3D Secure o simile). " +
+      "Completa l'autenticazione richiesta oppure seleziona un metodo di pagamento alternativo."
+    )
+  }
+
+  if (allSessionStatuses.has("pending") || allSessionStatuses.has("requires_more")) {
+    return (
+      "Il pagamento risulta ancora in attesa di autorizzazione. " +
+      "Completa la procedura di pagamento oppure riprova con un altro metodo."
+    )
+  }
+
+  if (paymentCollection?.status && paymentCollection.status !== "paid" && paymentCollection.status !== "captured") {
+    return (
+      "Il pagamento non è stato finalizzato (stato: " +
+      paymentCollection.status +
+      "). Verifica i dettagli del pagamento o riprova."
+    )
+  }
+
+  return defaultMessage
+}
+
 export default function CheckoutPage(): React.JSX.Element {
   const { state } = useCart()
   const medusa = useMedusa()
@@ -990,6 +1062,7 @@ export default function CheckoutPage(): React.JSX.Element {
       if (orderData?.error) {
         const rawError = orderData.error
         const errorMessage =
+          describePaymentAuthorizationFailure(orderData) ||
           (typeof rawError === "string" && rawError) ||
           rawError?.message ||
           rawError?.type ||
@@ -1012,7 +1085,11 @@ export default function CheckoutPage(): React.JSX.Element {
             paymentCollectionId: orderData.cart.payment_collection?.id,
           })
 
-          throw new Error("Pagamento non autorizzato. Riprova o usa un altro metodo")
+          const descriptiveMessage =
+            describePaymentAuthorizationFailure(orderData) ||
+            "Pagamento non autorizzato. Riprova o usa un altro metodo"
+
+          throw new Error(descriptiveMessage)
         }
       }
 
