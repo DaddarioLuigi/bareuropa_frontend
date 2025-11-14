@@ -169,20 +169,20 @@ export default function CheckoutSuccessPage() {
       <main className="flex-1 container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           {/* Header successo */}
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-4">
-              <CheckCircle className="h-10 w-10 text-green-600" />
+          <div className="text-center mb-12 mt-8 md:mt-12">
+            <div className="inline-flex items-center justify-center w-24 h-24 md:w-32 md:h-32 bg-green-500 rounded-full mb-6 shadow-lg">
+              <CheckCircle className="h-12 w-12 md:h-16 md:w-16 text-white" strokeWidth={2.5} />
             </div>
             
-            <h1 className="font-display text-4xl font-bold text-primary mb-4">
+            <h1 className="font-display text-3xl md:text-4xl font-bold text-primary mb-4">
               Ordine Completato!
             </h1>
             
-            <p className="text-lg text-muted-foreground mb-2">
+            <p className="text-base md:text-lg text-muted-foreground mb-2">
               Grazie per il tuo acquisto
             </p>
             
-            <p className="text-muted-foreground">
+            <p className="text-sm md:text-base text-muted-foreground">
               Numero ordine: <span className="font-mono font-semibold">#{order.display_id}</span>
             </p>
           </div>
