@@ -301,22 +301,48 @@ export default function CheckoutPage(): React.JSX.Element {
             },
           }
         )
+        console.log('[CHECKOUT] Shipping options request (cart-scoped):', {
+          url: `/api/medusa/store/shipping-options?cart_id=${cartId}`,
+          status: soRes.status,
+          statusText: soRes.statusText
+        })
         if (soRes.ok) {
           const soData = await soRes.json()
+          console.log('[CHECKOUT] Shipping options response (cart-scoped):', JSON.stringify(soData, null, 2))
           const options = soData.shipping_options || soData.options || soData || []
           if (Array.isArray(options) && options.length > 0) {
             shippingOptionsFound = options
             chosenShippingOptionId = options[0].id
-            console.log('[CHECKOUT] Shipping options found (cart-scoped):', options.length, options.map((o: any) => ({ id: o.id, name: o.name })))
+            console.log('[CHECKOUT] ✅ Shipping options found (cart-scoped):', options.length, options.map((o: any) => ({ 
+              id: o.id, 
+              name: o.name || o.label,
+              amount: o.amount,
+              provider_id: o.provider_id,
+              region_id: o.region_id
+            })))
+          } else {
+            console.warn('[CHECKOUT] ⚠️ No shipping options in response (cart-scoped):', {
+              responseKeys: Object.keys(soData),
+              isArray: Array.isArray(soData),
+              rawResponse: JSON.stringify(soData, null, 2).substring(0, 500)
+            })
           }
+        } else {
+          const errorText = await soRes.text()
+          console.error('[CHECKOUT] ❌ Shipping options request failed (cart-scoped):', {
+            status: soRes.status,
+            statusText: soRes.statusText,
+            error: errorText.substring(0, 500)
+          })
         }
-      } catch (err) {
-        console.warn('[CHECKOUT] Error fetching cart-scoped shipping options:', err)
+      } catch (err: any) {
+        console.error('[CHECKOUT] ❌ Exception fetching cart-scoped shipping options:', err.message, err.stack)
       }
 
       // If cart-scoped options failed, try region-scoped options as fallback
       if (!chosenShippingOptionId) {
         const regionId = latestCart?.region?.id || medusa.cart?.region?.id
+        console.log('[CHECKOUT] Trying region-scoped options, regionId:', regionId)
         if (regionId) {
           try {
             const soRes = await fetch(
@@ -328,18 +354,45 @@ export default function CheckoutPage(): React.JSX.Element {
                 },
               }
             )
+            console.log('[CHECKOUT] Shipping options request (region-scoped):', {
+              url: `/api/medusa/store/shipping-options?region_id=${regionId}`,
+              status: soRes.status,
+              statusText: soRes.statusText
+            })
             if (soRes.ok) {
               const soData = await soRes.json()
+              console.log('[CHECKOUT] Shipping options response (region-scoped):', JSON.stringify(soData, null, 2))
               const options = soData.shipping_options || soData.options || []
               if (Array.isArray(options) && options.length > 0) {
                 shippingOptionsFound = options
                 chosenShippingOptionId = options[0].id
-                console.log('[CHECKOUT] Shipping options found (region-scoped):', options.length, options.map((o: any) => ({ id: o.id, name: o.name })))
+                console.log('[CHECKOUT] ✅ Shipping options found (region-scoped):', options.length, options.map((o: any) => ({ 
+                  id: o.id, 
+                  name: o.name || o.label,
+                  amount: o.amount,
+                  provider_id: o.provider_id,
+                  region_id: o.region_id
+                })))
+              } else {
+                console.warn('[CHECKOUT] ⚠️ No shipping options in response (region-scoped):', {
+                  responseKeys: Object.keys(soData),
+                  isArray: Array.isArray(soData),
+                  rawResponse: JSON.stringify(soData, null, 2).substring(0, 500)
+                })
               }
+            } else {
+              const errorText = await soRes.text()
+              console.error('[CHECKOUT] ❌ Shipping options request failed (region-scoped):', {
+                status: soRes.status,
+                statusText: soRes.statusText,
+                error: errorText.substring(0, 500)
+              })
             }
-          } catch (err) {
-            console.warn('[CHECKOUT] Error fetching region-scoped shipping options:', err)
+          } catch (err: any) {
+            console.error('[CHECKOUT] ❌ Exception fetching region-scoped shipping options:', err.message, err.stack)
           }
+        } else {
+          console.warn('[CHECKOUT] ⚠️ No region ID available for region-scoped query')
         }
       }
 
@@ -355,29 +408,65 @@ export default function CheckoutPage(): React.JSX.Element {
               },
             }
           )
+          console.log('[CHECKOUT] Shipping options request (path variant):', {
+            url: `/api/medusa/store/shipping-options/${cartId}`,
+            status: soRes.status,
+            statusText: soRes.statusText
+          })
           if (soRes.ok) {
             const soData = await soRes.json()
+            console.log('[CHECKOUT] Shipping options response (path variant):', JSON.stringify(soData, null, 2))
             const options = soData.shipping_options || soData.options || soData || []
             if (Array.isArray(options) && options.length > 0) {
               shippingOptionsFound = options
               chosenShippingOptionId = options[0].id
-              console.log('[CHECKOUT] Shipping options found (path variant):', options.length, options.map((o: any) => ({ id: o.id, name: o.name })))
+              console.log('[CHECKOUT] ✅ Shipping options found (path variant):', options.length, options.map((o: any) => ({ 
+                id: o.id, 
+                name: o.name || o.label,
+                amount: o.amount,
+                provider_id: o.provider_id,
+                region_id: o.region_id
+              })))
+            } else {
+              console.warn('[CHECKOUT] ⚠️ No shipping options in response (path variant):', {
+                responseKeys: Object.keys(soData),
+                isArray: Array.isArray(soData),
+                rawResponse: JSON.stringify(soData, null, 2).substring(0, 500)
+              })
             }
+          } else {
+            const errorText = await soRes.text()
+            console.error('[CHECKOUT] ❌ Shipping options request failed (path variant):', {
+              status: soRes.status,
+              statusText: soRes.statusText,
+              error: errorText.substring(0, 500)
+            })
           }
-        } catch (err) {
-          console.warn('[CHECKOUT] Error fetching path-variant shipping options:', err)
+        } catch (err: any) {
+          console.error('[CHECKOUT] ❌ Exception fetching path-variant shipping options:', err.message, err.stack)
         }
       }
 
       // CRITICAL: If no shipping option found, STOP and show clear error
       if (!chosenShippingOptionId) {
+        const regionId = latestCart?.region?.id || medusa.cart?.region?.id
         console.error('[CHECKOUT] ❌ NO SHIPPING OPTIONS FOUND!')
         console.error('[CHECKOUT] Cart ID:', cartId)
-        console.error('[CHECKOUT] Region ID:', latestCart?.region?.id || medusa.cart?.region?.id)
+        console.error('[CHECKOUT] Region ID:', regionId)
+        console.error('[CHECKOUT] Cart region:', latestCart?.region || medusa.cart?.region)
+        console.error('[CHECKOUT] Shipping address:', latestCart?.shipping_address || medusa.cart?.shipping_address)
         throw new Error(
-          "Nessuna opzione di spedizione disponibile per questo carrello/indirizzo. " +
-          "Configura almeno una Shipping Option valida in Medusa per la regione del carrello. " +
-          `Cart ID: ${cartId}, Region ID: ${latestCart?.region?.id || medusa.cart?.region?.id || 'N/A'}`
+          "Nessuna Shipping Option disponibile per questo carrello/indirizzo.\n\n" +
+          "IMPORTANTE: In Medusa v2, devi creare una Shipping Option (non solo un Shipping Option Type).\n\n" +
+          "Verifica in Medusa Admin:\n" +
+          "1. Che esista una Shipping Option (ID inizia con 'so_') per la regione: " + (regionId || 'N/A') + "\n" +
+          "2. Che la Shipping Option sia associata a:\n" +
+          "   - La regione corretta del carrello\n" +
+          "   - Un Shipping Profile che include i prodotti nel carrello\n" +
+          "   - Un Fulfillment Provider attivo\n\n" +
+          `Cart ID: ${cartId}\n` +
+          `Region ID: ${regionId || 'N/A'}\n` +
+          "Controlla la console del browser per i dettagli completi delle chiamate API."
         )
       }
 
