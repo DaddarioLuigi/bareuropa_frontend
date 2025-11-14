@@ -6,6 +6,8 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Badge } from "@/components/ui/badge"
 import { Eye } from "lucide-react"
 import { AddToCartButton } from "@/components/add-to-cart-button"
+import { ProductsSearch } from "@/components/products-search"
+import { ProductsPagination } from "@/components/products-pagination"
 import Link from "next/link"
 import { Suspense } from "react"
 import { Metadata } from 'next'
@@ -87,104 +89,131 @@ async function ProductsGrid({ searchParams }: ProductsPageProps) {
     )
 
     const products: Product[] = data.products ?? data
+    const totalCount = data.count ?? data.total ?? null
+
+    // Se non abbiamo il conteggio totale, stimiamolo in base ai risultati
+    // Se abbiamo meno prodotti del limit, siamo all'ultima pagina
+    let estimatedTotal = totalCount
+    if (estimatedTotal === null) {
+      if (products.length < limit) {
+        // Ultima pagina: totale = offset + prodotti restituiti
+        estimatedTotal = page * limit + products.length
+      } else {
+        // Potrebbero esserci più pagine, stimiamo almeno (page + 1) * limit + 1
+        estimatedTotal = (page + 1) * limit + 1
+      }
+    }
+
+    const totalPages = Math.ceil(estimatedTotal / limit)
 
     if (products.length === 0) {
       return (
-        <div className="text-center py-16">
-          <h2 className="text-xl font-semibold mb-4">Nessun prodotto trovato</h2>
-          <p className="text-muted-foreground mb-6">
-            {searchParams.q ? `Nessun risultato per "${searchParams.q}"` : 'Non ci sono prodotti disponibili al momento.'}
-          </p>
-          <Link href="/products">
-            <Button variant="outline">Visualizza tutti i prodotti</Button>
-          </Link>
-        </div>
+        <>
+          <div className="text-center py-16">
+            <h2 className="text-xl font-semibold mb-4">Nessun prodotto trovato</h2>
+            <p className="text-muted-foreground mb-6">
+              {searchParams.q ? `Nessun risultato per "${searchParams.q}"` : 'Non ci sono prodotti disponibili al momento.'}
+            </p>
+            <Link href="/products">
+              <Button variant="outline">Visualizza tutti i prodotti</Button>
+            </Link>
+          </div>
+        </>
       )
     }
 
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-        {products.map((product) => {
-          // Get price from calculated_price (already in euros) or from prices (in cents)
-          const variant = product.variants?.[0]
-          const price = variant?.calculated_price?.calculated_amount ?? 
-            (variant?.prices?.[0]?.amount ? variant.prices[0].amount / 100 : 0)
-          const weight = variant?.options?.[0]?.value || "N/A"
-          const category = product.collection?.title || "Generale"
-          const image = product.thumbnail || product.images?.[0]?.url || "/placeholder.svg"
-          
-          return (
-            <Card key={product.id} className="group hover:shadow-lg transition-all duration-300 h-full">
-              <CardHeader className="p-0">
-                <div className="relative overflow-hidden rounded-t-lg">
-                  <img
-                    src={image}
-                    alt={product.title}
-                    className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <Link href={`/products/${product.handle}`}>
-                      <Button 
-                        size="sm" 
-                        variant="secondary" 
-                        className="min-h-[44px] min-w-[44px]"
-                        aria-label={`Vedi dettagli di ${product.title}`}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              </CardHeader>
-
-              <CardContent className="p-4 flex-1">
-                <div className="flex items-center justify-between mb-2">
-                  <Badge variant="outline" className="text-xs">
-                    {category}
-                  </Badge>
-                </div>
-
-                <CardTitle className="text-lg mb-2 line-clamp-1">{product.title}</CardTitle>
-
-                <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{product.description}</p>
-
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="text-2xl font-bold text-primary">
-                    €{price.toFixed(2)}
-                  </span>
-                </div>
-              </CardContent>
-
-              <CardFooter className="p-4 pt-0 flex gap-2">
-                <Link href={`/products/${product.handle}`} className="flex-1">
-                  <Button 
-                    variant="outline" 
-                    className="w-full bg-transparent min-h-[44px]"
-                    aria-label={`Vedi dettagli di ${product.title}`}
-                  >
-                    <Eye className="h-4 w-4 mr-2" />
-                    Dettagli
-                  </Button>
-                </Link>
-                {product.variants?.[0] && (
-                  <div className="flex-1">
-                    <AddToCartButton
-                      productId={product.id}
-                      variantId={product.variants[0].id}
-                      productTitle={product.title}
-                      price={price}
-                      image={image}
-                      weight={weight}
-                      className="w-full bg-accent hover:bg-accent/90 min-h-[44px]"
-                      size="default"
+      <>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+          {products.map((product) => {
+            // Get price from calculated_price (already in euros) or from prices (in cents)
+            const variant = product.variants?.[0]
+            const price = variant?.calculated_price?.calculated_amount ?? 
+              (variant?.prices?.[0]?.amount ? variant.prices[0].amount / 100 : 0)
+            const weight = variant?.options?.[0]?.value || "N/A"
+            const category = product.collection?.title || "Generale"
+            const image = product.thumbnail || product.images?.[0]?.url || "/placeholder.svg"
+            
+            return (
+              <Card key={product.id} className="group hover:shadow-lg transition-all duration-300 h-full">
+                <CardHeader className="p-0">
+                  <div className="relative overflow-hidden rounded-t-lg">
+                    <img
+                      src={image}
+                      alt={product.title}
+                      className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
                     />
+                    <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <Link href={`/products/${product.handle}`}>
+                        <Button 
+                          size="sm" 
+                          variant="secondary" 
+                          className="min-h-[44px] min-w-[44px]"
+                          aria-label={`Vedi dettagli di ${product.title}`}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </Link>
+                    </div>
                   </div>
-                )}
-              </CardFooter>
-            </Card>
-          )
-        })}
-      </div>
+                </CardHeader>
+
+                <CardContent className="p-4 flex-1">
+                  <div className="flex items-center justify-between mb-2">
+                    <Badge variant="outline" className="text-xs">
+                      {category}
+                    </Badge>
+                  </div>
+
+                  <CardTitle className="text-lg mb-2 line-clamp-1">{product.title}</CardTitle>
+
+                  <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{product.description}</p>
+
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="text-2xl font-bold text-primary">
+                      €{price.toFixed(2)}
+                    </span>
+                  </div>
+                </CardContent>
+
+                <CardFooter className="p-4 pt-0 flex gap-2">
+                  <Link href={`/products/${product.handle}`} className="flex-1">
+                    <Button 
+                      variant="outline" 
+                      className="w-full bg-transparent min-h-[44px]"
+                      aria-label={`Vedi dettagli di ${product.title}`}
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      Dettagli
+                    </Button>
+                  </Link>
+                  {product.variants?.[0] && (
+                    <div className="flex-1">
+                      <AddToCartButton
+                        productId={product.id}
+                        variantId={product.variants[0].id}
+                        productTitle={product.title}
+                        price={price}
+                        image={image}
+                        weight={weight}
+                        className="w-full bg-accent hover:bg-accent/90 min-h-[44px]"
+                        size="default"
+                      />
+                    </div>
+                  )}
+                </CardFooter>
+              </Card>
+            )
+          })}
+        </div>
+        
+        <ProductsPagination
+          currentPage={page}
+          totalPages={totalPages}
+          totalProducts={estimatedTotal}
+          limit={limit}
+        />
+      </>
     )
   } catch (error) {
     console.error('Error fetching products:', error)
@@ -244,6 +273,11 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
         {/* Products Grid */}
         <section className="py-16">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            {/* Search Bar */}
+            <div className="mb-8">
+              <ProductsSearch />
+            </div>
+            
             <Suspense fallback={<LoadingSkeleton />}>
               <ProductsGrid searchParams={searchParams} />
             </Suspense>
