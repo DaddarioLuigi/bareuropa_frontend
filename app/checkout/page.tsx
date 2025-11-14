@@ -542,11 +542,38 @@ export default function CheckoutPage(): React.JSX.Element {
 
       // CRITICAL: Wait for payment collection to be initialized automatically by Medusa
       // In Medusa v2, payment collection is created automatically when shipping method is added
+      // However, some setups create it only during complete - so we wait but don't block if it doesn't appear
       console.log('[CHECKOUT] Waiting for payment collection to be initialized...')
       let paymentCollectionReady = false
       let finalCartBeforeComplete: any = null
       
-      for (let i = 0; i < 15; i++) {
+      // Check current cart state
+      const initialCartRes = await fetch(`/api/medusa/store/carts/${cartId}`, {
+        headers: {
+          "x-publishable-api-key":
+            process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || "",
+        },
+        cache: "no-store",
+      })
+      
+      if (initialCartRes.ok) {
+        const initialCartData = await initialCartRes.json()
+        finalCartBeforeComplete = initialCartData.cart || initialCartData
+        
+        console.log('[CHECKOUT] Initial cart state:', {
+          hasShippingAddress: !!finalCartBeforeComplete?.shipping_address,
+          hasShippingMethods: (finalCartBeforeComplete?.shipping_methods?.length || 0) > 0,
+          shippingMethodsCount: finalCartBeforeComplete?.shipping_methods?.length || 0,
+          hasPaymentCollection: !!finalCartBeforeComplete?.payment_collection,
+          paymentCollectionId: finalCartBeforeComplete?.payment_collection?.id,
+          paymentSessionsCount: finalCartBeforeComplete?.payment_sessions?.length || 0,
+          regionId: finalCartBeforeComplete?.region?.id,
+          paymentProviders: medusa.paymentProviders.length
+        })
+      }
+      
+      // Wait a few seconds for payment collection to be created (some setups do it asynchronously)
+      for (let i = 0; i < 8; i++) {
         const cRes = await fetch(`/api/medusa/store/carts/${cartId}`, {
           headers: {
             "x-publishable-api-key":
@@ -559,7 +586,7 @@ export default function CheckoutPage(): React.JSX.Element {
           const cData = await cRes.json()
           const c = cData.cart || cData
           
-          console.log(`[CHECKOUT] Payment collection check ${i + 1}/15:`, {
+          console.log(`[CHECKOUT] Payment collection check ${i + 1}/8:`, {
             hasPaymentCollection: !!c?.payment_collection,
             paymentCollectionId: c?.payment_collection?.id,
             paymentSessionsCount: c?.payment_sessions?.length || 0,
@@ -582,11 +609,31 @@ export default function CheckoutPage(): React.JSX.Element {
       }
       
       if (!paymentCollectionReady) {
-        console.error('[CHECKOUT] ❌ Payment collection NOT initialized after 15 attempts!')
-        throw new Error(
-          "La payment collection non è stata inizializzata automaticamente. " +
-          "Verifica che il metodo di spedizione sia stato aggiunto correttamente e che il backend Medusa sia configurato correttamente."
-        )
+        console.warn('[CHECKOUT] ⚠️ Payment collection NOT initialized automatically')
+        console.warn('[CHECKOUT] This is OK - some Medusa setups create it during complete')
+        console.warn('[CHECKOUT] Proceeding to complete - Medusa will handle payment collection creation')
+        
+        // Verify we have the minimum requirements
+        if (!finalCartBeforeComplete?.shipping_address) {
+          throw new Error("Indirizzo di spedizione mancante. Completa il form di checkout.")
+        }
+        
+        if (!finalCartBeforeComplete?.shipping_methods || finalCartBeforeComplete.shipping_methods.length === 0) {
+          throw new Error("Metodo di spedizione mancante. Verifica la configurazione.")
+        }
+        
+        if (!finalCartBeforeComplete?.region?.id) {
+          throw new Error("Regione del carrello mancante. Verifica la configurazione.")
+        }
+        
+        // If we have payment providers, that's good - Medusa will create payment collection during complete
+        if (medusa.paymentProviders.length === 0) {
+          throw new Error(
+            "Nessun payment provider configurato per la regione. " +
+            "Configura almeno un payment provider in Medusa Admin per la regione: " + 
+            finalCartBeforeComplete.region.id
+          )
+        }
       }
 
       // Try to create payment session if endpoint exists (some Medusa setups auto-create sessions)
@@ -621,7 +668,7 @@ export default function CheckoutPage(): React.JSX.Element {
         // Don't block - some setups auto-create sessions during complete
       }
       
-      // Final verification: ensure payment collection is still ready before complete
+      // Final verification: log cart state before complete (but don't block if payment collection not present)
       const finalCheckRes = await fetch(`/api/medusa/store/carts/${cartId}`, {
         headers: {
           "x-publishable-api-key":
@@ -634,19 +681,28 @@ export default function CheckoutPage(): React.JSX.Element {
         const finalCheckData = await finalCheckRes.json()
         const finalCart = finalCheckData.cart || finalCheckData
         
-        if (!finalCart?.payment_collection && (!finalCart?.payment_sessions || finalCart.payment_sessions.length === 0)) {
-          console.error('[CHECKOUT] ❌ Payment collection lost before complete!')
-          throw new Error(
-            "La payment collection non è disponibile. Riprova il checkout."
-          )
-        }
+        console.log('[CHECKOUT] Final cart state before complete:', {
+          hasShippingAddress: !!finalCart?.shipping_address,
+          hasShippingMethods: (finalCart?.shipping_methods?.length || 0) > 0,
+          hasPaymentCollection: !!finalCart?.payment_collection,
+          paymentCollectionId: finalCart?.payment_collection?.id,
+          paymentSessionsCount: finalCart?.payment_sessions?.length || 0,
+          regionId: finalCart?.region?.id,
+          paymentProviderSelected: providerId
+        })
         
-        console.log('[CHECKOUT] ✅ Final verification passed - payment collection ready for complete')
+        // If payment collection is present, great! If not, Medusa will create it during complete
+        if (finalCart?.payment_collection || (finalCart?.payment_sessions?.length || 0) > 0) {
+          console.log('[CHECKOUT] ✅ Payment collection ready for complete')
+        } else {
+          console.log('[CHECKOUT] ⚠️ Payment collection not present - Medusa will create it during complete')
+        }
       }
       // Stripe UI would happen here (Stripe Elements), but Medusa can handle authorization server-side.
 
       // Step 5: Complete Cart
-      const completeRes = await fetch(`/api/medusa/store/carts/${cartId}/complete`, {
+      console.log('[CHECKOUT] Attempting to complete cart...')
+      let completeRes = await fetch(`/api/medusa/store/carts/${cartId}/complete`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -654,13 +710,64 @@ export default function CheckoutPage(): React.JSX.Element {
             process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || "",
         },
       })
+      
+      // If complete fails with payment collection error, wait a bit and retry once
+      // (Medusa might need time to create the payment collection)
       if (!completeRes.ok) {
         const txt = await completeRes.text()
-        throw new Error(txt || "Completamento ordine fallito")
+        const errorText = txt.toLowerCase()
+        
+        if (errorText.includes("payment collection has not been initiated") || 
+            errorText.includes("payment collection")) {
+          console.warn('[CHECKOUT] ⚠️ Complete failed - payment collection not ready, waiting and retrying...')
+          await new Promise((r) => setTimeout(r, 1500))
+          
+          // Retry complete
+          completeRes = await fetch(`/api/medusa/store/carts/${cartId}/complete`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-publishable-api-key":
+                process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || "",
+            },
+          })
+        }
       }
+      
+      if (!completeRes.ok) {
+        const txt = await completeRes.text()
+        console.error('[CHECKOUT] ❌ Complete failed:', {
+          status: completeRes.status,
+          statusText: completeRes.statusText,
+          error: txt.substring(0, 1000)
+        })
+        
+        // Try to parse error for better message
+        let errorMessage = txt
+        try {
+          const errorJson = JSON.parse(txt)
+          errorMessage = errorJson.error || errorJson.message || errorJson.details?.message || txt
+        } catch {
+          // Not JSON, use as is
+        }
+        
+        throw new Error(errorMessage || "Completamento ordine fallito")
+      }
+      
       const orderData = await completeRes.json()
       const order = orderData.order || orderData
-      if (!order?.id) throw new Error("Ordine non creato correttamente")
+      
+      if (!order?.id) {
+        console.error('[CHECKOUT] ❌ Order created but no ID:', orderData)
+        throw new Error("Ordine non creato correttamente")
+      }
+      
+      console.log('[CHECKOUT] ✅ Order completed successfully:', {
+        orderId: order.id,
+        displayId: order.display_id,
+        total: order.total,
+        paymentStatus: order.payment_status
+      })
 
       router.push("/checkout/success")
     } catch (err: any) {
