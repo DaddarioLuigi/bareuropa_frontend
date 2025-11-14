@@ -183,18 +183,25 @@ export default function CheckoutPage() {
 
   const loadCart = async () => {
     try {
-      const res = await fetch('/api/cart/id')
+      const res = await fetch('/api/cart/details')
       if (!res.ok) {
-        throw new Error('Carrello non trovato')
+        if (res.status === 404) {
+          // Nessun carrello trovato, reindirizza al carrello
+          router.push('/cart')
+          return
+        }
+        throw new Error('Errore nel caricamento del carrello')
       }
 
       const data = await res.json()
-      if (!data.cart || !data.cart.items || data.cart.items.length === 0) {
+      const cartData = data.cart || data
+      
+      if (!cartData || !cartData.items || cartData.items.length === 0) {
         router.push('/cart')
         return
       }
 
-      setCart(data.cart)
+      setCart(cartData)
     } catch (error) {
       console.error('Errore nel caricamento del carrello:', error)
       router.push('/cart')
