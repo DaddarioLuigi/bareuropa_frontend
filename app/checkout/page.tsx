@@ -404,17 +404,21 @@ export default function CheckoutPage(): React.JSX.Element {
           })
         }
         let psRes = await createSession()
+        let firstTxt: string | null = null
         if (!psRes.ok) {
-          const txt = await psRes.text()
-          if (txt?.includes("Payment collection has not been initiated")) {
+          // Read response text ONCE
+          firstTxt = await psRes.text().catch(() => "")
+          if (firstTxt?.includes("Payment collection has not been initiated")) {
             await new Promise((r) => setTimeout(r, 800))
             psRes = await createSession()
           }
         }
         // If still not ok, we won't block complete in setups that auto-create sessions, but surface error if clearly invalid
         if (!psRes.ok && medusa.paymentProviders.length > 0) {
-          // Not fatal for all providers, but helps troubleshooting
-          console.warn("Creazione payment session non riuscita:", await psRes.text())
+          // Prefer previously-read text to avoid re-reading the same stream
+          const finalTxt =
+            firstTxt !== null ? firstTxt : await psRes.text().catch(() => "")
+          console.warn("Creazione payment session non riuscita:", finalTxt)
         }
       }
       // Stripe UI would happen here (Stripe Elements), but Medusa can handle authorization server-side.
