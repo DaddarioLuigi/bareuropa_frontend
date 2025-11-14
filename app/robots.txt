@@ -5,7 +5,6 @@ Allow: /
 Disallow: /api/
 Disallow: /admin/
 Disallow: /_next/
-Disallow: /checkout/
 
 # Allow product pages
 Allow: /products/

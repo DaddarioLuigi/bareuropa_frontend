@@ -1,0 +1,634 @@
+
+> my-v0-project@0.1.0 dev /Users/luigidaddario/Documents/GitHub/bareuropa_frontend
+> next dev -p 3000
+
+  ▲ Next.js 14.2.16
+  - Local:        http://localhost:3000
+  - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 2.3s
+ ○ Compiling / ...
+ ✓ Compiled / in 2.1s (1405 modules)
+ GET / 200 in 2235ms
+ GET / 200 in 60ms
+ ○ Compiling /products ...
+ ✓ Compiled /products in 1220ms (1538 modules)
+ ✓ Compiled /api/cart/add in 226ms (877 modules)
+Error adding to cart: Error: Failed to add item: {"code":"unknown_error","type":"unknown_error","message":"An unknown error occurred."}
+    at POST (webpack-internal:///(rsc)/./app/api/cart/add/route.ts:90:19)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async /Users/luigidaddario/Documents/GitHub/bareuropa_frontend/node_modules/.pnpm/next@14.2.16_react-dom@18.0.0_react@18.0.0__react@18.0.0/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:55831
+    at async eO.execute (/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/node_modules/.pnpm/next@14.2.16_react-dom@18.0.0_react@18.0.0__react@18.0.0/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:46527)
+    at async eO.handle (/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/node_modules/.pnpm/next@14.2.16_react-dom@18.0.0_react@18.0.0__react@18.0.0/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:57165)
+    at async doRender (/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/node_modules/.pnpm/next@14.2.16_react-dom@18.0.0_react@18.0.0__react@18.0.0/node_modules/next/dist/server/base-server.js:1352:42)
+    at async cacheEntry.responseCache.get.routeKind (/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/node_modules/.pnpm/next@14.2.16_react-dom@18.0.0_react@18.0.0__react@18.0.0/node_modules/next/dist/server/base-server.js:1574:28)
+    at async DevServer.renderToResponseWithComponentsImpl (/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/node_modules/.pnpm/next@14.2.16_react-dom@18.0.0_react@18.0.0__react@18.0.0/node_modules/next/dist/server/base-server.js:1482:28)
+    at async DevServer.renderPageComponent (/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/node_modules/.pnpm/next@14.2.16_react-dom@18.0.0_react@18.0.0__react@18.0.0/node_modules/next/dist/server/base-server.js:1908:24)
+    at async DevServer.renderToResponseImpl (/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/node_modules/.pnpm/next@14.2.16_react-dom@18.0.0_react@18.0.0__react@18.0.0/node_modules/next/dist/server/base-server.js:1946:32)
+    at async DevServer.pipeImpl (/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/node_modules/.pnpm/next@14.2.16_react-dom@18.0.0_react@18.0.0__react@18.0.0/node_modules/next/dist/server/base-server.js:921:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/node_modules/.pnpm/next@14.2.16_react-dom@18.0.0_react@18.0.0__react@18.0.0/node_modules/next/dist/server/next-server.js:272:17)
+    at async DevServer.handleRequestImpl (/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/node_modules/.pnpm/next@14.2.16_react-dom@18.0.0_react@18.0.0__react@18.0.0/node_modules/next/dist/server/base-server.js:817:17)
+    at async /Users/luigidaddario/Documents/GitHub/bareuropa_frontend/node_modules/.pnpm/next@14.2.16_react-dom@18.0.0_react@18.0.0__react@18.0.0/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/node_modules/.pnpm/next@14.2.16_react-dom@18.0.0_react@18.0.0__react@18.0.0/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/node_modules/.pnpm/next@14.2.16_react-dom@18.0.0_react@18.0.0__react@18.0.0/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/node_modules/.pnpm/next@14.2.16_react-dom@18.0.0_react@18.0.0__react@18.0.0/node_modules/next/dist/server/lib/router-server.js:173:21)
+    at async handleRequest (/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/node_modules/.pnpm/next@14.2.16_react-dom@18.0.0_react@18.0.0__react@18.0.0/node_modules/next/dist/server/lib/router-server.js:350:24)
+    at async requestHandlerImpl (/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/node_modules/.pnpm/next@14.2.16_react-dom@18.0.0_react@18.0.0__react@18.0.0/node_modules/next/dist/server/lib/router-server.js:374:13)
+    at async Server.requestListener (/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/node_modules/.pnpm/next@14.2.16_react-dom@18.0.0_react@18.0.0__react@18.0.0/node_modules/next/dist/server/lib/start-server.js:141:13)
+ POST /api/cart/add 500 in 474ms
+Error adding to cart: Error: Failed to add item: {"code":"unknown_error","type":"unknown_error","message":"An unknown error occurred."}
+    at POST (webpack-internal:///(rsc)/./app/api/cart/add/route.ts:90:19)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async /Users/luigidaddario/Documents/GitHub/bareuropa_frontend/node_modules/.pnpm/next@14.2.16_react-dom@18.0.0_react@18.0.0__react@18.0.0/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:55831
+    at async eO.execute (/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/node_modules/.pnpm/next@14.2.16_react-dom@18.0.0_react@18.0.0__react@18.0.0/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:46527)
+    at async eO.handle (/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/node_modules/.pnpm/next@14.2.16_react-dom@18.0.0_react@18.0.0__react@18.0.0/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:57165)
+    at async doRender (/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/node_modules/.pnpm/next@14.2.16_react-dom@18.0.0_react@18.0.0__react@18.0.0/node_modules/next/dist/server/base-server.js:1352:42)
+    at async cacheEntry.responseCache.get.routeKind (/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/node_modules/.pnpm/next@14.2.16_react-dom@18.0.0_react@18.0.0__react@18.0.0/node_modules/next/dist/server/base-server.js:1574:28)
+    at async DevServer.renderToResponseWithComponentsImpl (/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/node_modules/.pnpm/next@14.2.16_react-dom@18.0.0_react@18.0.0__react@18.0.0/node_modules/next/dist/server/base-server.js:1482:28)
+    at async DevServer.renderPageComponent (/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/node_modules/.pnpm/next@14.2.16_react-dom@18.0.0_react@18.0.0__react@18.0.0/node_modules/next/dist/server/base-server.js:1908:24)
+    at async DevServer.renderToResponseImpl (/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/node_modules/.pnpm/next@14.2.16_react-dom@18.0.0_react@18.0.0__react@18.0.0/node_modules/next/dist/server/base-server.js:1946:32)
+    at async DevServer.pipeImpl (/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/node_modules/.pnpm/next@14.2.16_react-dom@18.0.0_react@18.0.0__react@18.0.0/node_modules/next/dist/server/base-server.js:921:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/node_modules/.pnpm/next@14.2.16_react-dom@18.0.0_react@18.0.0__react@18.0.0/node_modules/next/dist/server/next-server.js:272:17)
+    at async DevServer.handleRequestImpl (/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/node_modules/.pnpm/next@14.2.16_react-dom@18.0.0_react@18.0.0__react@18.0.0/node_modules/next/dist/server/base-server.js:817:17)
+    at async /Users/luigidaddario/Documents/GitHub/bareuropa_frontend/node_modules/.pnpm/next@14.2.16_react-dom@18.0.0_react@18.0.0__react@18.0.0/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/node_modules/.pnpm/next@14.2.16_react-dom@18.0.0_react@18.0.0__react@18.0.0/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/node_modules/.pnpm/next@14.2.16_react-dom@18.0.0_react@18.0.0__react@18.0.0/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/node_modules/.pnpm/next@14.2.16_react-dom@18.0.0_react@18.0.0__react@18.0.0/node_modules/next/dist/server/lib/router-server.js:173:21)
+    at async handleRequest (/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/node_modules/.pnpm/next@14.2.16_react-dom@18.0.0_react@18.0.0__react@18.0.0/node_modules/next/dist/server/lib/router-server.js:350:24)
+    at async requestHandlerImpl (/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/node_modules/.pnpm/next@14.2.16_react-dom@18.0.0_react@18.0.0__react@18.0.0/node_modules/next/dist/server/lib/router-server.js:374:13)
+    at async Server.requestListener (/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/node_modules/.pnpm/next@14.2.16_react-dom@18.0.0_react@18.0.0__react@18.0.0/node_modules/next/dist/server/lib/start-server.js:141:13)
+ POST /api/cart/add 500 in 293ms
+Cart response: {
+  id: 'cart_01K8R4CCK0TKJFW8JD1XFAEYPP',
+  updated: 'cart_01K8R4CCK0TKJFW8JD1XFAEYPP',
+  updatedCartId: 'cart_01K8R4CCK0TKJFW8JD1XFAEYPP'
+}
+Setting cart_id cookie: cart_01K8R4CCK0TKJFW8JD1XFAEYPP
+ POST /api/cart/add 200 in 539ms
+Cart response: {
+  id: 'cart_01K8R4CCK0TKJFW8JD1XFAEYPP',
+  updated: 'cart_01K8R4CCK0TKJFW8JD1XFAEYPP',
+  updatedCartId: 'cart_01K8R4CCK0TKJFW8JD1XFAEYPP'
+}
+Setting cart_id cookie: cart_01K8R4CCK0TKJFW8JD1XFAEYPP
+ POST /api/cart/add 200 in 742ms
+ ✓ Compiled /cart in 358ms (1598 modules)
+Cart page - cartId from cookie: cart_01K8R4CCK0TKJFW8JD1XFAEYPP
+Cart fetch response status: 200 OK
+Cart data received: {
+  "cart": {
+    "id": "cart_01K8R4CCK0TKJFW8JD1XFAEYPP",
+    "currency_code": "eur",
+    "email": null,
+    "region_id": "reg_01K8BEGZCPDDPM7CA706AB5SBH",
+    "created_at": "2025-10-29T14:01:38.144Z",
+    "updated_at": "2025-10-29T14:01:38.144Z",
+    "completed_at": null,
+    "total": 245,
+    "subtotal": 245,
+    "tax_total": 0,
+    "discount_total": 0,
+    "discount_subtotal": 0,
+    "discount_tax_total": 0,
+    "original_total": 245,
+    "original_tax_total": 0,
+    "item_total": 245,
+    "item_subtotal": 245,
+    "item_tax_total": 0,
+    "item_discount_total": 0,
+    "original_item_total": 245,
+    "original_item_subtotal": 245,
+    "original_item_tax_total": 0,
+    "shipping_total": 0,
+    "shipping_subtotal": 0,
+    "shipping_tax_total": 0,
+    "shipping_discount_total": 0,
+    "original_shipping_tax_total": 0,
+    "original_shipping_subtotal": 0,
+    "original_shipping_total": 0,
+    "credit_line_subtotal": 0,
+    "credit_line_tax_total": 0,
+    "credit_line_total": 0,
+    "metadata": null,
+    "sales_channel_id": "sc_01K8BEGZ764BMXV83S041QRVRH",
+    "customer_id": null,
+    "items": [
+      {
+        "id": "cali_01K8WMFA07HZ2F3WQVMKQP5G93",
+        "thumbnail": "https://bucket-production-376b.up.railway.app/medusa-media/458755209_1511719966890440_8588390090740480970_n-01K8TM0RPWC291YZSF8VNZWDZH.jpg",
+        "variant_id": "variant_01K8TM0S76K9D2F7E580JWBMBP",
+        "product_id": "prod_01K8TM0S5K06EQY4EK0ZZ8649K",
+        "product_type_id": null,
+        "product_title": "Colomba pasquale",
+        "product_description": "una colomba buona da mangiare",
+        "product_subtitle": "buona da mangiare",
+        "product_type": null,
+        "product_collection": null,
+        "product_handle": "colomba-pasquale",
+        "variant_sku": null,
+        "variant_barcode": null,
+        "variant_title": "Default variant",
+        "requires_shipping": true,
+        "metadata": {},
+        "created_at": "2025-10-31T07:59:48.743Z",
+        "updated_at": "2025-11-14T10:17:54.267Z",
+        "title": "Colomba pasquale",
+        "quantity": 4,
+        "unit_price": 50,
+        "compare_at_unit_price": null,
+        "is_tax_inclusive": false,
+        "tax_lines": [],
+        "adjustments": [],
+        "product": {
+          "id": "prod_01K8TM0S5K06EQY4EK0ZZ8649K",
+          "collection_id": null,
+          "type_id": null,
+          "categories": [
+            {
+              "id": "pcat_01K8BEGZSPVRAFJ5A7AJQ4MZVX"
+            }
+          ],
+          "tags": []
+        }
+      },
+      {
+        "id": "cali_01K973AWNJRTCYWBGJCT7VDNZW",
+        "thumbnail": "https://medusa-public-images.s3.eu-west-1.amazonaws.com/shorts-vintage-front.png",
+        "variant_id": "variant_01K8BEGZXG9C2AR18RRNG146CH",
+        "product_id": "prod_01K8BEGZTDQKDT2FAN6T3M6YDX",
+        "product_type_id": null,
+        "product_title": "Medusa Shorts",
+        "product_description": "Reimagine the feeling of classic shorts. With our cotton shorts, everyday essentials no longer have to be ordinary.",
+        "product_subtitle": null,
+        "product_type": null,
+        "product_collection": null,
+        "product_handle": "shorts",
+        "variant_sku": "SHORTS-XL",
+        "variant_barcode": null,
+        "variant_title": "XL",
+        "requires_shipping": true,
+        "metadata": {},
+        "created_at": "2025-11-04T09:31:56.978Z",
+        "updated_at": "2025-11-04T09:31:56.978Z",
+        "title": "Medusa Shorts",
+        "quantity": 1,
+        "unit_price": 10,
+        "compare_at_unit_price": null,
+        "is_tax_inclusive": false,
+        "tax_lines": [],
+        "adjustments": [],
+        "product": {
+          "id": "prod_01K8BEGZTDQKDT2FAN6T3M6YDX",
+          "collection_id": null,
+          "type_id": null,
+          "categories": [
+            {
+              "id": "pcat_01K8BEGZSS5JV2G487AMFX4EEA"
+            }
+          ],
+          "tags": []
+        }
+      },
+      {
+        "id": "cali_01KA0XY5A75TTG5137TR8TCQ0B",
+        "thumbnail": "https://bucket-production-376b.up.railway.app/medusa-media/458755209_1511719966890440_8588390090740480970_n-01K8GP1VMS3AEJ8VCZNMZXTYDE.jpg",
+        "variant_id": "variant_01K8GP1VYMAZHTYVXEWDWSMS6G",
+        "product_id": "prod_01K8GP1VX5Q7SZVN6DZHQ3QDHV",
+        "product_type_id": null,
+        "product_title": "Panettone",
+        "product_description": "panettone",
+        "product_subtitle": "",
+        "product_type": null,
+        "product_collection": null,
+        "product_handle": "panettone",
+        "variant_sku": null,
+        "variant_barcode": null,
+        "variant_title": "Default variant",
+        "requires_shipping": false,
+        "metadata": {},
+        "created_at": "2025-11-14T10:17:52.199Z",
+        "updated_at": "2025-11-14T10:17:52.199Z",
+        "title": "Panettone",
+        "quantity": 1,
+        "unit_price": 35,
+        "compare_at_unit_price": null,
+        "is_tax_inclusive": true,
+        "tax_lines": [],
+        "adjustments": [],
+        "product": {
+          "id": "prod_01K8GP1VX5Q7SZVN6DZHQ3QDHV",
+          "collection_id": null,
+          "type_id": null,
+          "categories": [
+            {
+              "id": "pcat_01K8BEGZSQYSXHZ9GXWHXXNJ46"
+            }
+          ],
+          "tags": []
+        }
+      }
+    ],
+    "shipping_methods": [],
+    "shipping_address": null,
+    "billing_address": null,
+    "credit_lines": [],
+    "region": {
+      "id": "reg_01K8BEGZCPDDPM7CA706AB5SBH",
+      "name": "Europe",
+      "currency_code": "eur",
+      "automatic_taxes": true,
+      "countries": [
+        {
+          "iso_2": "dk",
+          "iso_3": "dnk",
+          "num_code": "208",
+          "name": "DENMARK",
+          "display_name": "Denmark",
+          "region_id": "reg_01K8BEGZCPDDPM7CA706AB5SBH",
+          "metadata": null,
+          "created_at": "2025-10-24T15:48:38.396Z",
+          "updated_at": "2025-10-24T15:48:46.624Z",
+          "deleted_at": null
+        },
+        {
+          "iso_2": "fr",
+          "iso_3": "fra",
+          "num_code": "250",
+          "name": "FRANCE",
+          "display_name": "France",
+          "region_id": "reg_01K8BEGZCPDDPM7CA706AB5SBH",
+          "metadata": null,
+          "created_at": "2025-10-24T15:48:38.396Z",
+          "updated_at": "2025-10-24T15:48:46.624Z",
+          "deleted_at": null
+        },
+        {
+          "iso_2": "de",
+          "iso_3": "deu",
+          "num_code": "276",
+          "name": "GERMANY",
+          "display_name": "Germany",
+          "region_id": "reg_01K8BEGZCPDDPM7CA706AB5SBH",
+          "metadata": null,
+          "created_at": "2025-10-24T15:48:38.396Z",
+          "updated_at": "2025-10-24T15:48:46.624Z",
+          "deleted_at": null
+        },
+        {
+          "iso_2": "it",
+          "iso_3": "ita",
+          "num_code": "380",
+          "name": "ITALY",
+          "display_name": "Italy",
+          "region_id": "reg_01K8BEGZCPDDPM7CA706AB5SBH",
+          "metadata": null,
+          "created_at": "2025-10-24T15:48:38.396Z",
+          "updated_at": "2025-10-24T15:48:46.624Z",
+          "deleted_at": null
+        },
+        {
+          "iso_2": "es",
+          "iso_3": "esp",
+          "num_code": "724",
+          "name": "SPAIN",
+          "display_name": "Spain",
+          "region_id": "reg_01K8BEGZCPDDPM7CA706AB5SBH",
+          "metadata": null,
+          "created_at": "2025-10-24T15:48:38.397Z",
+          "updated_at": "2025-10-24T15:48:46.624Z",
+          "deleted_at": null
+        },
+        {
+          "iso_2": "se",
+          "iso_3": "swe",
+          "num_code": "752",
+          "name": "SWEDEN",
+          "display_name": "Sweden",
+          "region_id": "reg_01K8BEGZCPDDPM7CA706AB5SBH",
+          "metadata": null,
+          "created_at": "2025-10-24T15:48:38.397Z",
+          "updated_at": "2025-10-24T15:48:46.624Z",
+          "deleted_at": null
+        },
+        {
+          "iso_2": "gb",
+          "iso_3": "gbr",
+          "num_code": "826",
+          "name": "UNITED KINGDOM",
+          "display_name": "United Kingdom",
+          "region_id": "reg_01K8BEGZCPDDPM7CA706AB5SBH",
+          "metadata": null,
+          "created_at": "2025-10-24T15:48:38.397Z",
+          "updated_at": "2025-10-24T15:48:46.624Z",
+          "deleted_at": null
+        }
+      ]
+    },
+    "promotions": []
+  }
+}
+Cart after extraction: {
+  id: 'cart_01K8R4CCK0TKJFW8JD1XFAEYPP',
+  currency_code: 'eur',
+  email: null,
+  region_id: 'reg_01K8BEGZCPDDPM7CA706AB5SBH',
+  created_at: '2025-10-29T14:01:38.144Z',
+  updated_at: '2025-10-29T14:01:38.144Z',
+  completed_at: null,
+  total: 245,
+  subtotal: 245,
+  tax_total: 0,
+  discount_total: 0,
+  discount_subtotal: 0,
+  discount_tax_total: 0,
+  original_total: 245,
+  original_tax_total: 0,
+  item_total: 245,
+  item_subtotal: 245,
+  item_tax_total: 0,
+  item_discount_total: 0,
+  original_item_total: 245,
+  original_item_subtotal: 245,
+  original_item_tax_total: 0,
+  shipping_total: 0,
+  shipping_subtotal: 0,
+  shipping_tax_total: 0,
+  shipping_discount_total: 0,
+  original_shipping_tax_total: 0,
+  original_shipping_subtotal: 0,
+  original_shipping_total: 0,
+  credit_line_subtotal: 0,
+  credit_line_tax_total: 0,
+  credit_line_total: 0,
+  metadata: null,
+  sales_channel_id: 'sc_01K8BEGZ764BMXV83S041QRVRH',
+  customer_id: null,
+  items: [
+    {
+      id: 'cali_01K8WMFA07HZ2F3WQVMKQP5G93',
+      thumbnail: 'https://bucket-production-376b.up.railway.app/medusa-media/458755209_1511719966890440_8588390090740480970_n-01K8TM0RPWC291YZSF8VNZWDZH.jpg',
+      variant_id: 'variant_01K8TM0S76K9D2F7E580JWBMBP',
+      product_id: 'prod_01K8TM0S5K06EQY4EK0ZZ8649K',
+      product_type_id: null,
+      product_title: 'Colomba pasquale',
+      product_description: 'una colomba buona da mangiare',
+      product_subtitle: 'buona da mangiare',
+      product_type: null,
+      product_collection: null,
+      product_handle: 'colomba-pasquale',
+      variant_sku: null,
+      variant_barcode: null,
+      variant_title: 'Default variant',
+      requires_shipping: true,
+      metadata: {},
+      created_at: '2025-10-31T07:59:48.743Z',
+      updated_at: '2025-11-14T10:17:54.267Z',
+      title: 'Colomba pasquale',
+      quantity: 4,
+      unit_price: 50,
+      compare_at_unit_price: null,
+      is_tax_inclusive: false,
+      tax_lines: [],
+      adjustments: [],
+      product: [Object]
+    },
+    {
+      id: 'cali_01K973AWNJRTCYWBGJCT7VDNZW',
+      thumbnail: 'https://medusa-public-images.s3.eu-west-1.amazonaws.com/shorts-vintage-front.png',
+      variant_id: 'variant_01K8BEGZXG9C2AR18RRNG146CH',
+      product_id: 'prod_01K8BEGZTDQKDT2FAN6T3M6YDX',
+      product_type_id: null,
+      product_title: 'Medusa Shorts',
+      product_description: 'Reimagine the feeling of classic shorts. With our cotton shorts, everyday essentials no longer have to be ordinary.',
+      product_subtitle: null,
+      product_type: null,
+      product_collection: null,
+      product_handle: 'shorts',
+      variant_sku: 'SHORTS-XL',
+      variant_barcode: null,
+      variant_title: 'XL',
+      requires_shipping: true,
+      metadata: {},
+      created_at: '2025-11-04T09:31:56.978Z',
+      updated_at: '2025-11-04T09:31:56.978Z',
+      title: 'Medusa Shorts',
+      quantity: 1,
+      unit_price: 10,
+      compare_at_unit_price: null,
+      is_tax_inclusive: false,
+      tax_lines: [],
+      adjustments: [],
+      product: [Object]
+    },
+    {
+      id: 'cali_01KA0XY5A75TTG5137TR8TCQ0B',
+      thumbnail: 'https://bucket-production-376b.up.railway.app/medusa-media/458755209_1511719966890440_8588390090740480970_n-01K8GP1VMS3AEJ8VCZNMZXTYDE.jpg',
+      variant_id: 'variant_01K8GP1VYMAZHTYVXEWDWSMS6G',
+      product_id: 'prod_01K8GP1VX5Q7SZVN6DZHQ3QDHV',
+      product_type_id: null,
+      product_title: 'Panettone',
+      product_description: 'panettone',
+      product_subtitle: '',
+      product_type: null,
+      product_collection: null,
+      product_handle: 'panettone',
+      variant_sku: null,
+      variant_barcode: null,
+      variant_title: 'Default variant',
+      requires_shipping: false,
+      metadata: {},
+      created_at: '2025-11-14T10:17:52.199Z',
+      updated_at: '2025-11-14T10:17:52.199Z',
+      title: 'Panettone',
+      quantity: 1,
+      unit_price: 35,
+      compare_at_unit_price: null,
+      is_tax_inclusive: true,
+      tax_lines: [],
+      adjustments: [],
+      product: [Object]
+    }
+  ],
+  shipping_methods: [],
+  shipping_address: null,
+  billing_address: null,
+  credit_lines: [],
+  region: {
+    id: 'reg_01K8BEGZCPDDPM7CA706AB5SBH',
+    name: 'Europe',
+    currency_code: 'eur',
+    automatic_taxes: true,
+    countries: [
+      [Object], [Object],
+      [Object], [Object],
+      [Object], [Object],
+      [Object]
+    ]
+  },
+  promotions: []
+}
+Cart items: [
+  {
+    id: 'cali_01K8WMFA07HZ2F3WQVMKQP5G93',
+    thumbnail: 'https://bucket-production-376b.up.railway.app/medusa-media/458755209_1511719966890440_8588390090740480970_n-01K8TM0RPWC291YZSF8VNZWDZH.jpg',
+    variant_id: 'variant_01K8TM0S76K9D2F7E580JWBMBP',
+    product_id: 'prod_01K8TM0S5K06EQY4EK0ZZ8649K',
+    product_type_id: null,
+    product_title: 'Colomba pasquale',
+    product_description: 'una colomba buona da mangiare',
+    product_subtitle: 'buona da mangiare',
+    product_type: null,
+    product_collection: null,
+    product_handle: 'colomba-pasquale',
+    variant_sku: null,
+    variant_barcode: null,
+    variant_title: 'Default variant',
+    requires_shipping: true,
+    metadata: {},
+    created_at: '2025-10-31T07:59:48.743Z',
+    updated_at: '2025-11-14T10:17:54.267Z',
+    title: 'Colomba pasquale',
+    quantity: 4,
+    unit_price: 50,
+    compare_at_unit_price: null,
+    is_tax_inclusive: false,
+    tax_lines: [],
+    adjustments: [],
+    product: {
+      id: 'prod_01K8TM0S5K06EQY4EK0ZZ8649K',
+      collection_id: null,
+      type_id: null,
+      categories: [Array],
+      tags: []
+    }
+  },
+  {
+    id: 'cali_01K973AWNJRTCYWBGJCT7VDNZW',
+    thumbnail: 'https://medusa-public-images.s3.eu-west-1.amazonaws.com/shorts-vintage-front.png',
+    variant_id: 'variant_01K8BEGZXG9C2AR18RRNG146CH',
+    product_id: 'prod_01K8BEGZTDQKDT2FAN6T3M6YDX',
+    product_type_id: null,
+    product_title: 'Medusa Shorts',
+    product_description: 'Reimagine the feeling of classic shorts. With our cotton shorts, everyday essentials no longer have to be ordinary.',
+    product_subtitle: null,
+    product_type: null,
+    product_collection: null,
+    product_handle: 'shorts',
+    variant_sku: 'SHORTS-XL',
+    variant_barcode: null,
+    variant_title: 'XL',
+    requires_shipping: true,
+    metadata: {},
+    created_at: '2025-11-04T09:31:56.978Z',
+    updated_at: '2025-11-04T09:31:56.978Z',
+    title: 'Medusa Shorts',
+    quantity: 1,
+    unit_price: 10,
+    compare_at_unit_price: null,
+    is_tax_inclusive: false,
+    tax_lines: [],
+    adjustments: [],
+    product: {
+      id: 'prod_01K8BEGZTDQKDT2FAN6T3M6YDX',
+      collection_id: null,
+      type_id: null,
+      categories: [Array],
+      tags: []
+    }
+  },
+  {
+    id: 'cali_01KA0XY5A75TTG5137TR8TCQ0B',
+    thumbnail: 'https://bucket-production-376b.up.railway.app/medusa-media/458755209_1511719966890440_8588390090740480970_n-01K8GP1VMS3AEJ8VCZNMZXTYDE.jpg',
+    variant_id: 'variant_01K8GP1VYMAZHTYVXEWDWSMS6G',
+    product_id: 'prod_01K8GP1VX5Q7SZVN6DZHQ3QDHV',
+    product_type_id: null,
+    product_title: 'Panettone',
+    product_description: 'panettone',
+    product_subtitle: '',
+    product_type: null,
+    product_collection: null,
+    product_handle: 'panettone',
+    variant_sku: null,
+    variant_barcode: null,
+    variant_title: 'Default variant',
+    requires_shipping: false,
+    metadata: {},
+    created_at: '2025-11-14T10:17:52.199Z',
+    updated_at: '2025-11-14T10:17:52.199Z',
+    title: 'Panettone',
+    quantity: 1,
+    unit_price: 35,
+    compare_at_unit_price: null,
+    is_tax_inclusive: true,
+    tax_lines: [],
+    adjustments: [],
+    product: {
+      id: 'prod_01K8GP1VX5Q7SZVN6DZHQ3QDHV',
+      collection_id: null,
+      type_id: null,
+      categories: [Array],
+      tags: []
+    }
+  }
+]
+ ⨯ ./app/checkout/page.tsx
+Error: 
+  [31mx[0m 'import', and 'export' cannot be used outside of module code
+     ,-[[36;1;4m/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/app/checkout/page.tsx[0m:209:1]
+ [2m209[0m |   return defaultMessage
+ [2m210[0m | }
+ [2m211[0m | 
+ [2m212[0m | export default function CheckoutPage(): React.JSX.Element {
+     : [31;1m^^^^^^[0m
+ [2m213[0m |   const { state } = useCart()
+ [2m214[0m |   const medusa = useMedusa()
+ [2m215[0m |   const router = useRouter()
+     `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/checkout/page.tsx
+ ⨯ ./app/checkout/page.tsx
+Error: 
+  [31mx[0m 'import', and 'export' cannot be used outside of module code
+     ,-[[36;1;4m/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/app/checkout/page.tsx[0m:209:1]
+ [2m209[0m |   return defaultMessage
+ [2m210[0m | }
+ [2m211[0m | 
+ [2m212[0m | export default function CheckoutPage(): React.JSX.Element {
+     : [31;1m^^^^^^[0m
+ [2m213[0m |   const { state } = useCart()
+ [2m214[0m |   const medusa = useMedusa()
+ [2m215[0m |   const router = useRouter()
+     `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/checkout/page.tsx
+ ○ Compiling /_not-found ...
+ ⨯ ./app/checkout/page.tsx
+Error: 
+  [31mx[0m 'import', and 'export' cannot be used outside of module code
+     ,-[[36;1;4m/Users/luigidaddario/Documents/GitHub/bareuropa_frontend/app/checkout/page.tsx[0m:209:1]
+ [2m209[0m |   return defaultMessage
+ [2m210[0m | }
+ [2m211[0m | 
+ [2m212[0m | export default function CheckoutPage(): React.JSX.Element {
+     : [31;1m^^^^^^[0m
+ [2m213[0m |   const { state } = useCart()
+ [2m214[0m |   const medusa = useMedusa()
+ [2m215[0m |   const router = useRouter()
+     `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/checkout/page.tsx
+ GET /checkout 500 in 4ms
+[?25h

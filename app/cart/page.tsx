@@ -364,13 +364,6 @@ async function CartContent() {
                   </div>
 
                   <div className="space-y-3 pt-4">
-                    <Link href="/checkout" className="block">
-                      <Button size="lg" className="w-full bg-accent hover:bg-accent/90">
-                        Procedi al Checkout
-                        <ArrowRight className="h-5 w-5 ml-2" />
-                      </Button>
-                    </Link>
-
                     <Link href="/products" className="block">
                       <Button variant="outline" size="lg" className="w-full bg-transparent">
                         Continua lo Shopping
