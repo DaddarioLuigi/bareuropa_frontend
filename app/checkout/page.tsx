@@ -84,6 +84,34 @@ export default function CheckoutPage(): React.JSX.Element {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
+  // Ensure cart_id is synced from cookie to localStorage (robust cart resolution)
+  useEffect(() => {
+    const syncCartId = async () => {
+      try {
+        const res = await fetch("/api/cart/id", { cache: "no-store" })
+        if (res.ok) {
+          const data = await res.json()
+          const cookieCartId = data?.cart_id
+          if (cookieCartId) {
+            const lsMedusa = localStorage.getItem("medusa_cart_id")
+            const lsCart = localStorage.getItem("cart_id")
+            if (lsMedusa !== cookieCartId || lsCart !== cookieCartId) {
+              localStorage.setItem("medusa_cart_id", cookieCartId)
+              localStorage.setItem("cart_id", cookieCartId)
+              // hint other hooks to reload
+              window.dispatchEvent(
+                new CustomEvent("cartUpdated", { detail: { cartId: cookieCartId } })
+              )
+            }
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }
+    syncCartId()
+  }, [])
+
   // Load payment providers when cart/region is available
   useEffect(() => {
     const regionId = medusa.cart?.region?.id
@@ -107,10 +135,22 @@ export default function CheckoutPage(): React.JSX.Element {
     setIsProcessing(true)
 
     try {
-      const cartId =
+      let cartId =
         medusa.cart?.id ||
         localStorage.getItem("medusa_cart_id") ||
-        localStorage.getItem("cart_id")
+        localStorage.getItem("cart_id") ||
+        null
+      // If still missing, create a cart to avoid undefined usage
+      if (!cartId) {
+        try {
+          const createdId = await medusa.createCart()
+          if (createdId) {
+            localStorage.setItem("medusa_cart_id", createdId)
+            localStorage.setItem("cart_id", createdId)
+            cartId = createdId
+          }
+        } catch {}
+      }
       if (!cartId) throw new Error("Nessun carrello disponibile")
 
       const cartHasItems =
@@ -210,6 +250,32 @@ export default function CheckoutPage(): React.JSX.Element {
         }
       } catch {
         // ignore
+      }
+      // If cart-scoped options failed, try region-scoped options as fallback
+      if (!chosenShippingOptionId) {
+        const regionId = medusa.cart?.region?.id
+        if (regionId) {
+          try {
+            const soRes = await fetch(
+              `/api/medusa/store/shipping-options?region_id=${encodeURIComponent(regionId)}`,
+              {
+                headers: {
+                  "x-publishable-api-key":
+                    process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || "",
+                },
+              }
+            )
+            if (soRes.ok) {
+              const soData = await soRes.json()
+              const options = soData.shipping_options || soData.options || []
+              if (Array.isArray(options) && options.length > 0) {
+                chosenShippingOptionId = options[0].id
+              }
+            }
+          } catch {
+            // ignore
+          }
+        }
       }
       if (!chosenShippingOptionId) {
         // Fallback free shipping (manual)
