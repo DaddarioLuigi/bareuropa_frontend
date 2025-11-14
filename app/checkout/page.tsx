@@ -548,7 +548,7 @@ export default function CheckoutPage() {
                           >
                             <span className="font-medium">{option.name}</span>
                             <span className="text-primary font-semibold">
-                              €{(option.amount / 100).toFixed(2)}
+                              €{option.amount.toFixed(2)}
                             </span>
                           </Label>
                         </div>
