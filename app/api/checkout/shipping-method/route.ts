@@ -9,11 +9,14 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { cartId, optionId } = body
 
+    console.log('[Shipping Method] Request:', { cartId, optionId })
+
     if (!cartId || !optionId) {
       return NextResponse.json({ error: 'Dati mancanti' }, { status: 400 })
     }
 
     // Aggiungi il metodo di spedizione al carrello
+    console.log('[Shipping Method] Adding to cart...')
     const res = await fetch(`${MEDUSA_BACKEND_URL}/store/carts/${cartId}/shipping-methods`, {
       method: 'POST',
       headers: {
@@ -25,16 +28,19 @@ export async function POST(request: NextRequest) {
       }),
     })
 
+    console.log('[Shipping Method] Response status:', res.status)
+
     if (!res.ok) {
       const errorText = await res.text()
-      console.error('Errore Medusa shipping method:', errorText)
+      console.error('[Shipping Method] Failed:', res.status, errorText)
       return NextResponse.json(
-        { error: 'Errore nella selezione del metodo di spedizione' },
+        { error: 'Errore nella selezione del metodo di spedizione', details: errorText },
         { status: res.status }
       )
     }
 
     const data = await res.json()
+    console.log('[Shipping Method] Success. Cart has shipping methods:', !!data.cart?.shipping_methods?.length)
     return NextResponse.json(data)
   } catch (error) {
     console.error('Errore shipping method route:', error)
