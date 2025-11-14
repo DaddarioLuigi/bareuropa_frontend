@@ -91,7 +91,7 @@ export default function CheckoutPage(): React.JSX.Element {
       try {
         const res = await fetch("/api/cart/id", { cache: "no-store" })
         if (res.ok) {
-          const data = await res.json()
+        const data = await res.json()
           const cookieCartId = data?.cart_id
           if (cookieCartId) {
             setCookieCartId(cookieCartId)
@@ -157,10 +157,10 @@ export default function CheckoutPage(): React.JSX.Element {
       let latestCart: any = null
       {
         const cRes = await fetch(`/api/medusa/store/carts/${cartId}`, {
-          headers: {
+                headers: {
             "x-publishable-api-key":
               process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || "",
-          },
+                },
           cache: "no-store",
         })
         if (!cRes.ok) {
@@ -209,13 +209,13 @@ export default function CheckoutPage(): React.JSX.Element {
             const italy =
               region?.countries?.find(
                 (c: any) =>
-                  c.iso_2?.toLowerCase() === "it" ||
-                  c.name?.toUpperCase() === "ITALY" ||
-                  c.display_name?.toLowerCase() === "italy"
+                c.iso_2?.toLowerCase() === "it" || 
+                c.name?.toUpperCase() === "ITALY" ||
+                c.display_name?.toLowerCase() === "italy"
               ) || null
             if (italy?.iso_2) countryCode = italy.iso_2.toLowerCase()
+            }
           }
-        }
       } catch {
         // keep default
       }
@@ -250,11 +250,11 @@ export default function CheckoutPage(): React.JSX.Element {
       if (sameAsShipping) {
         const res = await fetch(`/api/medusa/store/carts/${cartId}`, {
           method: "POST",
-          headers: {
+        headers: {
             "Content-Type": "application/json",
             "x-publishable-api-key":
               process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || "",
-          },
+        },
           body: JSON.stringify({ billing_address: shippingAddress }),
         })
         if (!res.ok) {
@@ -288,6 +288,9 @@ export default function CheckoutPage(): React.JSX.Element {
 
       // Step 3: Choose Shipping Method
       let chosenShippingOptionId: string | null = null
+      let shippingOptionsFound: any[] = []
+
+      // Try cart-scoped options first
       try {
         const soRes = await fetch(
           `/api/medusa/store/shipping-options?cart_id=${encodeURIComponent(cartId)}`,
@@ -300,15 +303,17 @@ export default function CheckoutPage(): React.JSX.Element {
         )
         if (soRes.ok) {
           const soData = await soRes.json()
-          const options =
-            soData.shipping_options || soData.options || soData || []
+          const options = soData.shipping_options || soData.options || soData || []
           if (Array.isArray(options) && options.length > 0) {
+            shippingOptionsFound = options
             chosenShippingOptionId = options[0].id
+            console.log('[CHECKOUT] Shipping options found (cart-scoped):', options.length, options.map((o: any) => ({ id: o.id, name: o.name })))
           }
         }
-      } catch {
-        // ignore
+      } catch (err) {
+        console.warn('[CHECKOUT] Error fetching cart-scoped shipping options:', err)
       }
+
       // If cart-scoped options failed, try region-scoped options as fallback
       if (!chosenShippingOptionId) {
         const regionId = latestCart?.region?.id || medusa.cart?.region?.id
@@ -327,14 +332,17 @@ export default function CheckoutPage(): React.JSX.Element {
               const soData = await soRes.json()
               const options = soData.shipping_options || soData.options || []
               if (Array.isArray(options) && options.length > 0) {
+                shippingOptionsFound = options
                 chosenShippingOptionId = options[0].id
+                console.log('[CHECKOUT] Shipping options found (region-scoped):', options.length, options.map((o: any) => ({ id: o.id, name: o.name })))
               }
             }
-          } catch {
-            // ignore
+          } catch (err) {
+            console.warn('[CHECKOUT] Error fetching region-scoped shipping options:', err)
           }
         }
       }
+
       // Try cartId path variant some backends expose: /shipping-options/{cartId}
       if (!chosenShippingOptionId) {
         try {
@@ -349,64 +357,97 @@ export default function CheckoutPage(): React.JSX.Element {
           )
           if (soRes.ok) {
             const soData = await soRes.json()
-            const options =
-              soData.shipping_options || soData.options || soData || []
+            const options = soData.shipping_options || soData.options || soData || []
             if (Array.isArray(options) && options.length > 0) {
+              shippingOptionsFound = options
               chosenShippingOptionId = options[0].id
+              console.log('[CHECKOUT] Shipping options found (path variant):', options.length, options.map((o: any) => ({ id: o.id, name: o.name })))
             }
           }
-        } catch {
-          // ignore
+        } catch (err) {
+          console.warn('[CHECKOUT] Error fetching path-variant shipping options:', err)
         }
       }
+
+      // CRITICAL: If no shipping option found, STOP and show clear error
       if (!chosenShippingOptionId) {
-        // Fallback free shipping (manual)
-        chosenShippingOptionId = "free_shipping"
+        console.error('[CHECKOUT] ❌ NO SHIPPING OPTIONS FOUND!')
+        console.error('[CHECKOUT] Cart ID:', cartId)
+        console.error('[CHECKOUT] Region ID:', latestCart?.region?.id || medusa.cart?.region?.id)
+        throw new Error(
+          "Nessuna opzione di spedizione disponibile per questo carrello/indirizzo. " +
+          "Configura almeno una Shipping Option valida in Medusa per la regione del carrello. " +
+          `Cart ID: ${cartId}, Region ID: ${latestCart?.region?.id || medusa.cart?.region?.id || 'N/A'}`
+        )
       }
-      {
-        const res = await fetch(`/api/medusa/store/carts/${cartId}/shipping-methods`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-publishable-api-key":
-              process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || "",
-          },
-          body: JSON.stringify({ option_id: chosenShippingOptionId }),
+
+      // Add shipping method to cart
+      console.log('[CHECKOUT] Adding shipping method:', chosenShippingOptionId)
+      const smRes = await fetch(`/api/medusa/store/carts/${cartId}/shipping-methods`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-publishable-api-key":
+            process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || "",
+        },
+        body: JSON.stringify({ option_id: chosenShippingOptionId }),
+      })
+
+      if (!smRes.ok) {
+        const txt = await smRes.text()
+        console.error('[CHECKOUT] ❌ Failed to add shipping method:', {
+          option_id: chosenShippingOptionId,
+          status: smRes.status,
+          error: txt
         })
-        if (!res.ok) {
-          const txt = await res.text()
-          // If placeholder free_shipping fails, surface a clear error
-          throw new Error(
-            txt ||
-              "Impossibile aggiungere il metodo di spedizione. Verifica che esista almeno una Shipping Option valida per la regione/indirizzo."
-          )
-        }
-        // Verify shipping method attached
-        const verifyRes = await fetch(`/api/medusa/store/carts/${cartId}`, {
-          headers: {
-            "x-publishable-api-key":
-              process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || "",
-          },
-        })
-        if (verifyRes.ok) {
-          const verifyData = await verifyRes.json()
-          const vCart = verifyData.cart || verifyData
-          if (!vCart?.shipping_methods || vCart.shipping_methods.length === 0) {
-            throw new Error(
-              "Nessun metodo di spedizione è stato applicato al carrello. Configura una Shipping Option valida."
-            )
-          }
-        }
+        throw new Error(
+          `Impossibile aggiungere il metodo di spedizione: ${txt || smRes.statusText}. ` +
+          `Shipping Option ID usato: ${chosenShippingOptionId}`
+        )
       }
+
+      // CRITICAL: Verify shipping method was actually added
+      console.log('[CHECKOUT] Verifying shipping method was added...')
+      const verifyRes = await fetch(`/api/medusa/store/carts/${cartId}`, {
+        headers: {
+          "x-publishable-api-key":
+            process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || "",
+        },
+        cache: "no-store",
+      })
+
+      if (!verifyRes.ok) {
+        throw new Error("Impossibile verificare il metodo di spedizione")
+      }
+
+      const verifyData = await verifyRes.json()
+      const vCart = verifyData.cart || verifyData
+
+      if (!vCart?.shipping_methods || vCart.shipping_methods.length === 0) {
+        console.error('[CHECKOUT] ❌ Shipping method NOT found in cart after add!')
+        console.error('[CHECKOUT] Cart state:', {
+          id: vCart.id,
+          shipping_methods: vCart.shipping_methods,
+          shipping_address: vCart.shipping_address,
+          region: vCart.region
+        })
+        throw new Error(
+          "Il metodo di spedizione non è stato applicato al carrello. " +
+          "Verifica che la Shipping Option esista e sia valida per questa regione/indirizzo. " +
+          `Shipping Option ID tentato: ${chosenShippingOptionId}`
+        )
+      }
+
+      console.log('[CHECKOUT] ✅ Shipping method verified:', vCart.shipping_methods.length, 'methods')
 
       // Step 4: Payment Provider & Session
       if (!paymentMethod) {
         if (medusa.paymentProviders.length === 1) {
           setPaymentMethod(medusa.paymentProviders[0].id)
-        } else {
+              } else {
           throw new Error("Seleziona un metodo di pagamento")
+          }
         }
-      }
       const providerId = paymentMethod || medusa.paymentProviders[0]?.id
       if (!providerId) throw new Error("Nessun provider di pagamento disponibile")
 
@@ -463,8 +504,8 @@ export default function CheckoutPage(): React.JSX.Element {
           const finalTxt =
             firstTxt !== null ? firstTxt : await psRes.text().catch(() => "")
           console.warn("Creazione payment session non riuscita:", finalTxt)
-        }
-      }
+            }
+          }
       // Stripe UI would happen here (Stripe Elements), but Medusa can handle authorization server-side.
 
       // Step 5: Complete Cart
@@ -499,7 +540,7 @@ export default function CheckoutPage(): React.JSX.Element {
   const cartItems = medusa.cart?.items || []
   const localItems = state.items || []
   const hasItems = cartItems.length > 0 || localItems.length > 0
-
+  
   if (!hasItems) {
     return (
       <div className="min-h-screen bg-background">
@@ -956,18 +997,18 @@ export default function CheckoutPage(): React.JSX.Element {
                         item.variant?.product?.title ||
                         item.product?.title ||
                         "Prodotto"
-                      return (
-                        <div key={item.id} className="flex gap-3">
-                          <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                        return (
+                          <div key={item.id} className="flex gap-3">
+                            <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0">
                             <img src={image} alt={productTitle} className="w-full h-full object-cover" />
-                          </div>
-                          <div className="flex-1 min-w-0">
+                            </div>
+                            <div className="flex-1 min-w-0">
                             <h4 className="font-medium text-sm line-clamp-2">{productTitle}</h4>
                             <p className="text-xs text-muted-foreground">Qtà: {qty}</p>
                             <p className="text-sm font-semibold text-primary">€{itemTotal.toFixed(2)}</p>
+                            </div>
                           </div>
-                        </div>
-                      )
+                        )
                     })}
                   </div>
 
