@@ -39,6 +39,37 @@ function getPaymentProviderName(providerId: string): string {
     .join(" ")
 }
 
+function extractOrderFromCompleteResponse(data: any): any | null {
+  if (!data || typeof data !== "object") {
+    return null
+  }
+
+  if (data.order && typeof data.order === "object") {
+    return data.order
+  }
+
+  if (data.data && typeof data.data === "object") {
+    if (data.data.order && typeof data.data.order === "object") {
+      return data.data.order
+    }
+
+    if (data.type === "order") {
+      return data.data
+    }
+  }
+
+  if (data.type === "order") {
+    return data
+  }
+
+  // Some backends may return the order flattened without a wrapper.
+  if (data.id && typeof data.id === "string") {
+    return data
+  }
+
+  return null
+}
+
 export default function CheckoutPage(): React.JSX.Element {
   const { state } = useCart()
   const medusa = useMedusa()
@@ -892,19 +923,32 @@ export default function CheckoutPage(): React.JSX.Element {
       }
       
       const orderData = await completeRes.json()
-      const order = orderData.order || orderData
-      
+      const order = extractOrderFromCompleteResponse(orderData)
+
       if (!order?.id) {
         console.error('[CHECKOUT] ❌ Order created but no ID:', orderData)
         throw new Error("Ordine non creato correttamente")
       }
-      
+
       console.log('[CHECKOUT] ✅ Order completed successfully:', {
         orderId: order.id,
         displayId: order.display_id,
         total: order.total,
         paymentStatus: order.payment_status
       })
+
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.removeItem("medusa_cart_id")
+          localStorage.removeItem("cart_id")
+          document.cookie = "cart_id=; Max-Age=0; path=/"
+          window.dispatchEvent(
+            new CustomEvent("cartUpdated", { detail: { cartId: null, cleared: true } })
+          )
+        } catch (storageErr) {
+          console.warn('[CHECKOUT] ⚠️ Unable to clear cart storage after complete:', storageErr)
+        }
+      }
 
       router.push("/checkout/success")
     } catch (err: any) {
