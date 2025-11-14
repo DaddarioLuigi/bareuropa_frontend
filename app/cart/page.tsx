@@ -381,7 +381,7 @@ async function CartContent() {
                   <div className="pt-4 space-y-2 text-sm text-muted-foreground">
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span>Spedizione in 24-48h (TEST)</span>
+                      <span>Spedizione in 24-48h</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
