@@ -52,6 +52,7 @@ export default function CheckoutPage(): React.JSX.Element {
   const [appliedPromoCode, setAppliedPromoCode] = useState<string | null>(null)
   const [promoCodeError, setPromoCodeError] = useState<string | null>(null)
   const [isApplyingPromoCode, setIsApplyingPromoCode] = useState(false)
+  const [cookieCartId, setCookieCartId] = useState<string | null>(null)
 
   const [formData, setFormData] = useState({
     // Shipping
@@ -93,6 +94,7 @@ export default function CheckoutPage(): React.JSX.Element {
           const data = await res.json()
           const cookieCartId = data?.cart_id
           if (cookieCartId) {
+            setCookieCartId(cookieCartId)
             const lsMedusa = localStorage.getItem("medusa_cart_id")
             const lsCart = localStorage.getItem("cart_id")
             if (lsMedusa !== cookieCartId || lsCart !== cookieCartId) {
@@ -135,23 +137,21 @@ export default function CheckoutPage(): React.JSX.Element {
     setIsProcessing(true)
 
     try {
-      let cartId =
-        medusa.cart?.id ||
-        localStorage.getItem("medusa_cart_id") ||
-        localStorage.getItem("cart_id") ||
-        null
-      // If still missing, create a cart to avoid undefined usage
+      // Resolve cart id STRICTLY from the cookie (same source as cart page)
+      let cartId: string | null = null
+      try {
+        const idRes = await fetch("/api/cart/id", { cache: "no-store" })
+        if (idRes.ok) {
+          const idData = await idRes.json()
+          cartId = idData?.cart_id || null
+        }
+      } catch {}
       if (!cartId) {
-        try {
-          const createdId = await medusa.createCart()
-          if (createdId) {
-            localStorage.setItem("medusa_cart_id", createdId)
-            localStorage.setItem("cart_id", createdId)
-            cartId = createdId
-          }
-        } catch {}
+        throw new Error("Carrello non trovato. Torna alla pagina Carrello per inizializzarlo e riprova.")
       }
-      if (!cartId) throw new Error("Nessun carrello disponibile")
+      // Keep localStorage in sync for any consumers
+      localStorage.setItem("medusa_cart_id", cartId)
+      localStorage.setItem("cart_id", cartId)
 
       const cartHasItems =
         (medusa.cart?.items?.length || 0) > 0 || (state?.items?.length || 0) > 0
@@ -211,10 +211,36 @@ export default function CheckoutPage(): React.JSX.Element {
         province: formData.province,
         phone: formData.phone,
       }
-      await medusa.setShippingAddress(shippingAddress)
+      {
+        const res = await fetch(`/api/medusa/store/carts/${cartId}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-publishable-api-key":
+              process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || "",
+          },
+          body: JSON.stringify({ shipping_address: shippingAddress }),
+        })
+        if (!res.ok) {
+          const txt = await res.text()
+          throw new Error(txt || "Impossibile impostare l'indirizzo di spedizione")
+        }
+      }
 
       if (sameAsShipping) {
-        await medusa.setBillingAddress(shippingAddress)
+        const res = await fetch(`/api/medusa/store/carts/${cartId}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-publishable-api-key":
+              process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || "",
+          },
+          body: JSON.stringify({ billing_address: shippingAddress }),
+        })
+        if (!res.ok) {
+          const txt = await res.text()
+          throw new Error(txt || "Impossibile impostare l'indirizzo di fatturazione")
+        }
       } else {
         const billingAddress = {
           first_name: formData.billingFirstName,
@@ -225,7 +251,19 @@ export default function CheckoutPage(): React.JSX.Element {
           postal_code: formData.billingPostalCode,
           province: formData.billingProvince,
         }
-        await medusa.setBillingAddress(billingAddress)
+        const res = await fetch(`/api/medusa/store/carts/${cartId}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-publishable-api-key":
+              process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || "",
+          },
+          body: JSON.stringify({ billing_address: billingAddress }),
+        })
+        if (!res.ok) {
+          const txt = await res.text()
+          throw new Error(txt || "Impossibile impostare l'indirizzo di fatturazione")
+        }
       }
 
       // Step 3: Choose Shipping Method
@@ -281,7 +319,22 @@ export default function CheckoutPage(): React.JSX.Element {
         // Fallback free shipping (manual)
         chosenShippingOptionId = "free_shipping"
       }
-      await medusa.addShippingMethod(chosenShippingOptionId)
+      {
+        const res = await fetch(`/api/medusa/store/carts/${cartId}/shipping-methods`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-publishable-api-key":
+              process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || "",
+          },
+          body: JSON.stringify({ option_id: chosenShippingOptionId }),
+        })
+        // don't hard-fail if free_shipping placeholder is not recognized
+        if (!res.ok && chosenShippingOptionId !== "free_shipping") {
+          const txt = await res.text()
+          throw new Error(txt || "Impossibile aggiungere il metodo di spedizione")
+        }
+      }
 
       // Step 4: Payment Provider & Session
       if (!paymentMethod) {
@@ -294,11 +347,35 @@ export default function CheckoutPage(): React.JSX.Element {
       const providerId = paymentMethod || medusa.paymentProviders[0]?.id
       if (!providerId) throw new Error("Nessun provider di pagamento disponibile")
 
-      await medusa.addPaymentSession(providerId)
+      {
+        const res = await fetch(`/api/medusa/store/carts/${cartId}/payment-sessions`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-publishable-api-key":
+              process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || "",
+          },
+          body: JSON.stringify({ provider_id: providerId }),
+        })
+        // Some setups create sessions automatically; don't block on non-critical failures
+      }
       // Stripe UI would happen here (Stripe Elements), but Medusa can handle authorization server-side.
 
       // Step 5: Complete Cart
-      const order = await medusa.completeOrder()
+      const completeRes = await fetch(`/api/medusa/store/carts/${cartId}/complete`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-publishable-api-key":
+            process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || "",
+        },
+      })
+      if (!completeRes.ok) {
+        const txt = await completeRes.text()
+        throw new Error(txt || "Completamento ordine fallito")
+      }
+      const orderData = await completeRes.json()
+      const order = orderData.order || orderData
       if (!order?.id) throw new Error("Ordine non creato correttamente")
 
       router.push("/checkout/success")
@@ -830,6 +907,26 @@ export default function CheckoutPage(): React.JSX.Element {
                     <p>🔒 Pagamento sicuro e protetto</p>
                     <p>📦 Spedizione in 24-48h</p>
                     <p>↩️ Reso gratuito entro 14 giorni</p>
+                  </div>
+
+                  {/* DEBUG PANEL */}
+                  <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md text-left">
+                    <p className="text-xs font-semibold text-yellow-800 dark:text-yellow-200 mb-2">
+                      DEBUG Checkout
+                    </p>
+                    <div className="text-xs text-yellow-700 dark:text-yellow-300 space-y-1 font-mono">
+                      <div>cookie cart_id: {cookieCartId || "N/A"}</div>
+                      <div>medusa.cart.id: {medusa.cart?.id || "N/A"}</div>
+                      <div>localStorage.medusa_cart_id: {typeof window !== "undefined" ? localStorage.getItem("medusa_cart_id") || "N/A" : "N/A"}</div>
+                      <div>localStorage.cart_id: {typeof window !== "undefined" ? localStorage.getItem("cart_id") || "N/A" : "N/A"}</div>
+                      <div>shipping_methods: {medusa.cart?.shipping_methods?.length || 0}</div>
+                      <div>payment_sessions: {medusa.cart?.payment_sessions?.length || 0}</div>
+                      <div>payment selected: {paymentMethod || "Nessuno"}</div>
+                      <div>providers: {(medusa.paymentProviders || []).map((p: any) => p.id).join(", ") || "N/A"}</div>
+                      <div>subtotal: €{(medusaSubtotal || subtotal).toFixed(2)}</div>
+                      <div>total: €{(medusaTotal || total).toFixed(2)}</div>
+                      <div>complete endpoint: {cookieCartId ? `/api/medusa/store/carts/${cookieCartId}/complete` : "N/A"}</div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
