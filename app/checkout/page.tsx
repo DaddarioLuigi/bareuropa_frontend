@@ -87,24 +87,12 @@ function CheckoutForm({ cart, onSuccess }: { cart: Cart, onSuccess: () => void }
     setErrorMessage(undefined)
 
     try {
-      // Completa l'ordine sul backend Medusa
-      const completeRes = await fetch('/api/checkout/complete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cartId: cart.id })
-      })
-
-      if (!completeRes.ok) {
-        throw new Error('Errore nel completamento dell\'ordine')
-      }
-
-      const { orderId } = await completeRes.json()
-
-      // Conferma il pagamento con Stripe
+      // In Medusa v2, confermiamo prima il pagamento, poi completiamo l'ordine nella pagina success
+      // Passiamo il cart_id nell'URL così possiamo completare l'ordine dopo il pagamento
       const { error } = await stripe.confirmPayment({
         elements,
         confirmParams: {
-          return_url: `${window.location.origin}/checkout/success?order_id=${orderId}`,
+          return_url: `${window.location.origin}/checkout/success?cart_id=${cart.id}`,
         },
       })
 
@@ -112,6 +100,7 @@ function CheckoutForm({ cart, onSuccess }: { cart: Cart, onSuccess: () => void }
         setErrorMessage(error.message)
         setIsProcessing(false)
       } else {
+        // Il redirect viene gestito da Stripe
         onSuccess()
       }
     } catch (err) {

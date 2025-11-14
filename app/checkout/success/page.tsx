@@ -51,15 +51,64 @@ export default function CheckoutSuccessPage() {
 
   useEffect(() => {
     const orderId = searchParams.get('order_id')
+    const cartId = searchParams.get('cart_id')
+    const paymentIntent = searchParams.get('payment_intent')
+    const redirectStatus = searchParams.get('redirect_status')
     
-    if (!orderId) {
-      setError('ID ordine mancante')
+    // Se abbiamo un order_id, carica direttamente l'ordine
+    if (orderId && orderId !== 'undefined') {
+      loadOrder(orderId)
+      return
+    }
+    
+    // Se abbiamo un cart_id e il pagamento è andato a buon fine, completa l'ordine
+    if (cartId && redirectStatus === 'succeeded' && paymentIntent) {
+      completeOrder(cartId, paymentIntent)
+      return
+    }
+    
+    // Se non abbiamo né order_id né cart_id valido
+    if (!cartId && !orderId) {
+      setError('Dati mancanti per completare l\'ordine')
       setLoading(false)
       return
     }
-
-    loadOrder(orderId)
   }, [searchParams])
+
+  const completeOrder = async (cartId: string, paymentIntent: string) => {
+    try {
+      console.log('[Success] Completing order for cart:', cartId)
+      
+      // Completa l'ordine su Medusa
+      const completeRes = await fetch('/api/checkout/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cartId, paymentIntent })
+      })
+
+      if (!completeRes.ok) {
+        const errorData = await completeRes.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Errore nel completamento dell\'ordine')
+      }
+
+      const { orderId, order } = await completeRes.json()
+      
+      if (order) {
+        // Se abbiamo già l'ordine completo, usalo direttamente
+        setOrder(order)
+        setLoading(false)
+      } else if (orderId) {
+        // Altrimenti caricalo
+        loadOrder(orderId)
+      } else {
+        throw new Error('Ordine non trovato nella risposta')
+      }
+    } catch (err) {
+      console.error('Errore nel completamento dell\'ordine:', err)
+      setError(err instanceof Error ? err.message : 'Errore nel completamento dell\'ordine')
+      setLoading(false)
+    }
+  }
 
   const loadOrder = async (orderId: string) => {
     try {
