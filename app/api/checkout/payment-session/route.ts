@@ -85,17 +85,33 @@ export async function POST(request: NextRequest) {
     if (!paymentCollection.payment_sessions || paymentCollection.payment_sessions.length === 0) {
       console.log('[Payment Session] No payment sessions found, attempting to initialize...')
       
-      // Prova a inizializzare le payment sessions per questa collection
-      const initSessionsRes = await fetch(`${MEDUSA_BACKEND_URL}/store/payment-collections/${paymentCollection.id}/payment-sessions`, {
+      // Prova diversi endpoint per inizializzare le payment sessions
+      // Endpoint 1: payment-collections/{id}/payment-sessions
+      let initSessionsRes = await fetch(`${MEDUSA_BACKEND_URL}/store/payment-collections/${paymentCollection.id}/payment-sessions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-publishable-api-key': PUBLISHABLE_API_KEY,
         },
         body: JSON.stringify({
-          provider_id: providerId || 'pp_stripe_stripe',
+          provider_id: 'pp_stripe_stripe',
         }),
       })
+
+      // Se fallisce, prova endpoint alternativo
+      if (!initSessionsRes.ok) {
+        console.log('[Payment Session] First endpoint failed, trying alternative...')
+        initSessionsRes = await fetch(`${MEDUSA_BACKEND_URL}/store/payment-collections/${paymentCollection.id}/sessions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-publishable-api-key': PUBLISHABLE_API_KEY,
+          },
+          body: JSON.stringify({
+            provider_id: 'pp_stripe_stripe',
+          }),
+        })
+      }
 
       if (initSessionsRes.ok) {
         const sessionsData = await initSessionsRes.json()
