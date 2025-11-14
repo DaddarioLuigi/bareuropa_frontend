@@ -20,6 +20,10 @@ import { useMedusa } from "@/hooks/use-medusa"
 import { CreditCard, Truck, MapPin, Lock, Tag, X } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import {
+  describePaymentAuthorizationFailure,
+  extractOrderFromCompletion,
+} from "@/lib/checkout/medusa-completion"
 
 function getPaymentProviderName(providerId: string): string {
   const providerNames: Record<string, string> = {
@@ -37,37 +41,6 @@ function getPaymentProviderName(providerId: string): string {
     .split(" ")
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
     .join(" ")
-}
-
-function extractOrderFromCompleteResponse(data: any): any | null {
-  if (!data || typeof data !== "object") {
-    return null
-  }
-
-  if (data.order && typeof data.order === "object") {
-    return data.order
-  }
-
-  if (data.data && typeof data.data === "object") {
-    if (data.data.order && typeof data.data.order === "object") {
-      return data.data.order
-    }
-
-    if (data.type === "order") {
-      return data.data
-    }
-  }
-
-  if (data.type === "order") {
-    return data
-  }
-
-  // Some backends may return the order flattened without a wrapper.
-  if (data.id && typeof data.id === "string") {
-    return data
-  }
-
-  return null
 }
 
 export default function CheckoutPage(): React.JSX.Element {
@@ -923,7 +896,42 @@ export default function CheckoutPage(): React.JSX.Element {
       }
       
       const orderData = await completeRes.json()
-      const order = extractOrderFromCompleteResponse(orderData)
+
+      if (orderData?.error) {
+        const rawError = orderData.error
+        const errorMessage =
+          describePaymentAuthorizationFailure(orderData) ||
+          (typeof rawError === "string" && rawError) ||
+          rawError?.message ||
+          rawError?.type ||
+          "Autorizzazione del pagamento non riuscita"
+
+        console.error("[CHECKOUT] ❌ Complete returned error payload:", {
+          type: orderData.type,
+          error: rawError,
+        })
+
+        throw new Error(errorMessage)
+      }
+
+      if (orderData?.type === "cart" && orderData?.cart) {
+        const status = orderData.cart?.payment_collection?.status
+
+        if (status && status !== "paid" && status !== "captured") {
+          console.error("[CHECKOUT] ❌ Payment collection incomplete:", {
+            status,
+            paymentCollectionId: orderData.cart.payment_collection?.id,
+          })
+
+          const descriptiveMessage =
+            describePaymentAuthorizationFailure(orderData) ||
+            "Pagamento non autorizzato. Riprova o usa un altro metodo"
+
+          throw new Error(descriptiveMessage)
+        }
+      }
+
+      const order = extractOrderFromCompletion(orderData)
 
       if (!order?.id) {
         console.error('[CHECKOUT] ❌ Order created but no ID:', orderData)
