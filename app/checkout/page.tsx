@@ -44,30 +44,166 @@ function extractOrderFromCompleteResponse(data: any): any | null {
     return null
   }
 
-  if (data.order && typeof data.order === "object") {
-    return data.order
-  }
+  const looksLikeOrderId = (value: string) =>
+    /^(order_|ord_|or_|medorder_|med_ord_)/i.test(value)
 
-  if (data.data && typeof data.data === "object") {
-    if (data.data.order && typeof data.data.order === "object") {
-      return data.data.order
+  const looksLikeOrderObject = (value: any) => {
+    if (!value || typeof value !== "object") {
+      return false
     }
 
-    if (data.type === "order") {
-      return data.data
+    if (typeof value.id === "string" && looksLikeOrderId(value.id)) {
+      return true
     }
+
+    if (typeof value.object === "string" && value.object.toLowerCase() === "order") {
+      return true
+    }
+
+    const requiredKeys = ["payment_status", "fulfillment_status", "display_id"]
+    const matchesStructure = requiredKeys.every((key) => key in value)
+
+    return matchesStructure
   }
 
-  if (data.type === "order") {
-    return data
-  }
+  const visited = new Set<any>()
+  const stack: any[] = [data]
 
-  // Some backends may return the order flattened without a wrapper.
-  if (data.id && typeof data.id === "string") {
-    return data
+  while (stack.length > 0) {
+    const current = stack.pop()
+
+    if (!current || typeof current !== "object" || visited.has(current)) {
+      continue
+    }
+
+    visited.add(current)
+
+    if (Array.isArray(current)) {
+      for (const item of current) {
+        if (item && typeof item === "object") {
+          stack.push(item)
+        }
+      }
+      continue
+    }
+
+    if (current.order && typeof current.order === "object") {
+      if (looksLikeOrderObject(current.order)) {
+        return current.order
+      }
+      stack.push(current.order)
+    }
+
+    if (current.data && typeof current.data === "object") {
+      if (looksLikeOrderObject(current.data)) {
+        return current.data
+      }
+      stack.push(current.data)
+    }
+
+    if (current.type === "order" && current.data && typeof current.data === "object") {
+      if (looksLikeOrderObject(current.data)) {
+        return current.data
+      }
+      stack.push(current.data)
+      continue
+    }
+
+    if (typeof current.order_id === "string" || typeof current.orderId === "string") {
+      const id = current.order_id || current.orderId
+      if (id) {
+        return {
+          id,
+          ...("order" in current && typeof current.order === "object" ? current.order : {}),
+        }
+      }
+    }
+
+    if (looksLikeOrderObject(current)) {
+      return current
+    }
+
+    for (const value of Object.values(current)) {
+      if (value && typeof value === "object") {
+        stack.push(value)
+      }
+    }
   }
 
   return null
+}
+
+function describePaymentAuthorizationFailure(payload: any): string | null {
+  if (!payload || typeof payload !== "object") {
+    return null
+  }
+
+  const defaultMessage =
+    (typeof payload.error === "string" && payload.error) ||
+    payload.error?.message ||
+    payload.error?.type ||
+    payload.message ||
+    null
+
+  const cart = payload.cart || payload.data || {}
+  const paymentCollection =
+    cart.payment_collection || payload.payment_collection || cart.data?.payment_collection
+  const sessions =
+    paymentCollection?.payment_sessions ||
+    cart.payment_sessions ||
+    cart.data?.payment_sessions ||
+    []
+
+  const allSessionStatuses = new Set<string>()
+  const providerSpecificStatuses = new Set<string>()
+
+  if (Array.isArray(sessions)) {
+    for (const session of sessions) {
+      if (!session || typeof session !== "object") {
+        continue
+      }
+
+      if (typeof session.status === "string") {
+        allSessionStatuses.add(session.status.toLowerCase())
+      }
+
+      const providerStatus = session.data?.status
+      if (typeof providerStatus === "string") {
+        providerSpecificStatuses.add(providerStatus.toLowerCase())
+      }
+    }
+  }
+
+  if (providerSpecificStatuses.has("requires_payment_method")) {
+    return (
+      "Il pagamento con carta non è stato autorizzato perché manca un metodo di pagamento valido. " +
+      "Se stai usando Stripe, inserisci i dati della carta o scegli un altro metodo e riprova."
+    )
+  }
+
+  if (providerSpecificStatuses.has("requires_action") || providerSpecificStatuses.has("requires_confirmation")) {
+    return (
+      "Il pagamento richiede un'ulteriore conferma (3D Secure o simile). " +
+      "Completa l'autenticazione richiesta oppure seleziona un metodo di pagamento alternativo."
+    )
+  }
+
+  if (allSessionStatuses.has("pending") || allSessionStatuses.has("requires_more")) {
+    return (
+      "Il pagamento risulta ancora in attesa di autorizzazione. " +
+      "Completa la procedura di pagamento oppure riprova con un altro metodo."
+    )
+  }
+
+  if (paymentCollection?.status && paymentCollection.status !== "paid" && paymentCollection.status !== "captured") {
+    return (
+      "Il pagamento non è stato finalizzato (stato: " +
+      paymentCollection.status +
+      "). Verifica i dettagli del pagamento o riprova."
+    )
+  }
+
+  return defaultMessage
 }
 
 export default function CheckoutPage(): React.JSX.Element {
@@ -923,6 +1059,41 @@ export default function CheckoutPage(): React.JSX.Element {
       }
       
       const orderData = await completeRes.json()
+
+      if (orderData?.error) {
+        const rawError = orderData.error
+        const errorMessage =
+          describePaymentAuthorizationFailure(orderData) ||
+          (typeof rawError === "string" && rawError) ||
+          rawError?.message ||
+          rawError?.type ||
+          "Autorizzazione del pagamento non riuscita"
+
+        console.error("[CHECKOUT] ❌ Complete returned error payload:", {
+          type: orderData.type,
+          error: rawError,
+        })
+
+        throw new Error(errorMessage)
+      }
+
+      if (orderData?.type === "cart" && orderData?.cart) {
+        const status = orderData.cart?.payment_collection?.status
+
+        if (status && status !== "paid" && status !== "captured") {
+          console.error("[CHECKOUT] ❌ Payment collection incomplete:", {
+            status,
+            paymentCollectionId: orderData.cart.payment_collection?.id,
+          })
+
+          const descriptiveMessage =
+            describePaymentAuthorizationFailure(orderData) ||
+            "Pagamento non autorizzato. Riprova o usa un altro metodo"
+
+          throw new Error(descriptiveMessage)
+        }
+      }
+
       const order = extractOrderFromCompleteResponse(orderData)
 
       if (!order?.id) {
