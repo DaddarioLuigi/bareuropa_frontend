@@ -20,6 +20,32 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Configurazione API mancante' }, { status: 500 })
     }
 
+    // Prima, assicuriamoci che il carrello abbia il billing address
+    console.log('[Payment Session] Ensuring cart has billing address...')
+    const cartCheckRes = await fetch(`${MEDUSA_BACKEND_URL}/store/carts/${cartId}`, {
+      headers: { 'x-publishable-api-key': PUBLISHABLE_API_KEY },
+    })
+    
+    if (cartCheckRes.ok) {
+      const cartCheckData = await cartCheckRes.json()
+      const cart = cartCheckData.cart || cartCheckData
+      
+      // Se non ha billing address, copialo dallo shipping address
+      if (!cart.billing_address && cart.shipping_address) {
+        console.log('[Payment Session] Adding billing address from shipping address...')
+        await fetch(`${MEDUSA_BACKEND_URL}/store/carts/${cartId}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-publishable-api-key': PUBLISHABLE_API_KEY,
+          },
+          body: JSON.stringify({
+            billing_address: cart.shipping_address
+          }),
+        })
+      }
+    }
+
     // In Medusa v2, inizializza le sessioni di pagamento con endpoint diverso
     console.log('[Payment Session] Initializing payment collection...')
     const initRes = await fetch(`${MEDUSA_BACKEND_URL}/store/payment-collections`, {
