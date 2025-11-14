@@ -537,36 +537,70 @@ export default function CheckoutPage(): React.JSX.Element {
 
       if (!paymentCollectionId) {
         console.log('[CHECKOUT] Payment collection missing - attempting to create it now...')
-        try {
-          const pcRes = await fetch(`/api/medusa/store/carts/${cartId}/payment-collections`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "x-publishable-api-key":
-                process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || "",
-            },
-          })
 
-          if (pcRes.ok) {
-            const pcData = await pcRes.json()
-            paymentCollectionId =
-              pcData?.payment_collection?.id ||
-              pcData?.id ||
-              pcData?.payment_collection_id ||
-              null
-            console.log('[CHECKOUT] ✅ Payment collection created:', paymentCollectionId)
-          } else if (pcRes.status === 409) {
-            console.log('[CHECKOUT] ⚠️ Payment collection already exists (409). Fetching latest cart state...')
-          } else if (pcRes.status !== 404) {
+        const paymentCollectionEndpoints: Array<{
+          url: string
+          body?: Record<string, unknown>
+        }> = [
+          {
+            url: `/api/medusa/store/payment-collections`,
+            body: { cart_id: cartId },
+          },
+          {
+            // Fallback for backends that still expose the legacy nested endpoint
+            url: `/api/medusa/store/carts/${cartId}/payment-collections`,
+          },
+        ]
+
+        for (const { url, body } of paymentCollectionEndpoints) {
+          try {
+            const pcRes = await fetch(url, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "x-publishable-api-key":
+                  process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || "",
+              },
+              body: body ? JSON.stringify(body) : undefined,
+            })
+
+            if (pcRes.ok) {
+              const pcData = await pcRes.json()
+              paymentCollectionId =
+                pcData?.payment_collection?.id ||
+                pcData?.id ||
+                pcData?.payment_collection_id ||
+                null
+              console.log('[CHECKOUT] ✅ Payment collection created:', {
+                id: paymentCollectionId,
+                via: url,
+              })
+              break
+            }
+
+            if (pcRes.status === 409) {
+              console.log('[CHECKOUT] ⚠️ Payment collection already exists (409). Will refresh cart state...')
+              break
+            }
+
+            if (pcRes.status === 404) {
+              console.log('[CHECKOUT] ⚠️ Payment collection endpoint not found at', url)
+              continue
+            }
+
             const errorText = await pcRes.text()
             console.warn('[CHECKOUT] ⚠️ Failed to create payment collection:', {
+              url,
               status: pcRes.status,
               statusText: pcRes.statusText,
               error: errorText.substring(0, 500),
             })
+          } catch (err: any) {
+            console.warn('[CHECKOUT] ⚠️ Exception when creating payment collection:', {
+              url,
+              message: err.message,
+            })
           }
-        } catch (err: any) {
-          console.warn('[CHECKOUT] ⚠️ Exception when creating payment collection:', err.message)
         }
 
         if (!paymentCollectionId) {
@@ -704,33 +738,71 @@ export default function CheckoutPage(): React.JSX.Element {
       // Try to create payment session if endpoint exists (some Medusa setups auto-create sessions)
       // If endpoint doesn't exist (404), skip and let Medusa handle it during complete
       console.log('[CHECKOUT] Attempting to create payment session...')
-      try {
-        const psRes = await fetch(`/api/medusa/store/carts/${cartId}/payment-sessions`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-publishable-api-key":
-              process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || "",
-          },
-          body: JSON.stringify({ provider_id: providerId }),
+      const paymentSessionEndpoints: Array<{
+        url: string
+        body: Record<string, unknown>
+      }> = []
+
+      if (paymentCollectionId) {
+        paymentSessionEndpoints.push({
+          url: `/api/medusa/store/payment-collections/${paymentCollectionId}/payment-sessions`,
+          body: { provider_id: providerId },
         })
-        
-        if (psRes.ok) {
-          console.log('[CHECKOUT] ✅ Payment session created successfully')
-        } else if (psRes.status === 404) {
-          // Endpoint doesn't exist - Medusa will handle payment session creation automatically
-          console.log('[CHECKOUT] ⚠️ Payment sessions endpoint not found (404) - Medusa will handle automatically')
-        } else {
-          const errorText = await psRes.text()
-          console.warn('[CHECKOUT] ⚠️ Payment session creation failed (non-404):', {
-            status: psRes.status,
-            error: errorText.substring(0, 500)
+      }
+
+      // Legacy fallback for Medusa setups that still use cart-scoped payment sessions
+      paymentSessionEndpoints.push({
+        url: `/api/medusa/store/carts/${cartId}/payment-sessions`,
+        body: { provider_id: providerId },
+      })
+
+      let paymentSessionCreated = false
+
+      for (const { url, body } of paymentSessionEndpoints) {
+        try {
+          const psRes = await fetch(url, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-publishable-api-key":
+                process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || "",
+            },
+            body: JSON.stringify(body),
           })
-          // Don't block - some setups auto-create sessions during complete
+
+          if (psRes.ok) {
+            console.log('[CHECKOUT] ✅ Payment session created successfully via', url)
+            paymentSessionCreated = true
+            break
+          }
+
+          if (psRes.status === 409) {
+            console.log('[CHECKOUT] ⚠️ Payment session already exists (409) via', url)
+            paymentSessionCreated = true
+            break
+          }
+
+          if (psRes.status === 404) {
+            console.log('[CHECKOUT] ⚠️ Payment session endpoint not found at', url)
+            continue
+          }
+
+          const errorText = await psRes.text()
+          console.warn('[CHECKOUT] ⚠️ Payment session creation failed:', {
+            url,
+            status: psRes.status,
+            error: errorText.substring(0, 500),
+          })
+        } catch (err: any) {
+          console.warn('[CHECKOUT] ⚠️ Exception creating payment session:', {
+            url,
+            message: err.message,
+          })
         }
-      } catch (err: any) {
-        console.warn('[CHECKOUT] ⚠️ Exception creating payment session:', err.message)
-        // Don't block - some setups auto-create sessions during complete
+      }
+
+      if (!paymentSessionCreated) {
+        console.warn('[CHECKOUT] ⚠️ Unable to create payment session explicitly - relying on Medusa auto-creation during complete')
       }
       
       // Final verification: log cart state before complete (but don't block if payment collection not present)
