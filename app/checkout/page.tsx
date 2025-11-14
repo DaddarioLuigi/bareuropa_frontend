@@ -986,6 +986,36 @@ export default function CheckoutPage(): React.JSX.Element {
       }
       
       const orderData = await completeRes.json()
+
+      if (orderData?.error) {
+        const rawError = orderData.error
+        const errorMessage =
+          (typeof rawError === "string" && rawError) ||
+          rawError?.message ||
+          rawError?.type ||
+          "Autorizzazione del pagamento non riuscita"
+
+        console.error("[CHECKOUT] ❌ Complete returned error payload:", {
+          type: orderData.type,
+          error: rawError,
+        })
+
+        throw new Error(errorMessage)
+      }
+
+      if (orderData?.type === "cart" && orderData?.cart) {
+        const status = orderData.cart?.payment_collection?.status
+
+        if (status && status !== "paid" && status !== "captured") {
+          console.error("[CHECKOUT] ❌ Payment collection incomplete:", {
+            status,
+            paymentCollectionId: orderData.cart.payment_collection?.id,
+          })
+
+          throw new Error("Pagamento non autorizzato. Riprova o usa un altro metodo")
+        }
+      }
+
       const order = extractOrderFromCompleteResponse(orderData)
 
       if (!order?.id) {
