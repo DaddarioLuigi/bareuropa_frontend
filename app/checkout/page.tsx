@@ -329,10 +329,29 @@ export default function CheckoutPage(): React.JSX.Element {
           },
           body: JSON.stringify({ option_id: chosenShippingOptionId }),
         })
-        // don't hard-fail if free_shipping placeholder is not recognized
-        if (!res.ok && chosenShippingOptionId !== "free_shipping") {
+        if (!res.ok) {
           const txt = await res.text()
-          throw new Error(txt || "Impossibile aggiungere il metodo di spedizione")
+          // If placeholder free_shipping fails, surface a clear error
+          throw new Error(
+            txt ||
+              "Impossibile aggiungere il metodo di spedizione. Verifica che esista almeno una Shipping Option valida per la regione/indirizzo."
+          )
+        }
+        // Verify shipping method attached
+        const verifyRes = await fetch(`/api/medusa/store/carts/${cartId}`, {
+          headers: {
+            "x-publishable-api-key":
+              process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || "",
+          },
+        })
+        if (verifyRes.ok) {
+          const verifyData = await verifyRes.json()
+          const vCart = verifyData.cart || verifyData
+          if (!vCart?.shipping_methods || vCart.shipping_methods.length === 0) {
+            throw new Error(
+              "Nessun metodo di spedizione è stato applicato al carrello. Configura una Shipping Option valida."
+            )
+          }
         }
       }
 
@@ -347,17 +366,56 @@ export default function CheckoutPage(): React.JSX.Element {
       const providerId = paymentMethod || medusa.paymentProviders[0]?.id
       if (!providerId) throw new Error("Nessun provider di pagamento disponibile")
 
+      // Wait for payment collection to be initialized then create payment session
       {
-        const res = await fetch(`/api/medusa/store/carts/${cartId}/payment-sessions`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-publishable-api-key":
-              process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || "",
-          },
-          body: JSON.stringify({ provider_id: providerId }),
-        })
-        // Some setups create sessions automatically; don't block on non-critical failures
+        let initialized = false
+        for (let i = 0; i < 10; i++) {
+          const cRes = await fetch(`/api/medusa/store/carts/${cartId}`, {
+            headers: {
+              "x-publishable-api-key":
+                process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || "",
+            },
+            cache: "no-store",
+          })
+          if (cRes.ok) {
+            const cData = await cRes.json()
+            const c = cData.cart || cData
+            if (c?.payment_collection || (c?.payment_sessions?.length || 0) > 0) {
+              initialized = true
+              break
+            }
+          }
+          await new Promise((r) => setTimeout(r, 500))
+        }
+        if (!initialized) {
+          // Try one more time after a short wait
+          await new Promise((r) => setTimeout(r, 500))
+        }
+        // Try to create payment session, retry once if collection not ready
+        const createSession = async () => {
+          return await fetch(`/api/medusa/store/carts/${cartId}/payment-sessions`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-publishable-api-key":
+                process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || "",
+            },
+            body: JSON.stringify({ provider_id: providerId }),
+          })
+        }
+        let psRes = await createSession()
+        if (!psRes.ok) {
+          const txt = await psRes.text()
+          if (txt?.includes("Payment collection has not been initiated")) {
+            await new Promise((r) => setTimeout(r, 800))
+            psRes = await createSession()
+          }
+        }
+        // If still not ok, we won't block complete in setups that auto-create sessions, but surface error if clearly invalid
+        if (!psRes.ok && medusa.paymentProviders.length > 0) {
+          // Not fatal for all providers, but helps troubleshooting
+          console.warn("Creazione payment session non riuscita:", await psRes.text())
+        }
       }
       // Stripe UI would happen here (Stripe Elements), but Medusa can handle authorization server-side.
 
