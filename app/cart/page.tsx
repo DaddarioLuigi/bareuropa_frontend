@@ -340,27 +340,71 @@ async function CartContent() {
                   <CardTitle>Riepilogo Ordine</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span>Subtotale</span>
-                      <span>€{subtotal.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Spedizione</span>
-                      <span className="text-green-600">
-                        {shippingCost === 0 ? "Gratuita" : `€${shippingCost.toFixed(2)}`}
-                      </span>
-                    </div>
-                    {shippingCost > 0 && (
-                      <p className="text-sm text-muted-foreground break-words whitespace-normal">Spedizione gratuita per ordini sopra €50</p>
-                    )}
+                  {/* Articoli */}
+                  <div className="space-y-3">
+                    {cart.items.map((item) => {
+                      const price = item.unit_price || 0
+                      const image = item.thumbnail || item.product?.thumbnail || "/placeholder.svg"
+                      const productTitle = item.product_title || item.title || item.product?.title || "Prodotto"
+                      const variantTitle = item.variant_title || "Standard"
+                      
+                      return (
+                        <div key={item.id} className="flex gap-3">
+                          {image && (
+                            <img 
+                              src={image} 
+                              alt={productTitle}
+                              className="w-16 h-16 object-cover rounded"
+                            />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate">{productTitle}</p>
+                            {variantTitle && variantTitle !== "Standard" && (
+                              <p className="text-xs text-muted-foreground">{variantTitle}</p>
+                            )}
+                            <p className="text-sm text-muted-foreground">
+                              Quantità: {item.quantity}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-medium">
+                              €{(price * item.quantity).toFixed(2)}
+                            </p>
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
 
                   <Separator />
 
-                  <div className="flex justify-between text-lg font-bold">
-                    <span>Totale</span>
-                    <span className="text-primary">€{total.toFixed(2)}</span>
+                  {/* Totali */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Subtotale</span>
+                      <span>€{subtotal.toFixed(2)}</span>
+                    </div>
+                    
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Spedizione</span>
+                      <span className="text-muted-foreground italic">Calcolata al checkout</span>
+                    </div>
+
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">IVA</span>
+                      <span className="text-muted-foreground italic">Calcolata al checkout</span>
+                    </div>
+
+                    <Separator />
+
+                    <div className="flex justify-between font-bold text-lg">
+                      <span>Totale stimato</span>
+                      <span className="text-primary">€{subtotal.toFixed(2)}</span>
+                    </div>
+                    
+                    <p className="text-xs text-muted-foreground mt-2">
+                      * Le spese di spedizione e l'IVA verranno calcolate nella pagina di checkout in base all'indirizzo di spedizione selezionato.
+                    </p>
                   </div>
 
                   <div className="space-y-3 pt-4">
