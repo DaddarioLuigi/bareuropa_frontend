@@ -14,15 +14,33 @@ export async function GET(request: NextRequest) {
     }
 
     // Ottieni le opzioni di spedizione disponibili per il carrello
+    // In Medusa v2, l'endpoint corretto è con cart_id come query param
     console.log(`[Shipping Options] Fetching for cart: ${cartId}`)
-    console.log(`[Shipping Options] URL: ${MEDUSA_BACKEND_URL}/store/shipping-options/${cartId}`)
     
-    const res = await fetch(`${MEDUSA_BACKEND_URL}/store/shipping-options/${cartId}`, {
+    // Prima prova con il nuovo formato (v2)
+    let url = `${MEDUSA_BACKEND_URL}/store/fulfillments/shipping-options?cart_id=${cartId}`
+    console.log(`[Shipping Options] Trying URL: ${url}`)
+    
+    let res = await fetch(url, {
       method: 'GET',
       headers: {
         'x-publishable-api-key': PUBLISHABLE_API_KEY,
       },
     })
+    
+    // Se fallisce, prova con il formato alternativo
+    if (!res.ok && res.status === 404) {
+      console.log(`[Shipping Options] First attempt failed, trying alternative endpoint`)
+      url = `${MEDUSA_BACKEND_URL}/store/shipping-options?cart_id=${cartId}`
+      console.log(`[Shipping Options] Trying URL: ${url}`)
+      
+      res = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'x-publishable-api-key': PUBLISHABLE_API_KEY,
+        },
+      })
+    }
 
     if (!res.ok) {
       const errorText = await res.text()
