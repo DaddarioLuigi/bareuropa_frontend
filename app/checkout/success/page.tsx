@@ -225,10 +225,10 @@ export default function CheckoutSuccessPage() {
                     </div>
                     <div className="text-right">
                       <p className="font-medium">
-                        €{((item.unit_price * item.quantity) / 100).toFixed(2)}
+                        €{(item.unit_price * item.quantity).toFixed(2)}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        €{(item.unit_price / 100).toFixed(2)} cad.
+                        €{item.unit_price.toFixed(2)} cad.
                       </p>
                     </div>
                   </div>
@@ -241,20 +241,20 @@ export default function CheckoutSuccessPage() {
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Subtotale</span>
-                  <span>€{(order.subtotal / 100).toFixed(2)}</span>
+                  <span>€{order.subtotal.toFixed(2)}</span>
                 </div>
                 
                 {order.shipping_total > 0 && (
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Spedizione</span>
-                    <span>€{(order.shipping_total / 100).toFixed(2)}</span>
+                    <span>€{order.shipping_total.toFixed(2)}</span>
                   </div>
                 )}
 
                 {order.tax_total > 0 && (
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">IVA</span>
-                    <span>€{(order.tax_total / 100).toFixed(2)}</span>
+                    <span>€{order.tax_total.toFixed(2)}</span>
                   </div>
                 )}
 
@@ -262,7 +262,7 @@ export default function CheckoutSuccessPage() {
 
                 <div className="flex justify-between font-bold text-xl">
                   <span>Totale</span>
-                  <span className="text-primary">€{(order.total / 100).toFixed(2)}</span>
+                  <span className="text-primary">€{order.total.toFixed(2)}</span>
                 </div>
               </div>
             </CardContent>

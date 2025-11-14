@@ -19,15 +19,15 @@ import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-
 
 // Schema di validazione per l'indirizzo di spedizione
 const shippingSchema = z.object({
-  email: z.string().email('Email non valida'),
+  email: z.string().min(1, 'Email richiesta').email('Email non valida'),
   first_name: z.string().min(2, 'Il nome deve avere almeno 2 caratteri'),
   last_name: z.string().min(2, 'Il cognome deve avere almeno 2 caratteri'),
   address_1: z.string().min(5, 'Indirizzo non valido'),
-  address_2: z.string().optional(),
+  address_2: z.string().optional().or(z.literal('')),
   city: z.string().min(2, 'Città non valida'),
   province: z.string().min(2, 'Provincia non valida'),
   postal_code: z.string().min(5, 'CAP non valido'),
-  country_code: z.string().default('it'),
+  country_code: z.string(),
   phone: z.string().min(10, 'Numero di telefono non valido')
 })
 
@@ -37,7 +37,7 @@ interface CartItem {
   id: string
   title: string
   quantity: number
-  unit_price: number
+  unit_price: number // Medusa v2: già in euro, non in centesimi
   thumbnail?: string
   variant: {
     title?: string
@@ -47,10 +47,10 @@ interface CartItem {
 interface Cart {
   id: string
   items: CartItem[]
-  subtotal: number
-  shipping_total: number
-  tax_total: number
-  total: number
+  subtotal: number // Medusa v2: già in euro, non in centesimi
+  shipping_total: number // Medusa v2: già in euro, non in centesimi
+  tax_total: number // Medusa v2: già in euro, non in centesimi
+  total: number // Medusa v2: già in euro, non in centesimi
   currency_code: string
   shipping_address?: any
   payment_session?: {
@@ -146,7 +146,7 @@ function CheckoutForm({ cart, onSuccess }: { cart: Cart, onSuccess: () => void }
         ) : (
           <>
             <CreditCard className="mr-2 h-5 w-5" />
-            Paga €{(cart.total / 100).toFixed(2)}
+            Paga €{cart.total.toFixed(2)}
           </>
         )}
       </Button>
@@ -214,6 +214,7 @@ export default function CheckoutPage() {
   const onShippingSubmit = async (data: ShippingFormData) => {
     if (!cart) return
 
+    console.log('Form data submitted:', data)
     setSubmitting(true)
     try {
       // Aggiorna l'indirizzo di spedizione
@@ -227,11 +228,13 @@ export default function CheckoutPage() {
       })
 
       if (!res.ok) {
-        throw new Error('Errore nell\'aggiornamento dell\'indirizzo')
+        const errorData = await res.json().catch(() => ({}))
+        console.error('Error response:', errorData)
+        throw new Error(errorData.error || 'Errore nell\'aggiornamento dell\'indirizzo')
       }
 
       const updatedCart = await res.json()
-      setCart(updatedCart.cart)
+      setCart(updatedCart.cart || updatedCart)
 
       // Carica le opzioni di spedizione disponibili
       const shippingRes = await fetch(`/api/checkout/shipping-options?cartId=${cart.id}`)
@@ -243,7 +246,7 @@ export default function CheckoutPage() {
       setCurrentStep('shipping-method')
     } catch (error) {
       console.error('Errore:', error)
-      alert('Errore nell\'aggiornamento dell\'indirizzo')
+      alert(error instanceof Error ? error.message : 'Errore nell\'aggiornamento dell\'indirizzo')
     } finally {
       setSubmitting(false)
     }
@@ -375,7 +378,15 @@ export default function CheckoutPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <form onSubmit={handleSubmit(onShippingSubmit)} className="space-y-4">
+                    <form onSubmit={handleSubmit(onShippingSubmit, (errors) => {
+                      console.log('Validation errors:', errors)
+                    })} className="space-y-4">
+                      {Object.keys(errors).length > 0 && (
+                        <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+                          Alcuni campi sono incompleti o non validi. Controlla i campi evidenziati.
+                        </div>
+                      )}
+                      
                       <div>
                         <Label htmlFor="email">Email *</Label>
                         <Input
@@ -641,7 +652,7 @@ export default function CheckoutPage() {
                         </div>
                         <div className="text-right">
                           <p className="font-medium">
-                            €{((item.unit_price * item.quantity) / 100).toFixed(2)}
+                            €{(item.unit_price * item.quantity).toFixed(2)}
                           </p>
                         </div>
                       </div>
@@ -654,20 +665,20 @@ export default function CheckoutPage() {
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Subtotale</span>
-                      <span>€{(cart.subtotal / 100).toFixed(2)}</span>
+                      <span>€{cart.subtotal.toFixed(2)}</span>
                     </div>
                     
                     {cart.shipping_total > 0 && (
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Spedizione</span>
-                        <span>€{(cart.shipping_total / 100).toFixed(2)}</span>
+                        <span>€{cart.shipping_total.toFixed(2)}</span>
                       </div>
                     )}
 
                     {cart.tax_total > 0 && (
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">IVA</span>
-                        <span>€{(cart.tax_total / 100).toFixed(2)}</span>
+                        <span>€{cart.tax_total.toFixed(2)}</span>
                       </div>
                     )}
 
@@ -675,7 +686,7 @@ export default function CheckoutPage() {
 
                     <div className="flex justify-between font-bold text-lg">
                       <span>Totale</span>
-                      <span className="text-primary">€{(cart.total / 100).toFixed(2)}</span>
+                      <span className="text-primary">€{cart.total.toFixed(2)}</span>
                     </div>
                   </div>
                 </CardContent>
