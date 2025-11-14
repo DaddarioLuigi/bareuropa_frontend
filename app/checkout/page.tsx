@@ -153,8 +153,28 @@ export default function CheckoutPage(): React.JSX.Element {
       localStorage.setItem("medusa_cart_id", cartId)
       localStorage.setItem("cart_id", cartId)
 
+      // Always fetch latest cart snapshot from Medusa to derive region and current state
+      let latestCart: any = null
+      {
+        const cRes = await fetch(`/api/medusa/store/carts/${cartId}`, {
+          headers: {
+            "x-publishable-api-key":
+              process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || "",
+          },
+          cache: "no-store",
+        })
+        if (!cRes.ok) {
+          const txt = await cRes.text().catch(() => "")
+          throw new Error(txt || "Impossibile recuperare il carrello")
+        }
+        const cData = await cRes.json()
+        latestCart = cData.cart || cData
+      }
+
       const cartHasItems =
-        (medusa.cart?.items?.length || 0) > 0 || (state?.items?.length || 0) > 0
+        (latestCart?.items?.length || 0) > 0 ||
+        (medusa.cart?.items?.length || 0) > 0 ||
+        (state?.items?.length || 0) > 0
       if (!cartHasItems) {
         throw new Error("Il carrello è vuoto. Aggiungi prodotti prima di procedere.")
       }
@@ -180,7 +200,7 @@ export default function CheckoutPage(): React.JSX.Element {
       // Resolve country (default to Italy)
       let countryCode = "it"
       try {
-        const regionId = medusa.cart?.region?.id
+        const regionId = latestCart?.region?.id || medusa.cart?.region?.id
         if (regionId) {
           const r = await fetch(`/api/medusa/store/regions/${regionId}`)
           if (r.ok) {
@@ -291,7 +311,7 @@ export default function CheckoutPage(): React.JSX.Element {
       }
       // If cart-scoped options failed, try region-scoped options as fallback
       if (!chosenShippingOptionId) {
-        const regionId = medusa.cart?.region?.id
+        const regionId = latestCart?.region?.id || medusa.cart?.region?.id
         if (regionId) {
           try {
             const soRes = await fetch(
@@ -313,6 +333,30 @@ export default function CheckoutPage(): React.JSX.Element {
           } catch {
             // ignore
           }
+        }
+      }
+      // Try cartId path variant some backends expose: /shipping-options/{cartId}
+      if (!chosenShippingOptionId) {
+        try {
+          const soRes = await fetch(
+            `/api/medusa/store/shipping-options/${encodeURIComponent(cartId)}`,
+            {
+              headers: {
+                "x-publishable-api-key":
+                  process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || "",
+              },
+            }
+          )
+          if (soRes.ok) {
+            const soData = await soRes.json()
+            const options =
+              soData.shipping_options || soData.options || soData || []
+            if (Array.isArray(options) && options.length > 0) {
+              chosenShippingOptionId = options[0].id
+            }
+          }
+        } catch {
+          // ignore
         }
       }
       if (!chosenShippingOptionId) {
