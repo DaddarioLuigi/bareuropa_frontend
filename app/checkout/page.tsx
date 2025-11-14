@@ -20,6 +20,10 @@ import { useMedusa } from "@/hooks/use-medusa"
 import { CreditCard, Truck, MapPin, Lock, Tag, X } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import {
+  describePaymentAuthorizationFailure,
+  extractOrderFromCompletion,
+} from "@/lib/checkout/medusa-completion"
 
 function getPaymentProviderName(providerId: string): string {
   const providerNames: Record<string, string> = {
