@@ -20,59 +20,59 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Configurazione API mancante' }, { status: 500 })
     }
 
-    // Inizializza le sessioni di pagamento
-    console.log('[Payment Session] Initializing payment sessions...')
-    const initRes = await fetch(`${MEDUSA_BACKEND_URL}/store/carts/${cartId}/payment-sessions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-publishable-api-key': PUBLISHABLE_API_KEY,
-      },
-    })
-
-    if (!initRes.ok) {
-      const errorText = await initRes.text()
-      console.error('[Payment Session] Init failed:', initRes.status, errorText)
-      return NextResponse.json(
-        { error: 'Errore nell\'inizializzazione delle sessioni di pagamento', details: errorText },
-        { status: initRes.status }
-      )
-    }
-
-    const initData = await initRes.json()
-    console.log('[Payment Session] Init success')
-    
-    // Seleziona il provider di pagamento (Stripe)
-    console.log('[Payment Session] Selecting provider:', providerId || 'stripe')
-    const selectRes = await fetch(`${MEDUSA_BACKEND_URL}/store/carts/${cartId}/payment-session`, {
+    // In Medusa v2, inizializza le sessioni di pagamento con endpoint diverso
+    console.log('[Payment Session] Initializing payment collection...')
+    const initRes = await fetch(`${MEDUSA_BACKEND_URL}/store/payment-collections`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'x-publishable-api-key': PUBLISHABLE_API_KEY,
       },
       body: JSON.stringify({
-        provider_id: providerId || 'stripe',
+        cart_id: cartId,
       }),
     })
 
-    if (!selectRes.ok) {
-      const errorText = await selectRes.text()
-      console.error('[Payment Session] Select failed:', selectRes.status, errorText)
+    if (!initRes.ok) {
+      const errorText = await initRes.text()
+      console.error('[Payment Session] Init failed:', initRes.status, errorText)
       return NextResponse.json(
-        { error: 'Errore nella selezione del provider di pagamento', details: errorText },
-        { status: selectRes.status }
+        { error: 'Errore nell\'inizializzazione del pagamento', details: errorText },
+        { status: initRes.status }
       )
     }
 
-    const selectData = await selectRes.json()
-    console.log('[Payment Session] Select success')
+    const initData = await initRes.json()
+    console.log('[Payment Session] Payment collection created:', initData)
     
-    // Estrai il client secret da Stripe
-    const paymentSession = selectData.cart?.payment_session
-    const clientSecret = paymentSession?.data?.client_secret
+    const paymentCollection = initData.payment_collection
+    
+    if (!paymentCollection || !paymentCollection.payment_sessions || paymentCollection.payment_sessions.length === 0) {
+      console.error('[Payment Session] No payment sessions available')
+      return NextResponse.json(
+        { error: 'Nessuna sessione di pagamento disponibile' },
+        { status: 500 }
+      )
+    }
+
+    // Trova la sessione Stripe
+    const stripeSession = paymentCollection.payment_sessions.find(
+      (session: any) => session.provider_id === 'pp_stripe_stripe' || session.provider_id.includes('stripe')
+    )
+
+    if (!stripeSession) {
+      console.error('[Payment Session] Stripe session not found. Available:', 
+        paymentCollection.payment_sessions.map((s: any) => s.provider_id))
+      return NextResponse.json(
+        { error: 'Stripe non configurato come metodo di pagamento' },
+        { status: 500 }
+      )
+    }
+
+    const clientSecret = stripeSession.data?.client_secret
 
     if (!clientSecret) {
-      console.error('[Payment Session] Client secret not found:', JSON.stringify(selectData, null, 2))
+      console.error('[Payment Session] Client secret not found in session:', stripeSession)
       return NextResponse.json(
         { error: 'Impossibile ottenere il client secret per il pagamento' },
         { status: 500 }
@@ -80,9 +80,20 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('[Payment Session] Success - client secret obtained')
+    
+    // Ottieni il carrello aggiornato
+    const cartRes = await fetch(`${MEDUSA_BACKEND_URL}/store/carts/${cartId}`, {
+      headers: {
+        'x-publishable-api-key': PUBLISHABLE_API_KEY,
+      },
+    })
+    
+    const cartData = cartRes.ok ? await cartRes.json() : { cart: null }
+
     return NextResponse.json({
-      ...selectData,
-      client_secret: clientSecret
+      cart: cartData.cart,
+      payment_collection: paymentCollection,
+      client_secret: clientSecret,
     })
   } catch (error) {
     console.error('[Payment Session] Error:', error)
