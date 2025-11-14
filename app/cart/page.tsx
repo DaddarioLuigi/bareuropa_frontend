@@ -381,17 +381,12 @@ async function CartContent() {
                   {/* Totali */}
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Subtotale</span>
+                      <span className="text-muted-foreground">Subtotale (IVA inclusa)</span>
                       <span>€{subtotal.toFixed(2)}</span>
                     </div>
                     
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Spedizione</span>
-                      <span className="text-muted-foreground italic">Calcolata al checkout</span>
-                    </div>
-
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">IVA</span>
                       <span className="text-muted-foreground italic">Calcolata al checkout</span>
                     </div>
 
@@ -403,7 +398,7 @@ async function CartContent() {
                     </div>
                     
                     <p className="text-xs text-muted-foreground mt-2">
-                      * Le spese di spedizione e l'IVA verranno calcolate nella pagina di checkout in base all'indirizzo di spedizione selezionato.
+                      * Le spese di spedizione verranno calcolate nella pagina di checkout in base all'indirizzo di spedizione selezionato. I prezzi includono già l'IVA.
                     </p>
                   </div>
 
