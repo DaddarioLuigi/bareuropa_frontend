@@ -172,7 +172,6 @@ function describePaymentAuthorizationFailure(payload: any): string | null {
         providerSpecificStatuses.add(providerStatus.toLowerCase())
       }
     }
-  }
 
   if (providerSpecificStatuses.has("requires_payment_method")) {
     return (
