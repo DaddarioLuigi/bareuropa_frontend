@@ -215,10 +215,11 @@ async function CartContent() {
     }
 
     const itemCount = cart.items.reduce((sum, item) => sum + item.quantity, 0)
-    // Medusa v2: subtotal is already in euros (no conversion needed)
-    const subtotal = cart.subtotal || 0
-    const shippingCost = subtotal >= 50 ? 0 : 5.9
-    const total = subtotal + shippingCost
+    // Calcola il subtotale sommando i prezzi degli articoli (già IVA inclusa)
+    const subtotal = cart.items.reduce((sum, item) => {
+      const price = item.unit_price || 0
+      return sum + (price * item.quantity)
+    }, 0)
 
     return (
       <>
