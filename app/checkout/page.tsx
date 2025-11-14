@@ -510,7 +510,7 @@ export default function CheckoutPage(): React.JSX.Element {
       }
 
       const verifyData = await verifyRes.json()
-      const vCart = verifyData.cart || verifyData
+      let vCart = verifyData.cart || verifyData
 
       if (!vCart?.shipping_methods || vCart.shipping_methods.length === 0) {
         console.error('[CHECKOUT] ❌ Shipping method NOT found in cart after add!')
@@ -529,6 +529,71 @@ export default function CheckoutPage(): React.JSX.Element {
 
       console.log('[CHECKOUT] ✅ Shipping method verified:', vCart.shipping_methods.length, 'methods')
 
+      // Ensure payment collection exists before proceeding to payments
+      let paymentCollectionId =
+        vCart?.payment_collection?.id ||
+        vCart?.payment_collection_id ||
+        null
+
+      if (!paymentCollectionId) {
+        console.log('[CHECKOUT] Payment collection missing - attempting to create it now...')
+        try {
+          const pcRes = await fetch(`/api/medusa/store/carts/${cartId}/payment-collections`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-publishable-api-key":
+                process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || "",
+            },
+          })
+
+          if (pcRes.ok) {
+            const pcData = await pcRes.json()
+            paymentCollectionId =
+              pcData?.payment_collection?.id ||
+              pcData?.id ||
+              pcData?.payment_collection_id ||
+              null
+            console.log('[CHECKOUT] ✅ Payment collection created:', paymentCollectionId)
+          } else if (pcRes.status === 409) {
+            console.log('[CHECKOUT] ⚠️ Payment collection already exists (409). Fetching latest cart state...')
+          } else if (pcRes.status !== 404) {
+            const errorText = await pcRes.text()
+            console.warn('[CHECKOUT] ⚠️ Failed to create payment collection:', {
+              status: pcRes.status,
+              statusText: pcRes.statusText,
+              error: errorText.substring(0, 500),
+            })
+          }
+        } catch (err: any) {
+          console.warn('[CHECKOUT] ⚠️ Exception when creating payment collection:', err.message)
+        }
+
+        if (!paymentCollectionId) {
+          const refreshRes = await fetch(`/api/medusa/store/carts/${cartId}`, {
+            headers: {
+              "x-publishable-api-key":
+                process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_API_KEY || "",
+            },
+            cache: "no-store",
+          })
+
+          if (refreshRes.ok) {
+            const refreshData = await refreshRes.json()
+            vCart = refreshData.cart || refreshData
+            paymentCollectionId =
+              vCart?.payment_collection?.id ||
+              vCart?.payment_collection_id ||
+              null
+            if (paymentCollectionId) {
+              console.log('[CHECKOUT] ✅ Payment collection detected after refresh:', paymentCollectionId)
+            } else {
+              console.warn('[CHECKOUT] ⚠️ Payment collection still missing after refresh')
+            }
+          }
+        }
+      }
+
       // Step 4: Payment Provider & Session
       if (!paymentMethod) {
         if (medusa.paymentProviders.length === 1) {
@@ -544,8 +609,8 @@ export default function CheckoutPage(): React.JSX.Element {
       // In Medusa v2, payment collection is created automatically when shipping method is added
       // However, some setups create it only during complete - so we wait but don't block if it doesn't appear
       console.log('[CHECKOUT] Waiting for payment collection to be initialized...')
-      let paymentCollectionReady = false
-      let finalCartBeforeComplete: any = null
+      let paymentCollectionReady = !!paymentCollectionId
+      let finalCartBeforeComplete: any = vCart
       
       // Check current cart state
       const initialCartRes = await fetch(`/api/medusa/store/carts/${cartId}`, {
