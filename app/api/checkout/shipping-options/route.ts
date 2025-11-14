@@ -14,6 +14,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Ottieni le opzioni di spedizione disponibili per il carrello
+    console.log(`[Shipping Options] Fetching for cart: ${cartId}`)
+    console.log(`[Shipping Options] URL: ${MEDUSA_BACKEND_URL}/store/shipping-options/${cartId}`)
+    
     const res = await fetch(`${MEDUSA_BACKEND_URL}/store/shipping-options/${cartId}`, {
       method: 'GET',
       headers: {
@@ -23,14 +26,16 @@ export async function GET(request: NextRequest) {
 
     if (!res.ok) {
       const errorText = await res.text()
-      console.error('Errore Medusa shipping options:', errorText)
+      console.error('[Shipping Options] Errore Medusa:', res.status, errorText)
       return NextResponse.json(
-        { error: 'Errore nel caricamento delle opzioni di spedizione' },
+        { error: 'Errore nel caricamento delle opzioni di spedizione', details: errorText },
         { status: res.status }
       )
     }
 
     const data = await res.json()
+    console.log('[Shipping Options] Response:', JSON.stringify(data, null, 2))
+    
     return NextResponse.json(data)
   } catch (error) {
     console.error('Errore shipping options route:', error)

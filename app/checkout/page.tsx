@@ -240,7 +240,11 @@ export default function CheckoutPage() {
       const shippingRes = await fetch(`/api/checkout/shipping-options?cartId=${cart.id}`)
       if (shippingRes.ok) {
         const options = await shippingRes.json()
+        console.log('[Checkout] Shipping options received:', options)
         setShippingOptions(options.shipping_options || [])
+      } else {
+        const error = await shippingRes.json().catch(() => ({}))
+        console.error('[Checkout] Failed to load shipping options:', error)
       }
 
       setCurrentStep('shipping-method')
