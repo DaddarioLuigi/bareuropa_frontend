@@ -44,27 +44,90 @@ function extractOrderFromCompleteResponse(data: any): any | null {
     return null
   }
 
-  if (data.order && typeof data.order === "object") {
-    return data.order
-  }
+  const looksLikeOrderId = (value: string) =>
+    /^(order_|ord_|or_|medorder_|med_ord_)/i.test(value)
 
-  if (data.data && typeof data.data === "object") {
-    if (data.data.order && typeof data.data.order === "object") {
-      return data.data.order
+  const looksLikeOrderObject = (value: any) => {
+    if (!value || typeof value !== "object") {
+      return false
     }
 
-    if (data.type === "order") {
-      return data.data
+    if (typeof value.id === "string" && looksLikeOrderId(value.id)) {
+      return true
     }
+
+    if (typeof value.object === "string" && value.object.toLowerCase() === "order") {
+      return true
+    }
+
+    const requiredKeys = ["payment_status", "fulfillment_status", "display_id"]
+    const matchesStructure = requiredKeys.every((key) => key in value)
+
+    return matchesStructure
   }
 
-  if (data.type === "order") {
-    return data
-  }
+  const visited = new Set<any>()
+  const stack: any[] = [data]
 
-  // Some backends may return the order flattened without a wrapper.
-  if (data.id && typeof data.id === "string") {
-    return data
+  while (stack.length > 0) {
+    const current = stack.pop()
+
+    if (!current || typeof current !== "object" || visited.has(current)) {
+      continue
+    }
+
+    visited.add(current)
+
+    if (Array.isArray(current)) {
+      for (const item of current) {
+        if (item && typeof item === "object") {
+          stack.push(item)
+        }
+      }
+      continue
+    }
+
+    if (current.order && typeof current.order === "object") {
+      if (looksLikeOrderObject(current.order)) {
+        return current.order
+      }
+      stack.push(current.order)
+    }
+
+    if (current.data && typeof current.data === "object") {
+      if (looksLikeOrderObject(current.data)) {
+        return current.data
+      }
+      stack.push(current.data)
+    }
+
+    if (current.type === "order" && current.data && typeof current.data === "object") {
+      if (looksLikeOrderObject(current.data)) {
+        return current.data
+      }
+      stack.push(current.data)
+      continue
+    }
+
+    if (typeof current.order_id === "string" || typeof current.orderId === "string") {
+      const id = current.order_id || current.orderId
+      if (id) {
+        return {
+          id,
+          ...("order" in current && typeof current.order === "object" ? current.order : {}),
+        }
+      }
+    }
+
+    if (looksLikeOrderObject(current)) {
+      return current
+    }
+
+    for (const value of Object.values(current)) {
+      if (value && typeof value === "object") {
+        stack.push(value)
+      }
+    }
   }
 
   return null
@@ -923,6 +986,36 @@ export default function CheckoutPage(): React.JSX.Element {
       }
       
       const orderData = await completeRes.json()
+
+      if (orderData?.error) {
+        const rawError = orderData.error
+        const errorMessage =
+          (typeof rawError === "string" && rawError) ||
+          rawError?.message ||
+          rawError?.type ||
+          "Autorizzazione del pagamento non riuscita"
+
+        console.error("[CHECKOUT] ❌ Complete returned error payload:", {
+          type: orderData.type,
+          error: rawError,
+        })
+
+        throw new Error(errorMessage)
+      }
+
+      if (orderData?.type === "cart" && orderData?.cart) {
+        const status = orderData.cart?.payment_collection?.status
+
+        if (status && status !== "paid" && status !== "captured") {
+          console.error("[CHECKOUT] ❌ Payment collection incomplete:", {
+            status,
+            paymentCollectionId: orderData.cart.payment_collection?.id,
+          })
+
+          throw new Error("Pagamento non autorizzato. Riprova o usa un altro metodo")
+        }
+      }
+
       const order = extractOrderFromCompleteResponse(orderData)
 
       if (!order?.id) {
