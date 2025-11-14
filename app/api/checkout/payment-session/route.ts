@@ -43,14 +43,41 @@ export async function POST(request: NextRequest) {
     }
 
     const initData = await initRes.json()
-    console.log('[Payment Session] Payment collection created:', initData)
+    console.log('[Payment Session] Payment collection response:', JSON.stringify(initData, null, 2))
     
     const paymentCollection = initData.payment_collection
     
-    if (!paymentCollection || !paymentCollection.payment_sessions || paymentCollection.payment_sessions.length === 0) {
-      console.error('[Payment Session] No payment sessions available')
+    if (!paymentCollection) {
+      console.error('[Payment Session] No payment_collection in response')
       return NextResponse.json(
-        { error: 'Nessuna sessione di pagamento disponibile' },
+        { error: 'Impossibile creare la payment collection', details: 'payment_collection not found in response' },
+        { status: 500 }
+      )
+    }
+
+    if (!paymentCollection.payment_sessions || paymentCollection.payment_sessions.length === 0) {
+      console.error('[Payment Session] No payment sessions available. Payment collection:', JSON.stringify(paymentCollection, null, 2))
+      
+      // Verifica se il carrello ha un metodo di spedizione
+      const cartCheck = await fetch(`${MEDUSA_BACKEND_URL}/store/carts/${cartId}`, {
+        headers: { 'x-publishable-api-key': PUBLISHABLE_API_KEY },
+      })
+      const cartCheckData = await cartCheck.json()
+      console.error('[Payment Session] Cart state:', {
+        hasShippingMethods: !!cartCheckData.cart?.shipping_methods?.length,
+        shippingMethods: cartCheckData.cart?.shipping_methods,
+        hasAddress: !!cartCheckData.cart?.shipping_address,
+      })
+      
+      return NextResponse.json(
+        { 
+          error: 'Nessuna sessione di pagamento disponibile', 
+          details: 'Assicurati che il metodo di spedizione sia selezionato',
+          debug: {
+            hasPaymentSessions: !!paymentCollection.payment_sessions,
+            paymentSessionsCount: paymentCollection.payment_sessions?.length || 0,
+          }
+        },
         { status: 500 }
       )
     }
