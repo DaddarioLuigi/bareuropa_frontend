@@ -312,8 +312,6 @@ export default function CheckoutPage() {
       
       <main className="flex-1 container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
-          <h1 className="font-display text-4xl font-bold text-primary mb-8">Checkout</h1>
-
           {/* Indicatore di progresso */}
           <div className="mb-8">
             <div className="flex items-center justify-between max-w-2xl mx-auto">
