@@ -313,45 +313,45 @@ export default function CheckoutPage() {
       <main className="flex-1 container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
           {/* Indicatore di progresso */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between max-w-2xl mx-auto">
-              <div className={`flex items-center ${currentStep === 'shipping' ? 'text-primary' : 'text-muted-foreground'}`}>
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+          <div className="mt-12 mb-8">
+            <div className="flex items-center justify-between max-w-2xl mx-auto px-2 sm:px-0">
+              <div className={`flex flex-col sm:flex-row items-center ${currentStep === 'shipping' ? 'text-primary' : 'text-muted-foreground'}`}>
+                <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center ${
                   currentStep === 'shipping' ? 'bg-primary text-primary-foreground' : 'bg-muted'
                 }`}>
-                  <MapPin className="h-5 w-5" />
+                  <MapPin className="h-4 w-4 sm:h-5 sm:w-5" />
                 </div>
-                <span className="ml-2 font-medium hidden sm:inline">Indirizzo</span>
+                <span className="mt-1 sm:mt-0 sm:ml-2 text-xs sm:text-base font-medium">Indirizzo</span>
               </div>
               
-              <div className="flex-1 h-1 mx-4 bg-muted">
+              <div className="flex-1 h-1 mx-2 sm:mx-4 bg-muted">
                 <div className={`h-full transition-all ${
                   currentStep !== 'shipping' ? 'bg-primary w-full' : 'bg-muted w-0'
                 }`} />
               </div>
 
-              <div className={`flex items-center ${currentStep === 'shipping-method' ? 'text-primary' : 'text-muted-foreground'}`}>
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+              <div className={`flex flex-col sm:flex-row items-center ${currentStep === 'shipping-method' ? 'text-primary' : 'text-muted-foreground'}`}>
+                <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center ${
                   currentStep === 'shipping-method' ? 'bg-primary text-primary-foreground' : 'bg-muted'
                 }`}>
-                  <Package className="h-5 w-5" />
+                  <Package className="h-4 w-4 sm:h-5 sm:w-5" />
                 </div>
-                <span className="ml-2 font-medium hidden sm:inline">Spedizione</span>
+                <span className="mt-1 sm:mt-0 sm:ml-2 text-xs sm:text-base font-medium">Spedizione</span>
               </div>
 
-              <div className="flex-1 h-1 mx-4 bg-muted">
+              <div className="flex-1 h-1 mx-2 sm:mx-4 bg-muted">
                 <div className={`h-full transition-all ${
                   currentStep === 'payment' ? 'bg-primary w-full' : 'bg-muted w-0'
                 }`} />
               </div>
 
-              <div className={`flex items-center ${currentStep === 'payment' ? 'text-primary' : 'text-muted-foreground'}`}>
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+              <div className={`flex flex-col sm:flex-row items-center ${currentStep === 'payment' ? 'text-primary' : 'text-muted-foreground'}`}>
+                <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center ${
                   currentStep === 'payment' ? 'bg-primary text-primary-foreground' : 'bg-muted'
                 }`}>
-                  <CreditCard className="h-5 w-5" />
+                  <CreditCard className="h-4 w-4 sm:h-5 sm:w-5" />
                 </div>
-                <span className="ml-2 font-medium hidden sm:inline">Pagamento</span>
+                <span className="mt-1 sm:mt-0 sm:ml-2 text-xs sm:text-base font-medium">Pagamento</span>
               </div>
             </div>
           </div>
