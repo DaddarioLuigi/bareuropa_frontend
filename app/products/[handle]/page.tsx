@@ -17,6 +17,7 @@ import { AddToCartSection } from './add-to-cart-section'
 import { ProductImageGallery } from '@/components/product-image-gallery'
 
 export const revalidate = 300
+export const dynamicParams = true // Permette il rendering dinamico di prodotti non pre-generati
 
 export async function generateMetadata({ params }: { params: { handle: string } }): Promise<Metadata> {
   try {
@@ -668,19 +669,25 @@ export async function generateStaticParams() {
     const regionParam = MEDUSA_REGION_ID ? `&region_id=${MEDUSA_REGION_ID}` : ''
     const data = await api(`/store/products?limit=1000${regionParam}`, { next: { revalidate: 300 } })
     
-    const products = data.products ?? data
-    
-    // Ensure products is an array
-    if (!Array.isArray(products)) {
-      console.error('Products is not an array:', products)
-      return []
+    // Handle different response structures (same as in ProductDetails)
+    let products: any[] = []
+    if (Array.isArray(data)) {
+      products = data
+    } else if (data?.products && Array.isArray(data.products)) {
+      products = data.products
+    } else if (data?.product) {
+      products = [data.product]
     }
     
-    return products.map((product: Product) => ({ 
+    // Filter out products without handles
+    const validProducts = products.filter((product: any) => product?.handle)
+    
+    return validProducts.map((product: any) => ({ 
       handle: product.handle 
     }))
   } catch (error) {
     console.error('Error generating static params:', error)
+    // Return empty array to allow dynamic rendering
     return []
   }
 }
