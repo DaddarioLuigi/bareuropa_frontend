@@ -19,7 +19,7 @@ export default function StoryPage() {
       image: "/storia_1.jpeg"
     },
     {
-      year: "1975",
+      year: "1994",
       title: "L'Espansione",
       description: "Il bar diventa un punto di riferimento per i tranesi. Si amplia l'offerta di pasticceria fresca e si consolida la reputazione per cornetti e caffè di qualità.",
       icon: Users,
@@ -33,14 +33,14 @@ export default function StoryPage() {
       image: "/storia_3.jpeg"
     },
     {
-      year: "2000",
+      year: "2016",
       title: "Il Rinnovamento",
       description: "Bar Europa rinnova i suoi interni con uno stile luminoso e archi in pietra, mantenendo l'atmosfera accogliente che contraddistingue il locale.",
       icon: Award,
       image: "/storia_4.jpeg"
     },
     {
-      year: "2015",
+      year: "2024",
       title: "La Tradizione Continua",
       description: "Oggi Bar Europa continua la sua tradizione con Francesco e Cataldo Farucci & C. S.n.c., mantenendo l'autenticità e la qualità che ci contraddistingue da oltre cinquant'anni.",
       icon: Clock,
