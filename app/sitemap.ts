@@ -3,9 +3,22 @@ import { MetadataRoute } from 'next'
 export const dynamic = 'force-dynamic'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const siteUrl =
-    process.env.NEXT_PUBLIC_SITE_URL
-    || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
+  // Use production domain, not preview deployments
+  // Priority: NEXT_PUBLIC_SITE_URL > production domain > localhost
+  let siteUrl = process.env.NEXT_PUBLIC_SITE_URL
+  
+  if (!siteUrl) {
+    // Always use the verified production domain
+    // Don't use VERCEL_URL as it might be a preview deployment URL
+    // This ensures Google Search Console always sees the correct domain
+    if (process.env.VERCEL) {
+      // On Vercel (production or preview), use the verified domain
+      siteUrl = 'https://bareuropa.vercel.app'
+    } else {
+      // Local development
+      siteUrl = 'http://localhost:3000'
+    }
+  }
   
   // Static pages
   const staticPages = [
