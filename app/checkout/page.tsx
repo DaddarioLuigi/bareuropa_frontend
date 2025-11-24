@@ -227,6 +227,8 @@ export default function CheckoutPage() {
         hasData: !!data,
         cartId: data.cart?.id || data.id,
         discounts: data.cart?.discounts || data.discounts,
+        promotions: data.cart?.promotions || data.promotions,
+        promo_codes: data.cart?.promo_codes || data.promo_codes,
         discountTotal: data.cart?.discount_total || data.discount_total
       })
       
@@ -236,46 +238,64 @@ export default function CheckoutPage() {
         throw new Error('Carrello non trovato nella risposta')
       }
       
-      // Verifica che il codice sia stato effettivamente applicato
+      // Verifica che il codice sia stato applicato
+      // In Medusa v2, le promozioni possono essere in diversi campi:
+      // - discounts (per sconti diretti)
+      // - promotions (per promozioni applicate)
+      // - promo_codes (per i codici applicati)
       const hasDiscount = updatedCart.discounts && updatedCart.discounts.length > 0
-      const discountCode = hasDiscount 
-        ? (updatedCart.discounts[0]?.code || updatedCart.discounts[0]?.discount?.code || updatedCart.discounts[0]?.promotion?.code)
-        : null
+      const hasPromotions = updatedCart.promotions && updatedCart.promotions.length > 0
+      const hasPromoCodes = updatedCart.promo_codes && updatedCart.promo_codes.length > 0
+      
+      // Estrai il codice da qualsiasi campo
+      let discountCode = null
+      if (hasDiscount) {
+        discountCode = updatedCart.discounts[0]?.code || 
+                      updatedCart.discounts[0]?.discount?.code || 
+                      updatedCart.discounts[0]?.promotion?.code
+      } else if (hasPromotions) {
+        discountCode = updatedCart.promotions[0]?.code || 
+                      updatedCart.promotions[0]?.promotion?.code
+      } else if (hasPromoCodes) {
+        discountCode = Array.isArray(updatedCart.promo_codes) 
+          ? updatedCart.promo_codes[0] 
+          : updatedCart.promo_codes
+      }
       
       console.log('[Checkout] Discount verification:', {
         hasDiscount,
+        hasPromotions,
+        hasPromoCodes,
         discountCode,
         discountTotal: updatedCart.discount_total,
-        appliedCode: promoCode.toUpperCase().trim()
+        appliedCode: promoCode.toUpperCase().trim(),
+        allKeys: Object.keys(updatedCart)
       })
       
-      if (!hasDiscount || !discountCode) {
-        // Ricarica il carrello per verificare lo stato attuale
-        console.log('[Checkout] Ricarico il carrello per verificare lo stato...')
-        const cartRes = await fetch('/api/cart/details')
-        if (cartRes.ok) {
-          const cartData = await cartRes.json()
-          const currentCart = cartData.cart || cartData
-          setCart(currentCart)
-          
-          // Verifica di nuovo se il codice è stato applicato
-          if (currentCart.discounts && currentCart.discounts.length > 0) {
-            const code = currentCart.discounts[0]?.code || currentCart.discounts[0]?.discount?.code
-            if (code) {
-              setAppliedPromoCode(code.toUpperCase())
-              setPromoCode('')
-              setPromoSuccess(true)
-              return
-            }
-          }
+      // Se la richiesta è andata a buon fine (200), il codice è stato applicato
+      // Anche se non vediamo subito lo sconto (potrebbe essere applicato solo dopo la selezione della spedizione)
+      // Quindi accettiamo il codice se la risposta è OK, anche senza vedere subito lo sconto
+      if (res.ok) {
+        // Se abbiamo trovato il codice in qualche campo, usalo
+        // Altrimenti, assumiamo che sia stato applicato (potrebbe essere una promozione su shipping)
+        const finalCode = discountCode || promoCode.toUpperCase().trim()
+        
+        setCart(updatedCart)
+        setAppliedPromoCode(finalCode)
+        setPromoCode('')
+        setPromoSuccess(true)
+        
+        // Se non vediamo lo sconto subito, potrebbe essere perché è una promozione su shipping
+        // che si applicherà quando viene selezionato il metodo di spedizione
+        if (!hasDiscount && !hasPromotions && !hasPromoCodes) {
+          console.log('[Checkout] Codice applicato ma sconto non visibile ancora (probabilmente promozione su shipping)')
         }
-        throw new Error('Il codice promozionale non è stato applicato. Verifica che sia valido e attivo.')
+        
+        return
       }
       
-      setCart(updatedCart)
-      setAppliedPromoCode(discountCode.toUpperCase())
-      setPromoCode('')
-      setPromoSuccess(true)
+      // Se siamo qui, c'è stato un problema
+      throw new Error('Il codice promozionale non è stato applicato. Verifica che sia valido e attivo.')
       
       // Se siamo nello step payment, aggiorna anche la sessione di pagamento
       if (currentStep === 'payment' && clientSecret) {

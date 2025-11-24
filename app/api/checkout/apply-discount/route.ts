@@ -165,13 +165,45 @@ export async function POST(request: NextRequest) {
       keys: Object.keys(data || {}),
       cartId: data.cart?.id || data.id,
       discounts: data.cart?.discounts || data.discounts,
-      discountTotal: data.cart?.discount_total || data.discount_total
+      promotions: data.cart?.promotions || data.promotions,
+      promo_codes: data.cart?.promo_codes || data.promo_codes,
+      discountTotal: data.cart?.discount_total || data.discount_total,
+      fullResponse: JSON.stringify(data, null, 2).substring(0, 1000)
     })
     
     // Assicurati che la risposta contenga il carrello
     if (!data.cart && data.id) {
       // Se la risposta è direttamente il carrello, wrappalo
       return NextResponse.json({ cart: data })
+    }
+    
+    // Ricarica il carrello completo per verificare lo stato aggiornato
+    // Questo è necessario perché alcune promozioni (es. su shipping_methods) 
+    // potrebbero non apparire immediatamente nei discounts
+    try {
+      const cartCheckRes = await fetch(`${MEDUSA_BACKEND_URL}/store/carts/${cartId}`, {
+        headers: {
+          'x-publishable-api-key': PUBLISHABLE_API_KEY,
+        },
+      })
+      
+      if (cartCheckRes.ok) {
+        const cartCheckData = await cartCheckRes.json()
+        const fullCart = cartCheckData.cart || cartCheckData
+        console.log('[Apply Discount] Full cart after application:', {
+          discounts: fullCart.discounts,
+          promotions: fullCart.promotions,
+          promo_codes: fullCart.promo_codes,
+          discountTotal: fullCart.discount_total,
+          shippingDiscountTotal: fullCart.shipping_discount_total
+        })
+        
+        // Restituisci il carrello completo
+        return NextResponse.json({ cart: fullCart })
+      }
+    } catch (err) {
+      console.error('[Apply Discount] Error fetching full cart:', err)
+      // Continua comunque con la risposta originale
     }
     
     return NextResponse.json(data)
