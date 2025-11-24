@@ -104,35 +104,6 @@ export async function POST(request: NextRequest) {
     const data = await res.json()
     console.log('[Apply Discount] Success. Cart updated:', !!data.cart)
     return NextResponse.json(data)
-
-    if (!res.ok) {
-      const errorText = await res.text()
-      console.error('[Apply Discount] Failed:', res.status, errorText)
-      
-      // Prova a parsare l'errore come JSON
-      let errorData
-      try {
-        errorData = JSON.parse(errorText)
-      } catch {
-        errorData = { message: errorText || 'Codice promozionale non valido' }
-      }
-      
-      const errorMessage = errorData.message || 
-                           errorData.error?.message || 
-                           errorData.error || 
-                           (errorData.errors && Array.isArray(errorData.errors) && errorData.errors[0]?.message) ||
-                           (errorData.details && errorData.details.message) ||
-                           'Codice promozionale non valido'
-      
-      return NextResponse.json(
-        { error: errorMessage, details: errorText },
-        { status: res.status }
-      )
-    }
-
-    const data = await res.json()
-    console.log('[Apply Discount] Success. Cart updated:', !!data.cart)
-    return NextResponse.json(data)
   } catch (error) {
     console.error('Errore apply discount route:', error)
     return NextResponse.json(
