@@ -6,7 +6,7 @@ import { LikeButton } from "@/components/like-button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { ArrowLeft, Truck, Shield, RotateCcw } from "lucide-react"
+import { ArrowLeft, Truck, Shield, RotateCcw, Flag, Star, Heart } from "lucide-react"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { Suspense } from "react"
@@ -359,7 +359,7 @@ async function ProductDetails({ params }: ProductPageProps) {
           {/* Product Details Tabs */}
           <section className="py-12 bg-muted/30">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                 {/* Description */}
                 <Card>
                   <CardContent className="p-6">
@@ -398,10 +398,19 @@ async function ProductDetails({ params }: ProductPageProps) {
                 <Card>
                   <CardContent className="p-6">
                     <h3 className="font-display text-xl font-semibold mb-4">Dettagli</h3>
-                    <div className="space-y-2 text-sm text-muted-foreground">
-                      <p>Prodotto artigianale italiano</p>
-                      <p>Ingredienti di prima qualità</p>
-                      <p>Preparato secondo tradizione</p>
+                    <div className="space-y-4 text-sm">
+                      <div className="flex items-start gap-3">
+                        <Flag className="h-5 w-5 text-accent mt-0.5 flex-shrink-0" />
+                        <p className="text-muted-foreground">Prodotto artigianale italiano</p>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <Star className="h-5 w-5 text-accent mt-0.5 flex-shrink-0" />
+                        <p className="text-muted-foreground">Ingredienti di prima qualità</p>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <Heart className="h-5 w-5 text-accent mt-0.5 flex-shrink-0" />
+                        <p className="text-muted-foreground">Preparato secondo tradizione</p>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -615,7 +624,7 @@ async function ProductDetails({ params }: ProductPageProps) {
 
               <section className="py-12 bg-muted/30">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                     <Card>
                       <CardContent className="p-6">
                         <h3 className="font-display text-xl font-semibold mb-4">Descrizione</h3>
@@ -651,10 +660,19 @@ async function ProductDetails({ params }: ProductPageProps) {
                     <Card>
                       <CardContent className="p-6">
                         <h3 className="font-display text-xl font-semibold mb-4">Dettagli</h3>
-                        <div className="space-y-2 text-sm text-muted-foreground">
-                          <p>Prodotto artigianale italiano</p>
-                          <p>Ingredienti di prima qualità</p>
-                          <p>Preparato secondo tradizione</p>
+                        <div className="space-y-4 text-sm">
+                          <div className="flex items-start gap-3">
+                            <Flag className="h-5 w-5 text-accent mt-0.5 flex-shrink-0" />
+                            <p className="text-muted-foreground">Prodotto artigianale italiano</p>
+                          </div>
+                          <div className="flex items-start gap-3">
+                            <Star className="h-5 w-5 text-accent mt-0.5 flex-shrink-0" />
+                            <p className="text-muted-foreground">Ingredienti di prima qualità</p>
+                          </div>
+                          <div className="flex items-start gap-3">
+                            <Heart className="h-5 w-5 text-accent mt-0.5 flex-shrink-0" />
+                            <p className="text-muted-foreground">Preparato secondo tradizione</p>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
