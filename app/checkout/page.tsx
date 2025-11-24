@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Loader2, Package, CreditCard, MapPin } from "lucide-react"
+import { Loader2, Package, CreditCard, MapPin, Tag, X } from "lucide-react"
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -50,9 +50,16 @@ interface Cart {
   subtotal: number // Medusa v2: già in euro, non in centesimi
   shipping_total: number // Medusa v2: già in euro, non in centesimi
   tax_total: number // Medusa v2: già in euro, non in centesimi
+  discount_total?: number // Sconto totale applicato
   total: number // Medusa v2: già in euro, non in centesimi
   currency_code: string
   shipping_address?: any
+  discounts?: Array<{
+    code?: string
+    discount?: {
+      code?: string
+    }
+  }>
   payment_session?: {
     provider_id: string
     data: {
@@ -152,6 +159,11 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [clientSecret, setClientSecret] = useState<string>()
+  const [promoCode, setPromoCode] = useState('')
+  const [appliedPromoCode, setAppliedPromoCode] = useState<string | null>(null)
+  const [applyingPromo, setApplyingPromo] = useState(false)
+  const [promoError, setPromoError] = useState<string | null>(null)
+  const [promoSuccess, setPromoSuccess] = useState(false)
 
   const {
     register,
@@ -169,6 +181,124 @@ export default function CheckoutPage() {
   useEffect(() => {
     loadCart()
   }, [])
+
+  // Verifica se c'è già un codice promozionale applicato quando il carrello viene caricato
+  useEffect(() => {
+    if (cart && cart.discounts && cart.discounts.length > 0) {
+      const firstDiscount = cart.discounts[0]
+      const code = firstDiscount?.code || firstDiscount?.discount?.code
+      if (code) {
+        setAppliedPromoCode(code.toUpperCase())
+      }
+    }
+  }, [cart])
+
+  // Applica codice promozionale
+  const handleApplyPromoCode = async () => {
+    if (!cart || !promoCode.trim()) return
+
+    setApplyingPromo(true)
+    setPromoError(null)
+    setPromoSuccess(false)
+
+    try {
+      const res = await fetch('/api/checkout/apply-discount', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cartId: cart.id,
+          code: promoCode.trim()
+        })
+      })
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Errore nell\'applicazione del codice promozionale')
+      }
+
+      const data = await res.json()
+      const updatedCart = data.cart || data
+      setCart(updatedCart)
+      setAppliedPromoCode(promoCode.toUpperCase().trim())
+      setPromoCode('')
+      setPromoSuccess(true)
+      
+      // Se siamo nello step payment, aggiorna anche la sessione di pagamento
+      if (currentStep === 'payment' && clientSecret) {
+        const paymentRes = await fetch('/api/checkout/payment-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            cartId: cart.id,
+            providerId: 'stripe'
+          })
+        })
+
+        if (paymentRes.ok) {
+          const paymentData = await paymentRes.json()
+          setClientSecret(paymentData.client_secret)
+          setCart(paymentData.cart)
+        }
+      }
+    } catch (error) {
+      console.error('Errore applicazione codice promozionale:', error)
+      setPromoError(error instanceof Error ? error.message : 'Errore nell\'applicazione del codice promozionale')
+    } finally {
+      setApplyingPromo(false)
+    }
+  }
+
+  // Rimuovi codice promozionale
+  const handleRemovePromoCode = async () => {
+    if (!cart || !appliedPromoCode) return
+
+    setApplyingPromo(true)
+    setPromoError(null)
+
+    try {
+      const res = await fetch('/api/checkout/remove-discount', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cartId: cart.id,
+          code: appliedPromoCode
+        })
+      })
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Errore nella rimozione del codice promozionale')
+      }
+
+      const data = await res.json()
+      const updatedCart = data.cart || data
+      setCart(updatedCart)
+      setAppliedPromoCode(null)
+      
+      // Se siamo nello step payment, aggiorna anche la sessione di pagamento
+      if (currentStep === 'payment' && clientSecret) {
+        const paymentRes = await fetch('/api/checkout/payment-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            cartId: cart.id,
+            providerId: 'stripe'
+          })
+        })
+
+        if (paymentRes.ok) {
+          const paymentData = await paymentRes.json()
+          setClientSecret(paymentData.client_secret)
+          setCart(paymentData.cart)
+        }
+      }
+    } catch (error) {
+      console.error('Errore rimozione codice promozionale:', error)
+      setPromoError(error instanceof Error ? error.message : 'Errore nella rimozione del codice promozionale')
+    } finally {
+      setApplyingPromo(false)
+    }
+  }
 
   const loadCart = async () => {
     try {
@@ -652,12 +782,87 @@ export default function CheckoutPage() {
 
                   <Separator />
 
+                  {/* Codice Promozionale */}
+                  <div className="space-y-2">
+                    <Label htmlFor="promo-code" className="text-sm font-medium">
+                      Codice Promozionale
+                    </Label>
+                    {appliedPromoCode ? (
+                      <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <Tag className="h-4 w-4 text-green-600" />
+                          <span className="text-sm font-medium text-green-800">
+                            {appliedPromoCode}
+                          </span>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleRemovePromoCode}
+                          disabled={applyingPromo}
+                          className="h-6 w-6 p-0 text-green-600 hover:text-green-800"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <Input
+                          id="promo-code"
+                          type="text"
+                          placeholder="Inserisci codice"
+                          value={promoCode}
+                          onChange={(e) => {
+                            setPromoCode(e.target.value.toUpperCase())
+                            setPromoError(null)
+                            setPromoSuccess(false)
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault()
+                              handleApplyPromoCode()
+                            }
+                          }}
+                          className="flex-1"
+                        />
+                        <Button
+                          type="button"
+                          onClick={handleApplyPromoCode}
+                          disabled={!promoCode.trim() || applyingPromo}
+                          size="sm"
+                        >
+                          {applyingPromo ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            'Applica'
+                          )}
+                        </Button>
+                      </div>
+                    )}
+                    {promoError && (
+                      <p className="text-xs text-red-600">{promoError}</p>
+                    )}
+                    {promoSuccess && !promoError && (
+                      <p className="text-xs text-green-600">Codice promozionale applicato con successo!</p>
+                    )}
+                  </div>
+
+                  <Separator />
+
                   {/* Totali */}
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Subtotale</span>
                       <span>€{cart.subtotal.toFixed(2)}</span>
                     </div>
+                    
+                    {cart.discount_total && cart.discount_total > 0 && (
+                      <div className="flex justify-between text-sm text-green-600">
+                        <span>Sconto</span>
+                        <span>-€{cart.discount_total.toFixed(2)}</span>
+                      </div>
+                    )}
                     
                     {cart.shipping_total > 0 && (
                       <div className="flex justify-between text-sm">
