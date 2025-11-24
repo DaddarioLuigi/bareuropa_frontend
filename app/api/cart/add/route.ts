@@ -54,23 +54,76 @@ export async function POST(req: Request) {
 
     // Create cart if it doesn't exist
     let cart
+    let id: string
+    let isNewCart = false
+    
     if (!cartId) {
+      isNewCart = true
       const createRes = await fetch(`${process.env.MEDUSA_BACKEND_URL}/store/carts`, { 
         method: 'POST',
         headers: {
           'content-type': 'application/json',
           'x-publishable-api-key': process.env.MEDUSA_PUBLISHABLE_API_KEY || '',
         },
-        body: JSON.stringify({
-          region_id: MEDUSA_REGION_ID
-        })
+        body: JSON.stringify(
+          MEDUSA_REGION_ID ? { region_id: MEDUSA_REGION_ID } : {}
+        )
       })
+      
+      if (!createRes.ok) {
+        const errorText = await createRes.text()
+        console.error('Failed to create cart:', errorText)
+        throw new Error(`Failed to create cart: ${createRes.status} - ${errorText}`)
+      }
+      
       cart = await createRes.json()
+      id = cart.cart?.id || cart.id
+      
+      if (!id) {
+        console.error('Cart created but no ID found:', cart)
+        throw new Error('Cart created but no ID returned')
+      }
     } else {
-      cart = { id: cartId }
+      // Verify the cart exists before trying to add items
+      const verifyRes = await fetch(`${process.env.MEDUSA_BACKEND_URL}/store/carts/${cartId}`, {
+        method: 'GET',
+        headers: {
+          'x-publishable-api-key': process.env.MEDUSA_PUBLISHABLE_API_KEY || '',
+        }
+      })
+      
+      if (!verifyRes.ok) {
+        // Cart doesn't exist, create a new one
+        console.log('Cart not found, creating new cart')
+        isNewCart = true
+        const createRes = await fetch(`${process.env.MEDUSA_BACKEND_URL}/store/carts`, { 
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            'x-publishable-api-key': process.env.MEDUSA_PUBLISHABLE_API_KEY || '',
+          },
+          body: JSON.stringify(
+            MEDUSA_REGION_ID ? { region_id: MEDUSA_REGION_ID } : {}
+          )
+        })
+        
+        if (!createRes.ok) {
+          const errorText = await createRes.text()
+          console.error('Failed to create cart:', errorText)
+          throw new Error(`Failed to create cart: ${createRes.status} - ${errorText}`)
+        }
+        
+        cart = await createRes.json()
+        id = cart.cart?.id || cart.id
+        
+        if (!id) {
+          console.error('Cart created but no ID found:', cart)
+          throw new Error('Cart created but no ID returned')
+        }
+      } else {
+        id = cartId
+      }
     }
-    
-    const id = cart.id || cart.cart?.id
 
     // Add item to cart
     const liRes = await fetch(`${process.env.MEDUSA_BACKEND_URL}/store/carts/${id}/line-items`, {
@@ -99,7 +152,7 @@ export async function POST(req: Request) {
       ...updated, 
       ...cartData,
       cartId: id,
-      isNewCart: !cartId
+      isNewCart
     })
     
     console.log('Setting cart_id cookie:', id)
@@ -116,8 +169,12 @@ export async function POST(req: Request) {
     return response
   } catch (error) {
     console.error('Error adding to cart:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     return NextResponse.json(
-      { error: 'Failed to add item to cart' }, 
+      { 
+        error: 'Failed to add item to cart',
+        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined
+      }, 
       { status: 500 }
     )
   }
