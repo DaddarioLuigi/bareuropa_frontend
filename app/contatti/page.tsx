@@ -253,7 +253,7 @@ export default function ContactPage() {
                     </div>
                     <div>
                       <h3 className="font-semibold text-lg mb-1">Email</h3>
-                      <p className="text-muted-foreground">info@bareuropa.it</p>
+                      <p className="text-muted-foreground">info@barpasticceriaeuropa.it</p>
                     </div>
                   </div>
 
@@ -264,9 +264,7 @@ export default function ContactPage() {
                     <div>
                       <h3 className="font-semibold text-lg mb-1">Orari di Apertura</h3>
                       <div className="text-muted-foreground space-y-1">
-                        <p>Lunedì - Venerdì: 6:30 - 20:00</p>
-                        <p>Sabato: 7:00 - 21:00</p>
-                        <p>Domenica: 8:00 - 19:00</p>
+                        <p>Lun-Dom 06:00-00:00</p>
                       </div>
                     </div>
                   </div>

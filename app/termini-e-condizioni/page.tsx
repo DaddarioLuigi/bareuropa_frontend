@@ -25,7 +25,7 @@ export default function TermsPage() {
                   <p className="mb-2"><strong>Bar Europa</strong></p>
                   <p className="mb-1">Corso Vittorio Emanuele II 161</p>
                   <p className="mb-1">76125 Trani (BT), Italia</p>
-                  <p className="mb-1">Email: <a href="mailto:info@bareuropa.it" className="text-accent hover:underline">info@bareuropa.it</a></p>
+                  <p className="mb-1">Email: <a href="mailto:info@barpasticceriaeuropa.it" className="text-accent hover:underline">info@barpasticceriaeuropa.it</a></p>
                   <p className="mb-1">Telefono: <a href="tel:+390883583483" className="text-accent hover:underline">0883 583483</a></p>
                   <p className="mb-1">WhatsApp: <a href="https://wa.me/393458041890" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">+39 345 804 1890</a></p>
                   <p className="mt-2 text-sm text-muted-foreground">P.IVA: [da inserire se disponibile]</p>
@@ -75,7 +75,7 @@ export default function TermsPage() {
                     <p className="mb-2">Puoi modificare o cancellare il tuo ordine:</p>
                     <ul className="list-disc pl-6 space-y-1">
                       <li><strong>Prima della conferma:</strong> direttamente dal carrello</li>
-                      <li><strong>Dopo la conferma:</strong> contattando immediatamente il servizio clienti a <a href="mailto:info@bareuropa.it" className="text-accent hover:underline">info@bareuropa.it</a> o al <a href="tel:+390883583483" className="text-accent hover:underline">0883 583483</a></li>
+                      <li><strong>Dopo la conferma:</strong> contattando immediatamente il servizio clienti a <a href="mailto:info@barpasticceriaeuropa.it" className="text-accent hover:underline">info@barpasticceriaeuropa.it</a> o al <a href="tel:+390883583483" className="text-accent hover:underline">0883 583483</a></li>
                     </ul>
                     <p className="mt-2 text-sm text-muted-foreground">Non possiamo garantire modifiche o cancellazioni se l'ordine è già in fase di preparazione o spedizione.</p>
                   </div>
@@ -217,7 +217,7 @@ export default function TermsPage() {
                 <h2 className="text-2xl font-semibold mb-4 text-primary">13. Contatti</h2>
                 <p className="mb-3">Per qualsiasi domanda o richiesta relativa alle presenti condizioni, puoi contattarci:</p>
                 <div className="bg-muted/50 p-4 rounded-lg">
-                  <p className="mb-1"><strong>Email:</strong> <a href="mailto:info@bareuropa.it" className="text-accent hover:underline">info@bareuropa.it</a></p>
+                  <p className="mb-1"><strong>Email:</strong> <a href="mailto:info@barpasticceriaeuropa.it" className="text-accent hover:underline">info@barpasticceriaeuropa.it</a></p>
                   <p className="mb-1"><strong>Telefono:</strong> <a href="tel:+390883583483" className="text-accent hover:underline">0883 583483</a></p>
                   <p className="mb-1"><strong>WhatsApp:</strong> <a href="https://wa.me/393458041890" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">+39 345 804 1890</a></p>
                   <p className="mb-1"><strong>Indirizzo:</strong> Corso Vittorio Emanuele II 161, 76125 Trani (BT), Italia</p>

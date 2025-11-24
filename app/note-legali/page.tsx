@@ -38,10 +38,10 @@ export default function LegalNoticePage() {
               <section>
                 <h2 className="text-2xl font-semibold mb-4 text-primary">2. Contatti</h2>
                 <div className="bg-muted/50 p-4 rounded-lg">
-                  <p className="mb-2"><strong>Email:</strong> <a href="mailto:info@bareuropa.it" className="text-accent hover:underline">info@bareuropa.it</a></p>
+                  <p className="mb-2"><strong>Email:</strong> <a href="mailto:info@barpasticceriaeuropa.it" className="text-accent hover:underline">info@barpasticceriaeuropa.it</a></p>
                   <p className="mb-2"><strong>Telefono:</strong> <a href="tel:+390883583483" className="text-accent hover:underline">0883 583483</a></p>
                   <p className="mb-2"><strong>WhatsApp:</strong> <a href="https://wa.me/393458041890" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">+39 345 804 1890</a></p>
-                  <p className="mb-2"><strong>Orari di apertura:</strong> Lun-Dom: 7:00 - 20:00</p>
+                  <p className="mb-2"><strong>Orari di apertura:</strong> Lun-Dom 06:00-00:00</p>
                   <p className="mb-2"><strong>Indirizzo:</strong> Corso Vittorio Emanuele II 161, 76125 Trani (BT), Italia</p>
                 </div>
               </section>
@@ -164,7 +164,7 @@ export default function LegalNoticePage() {
                 <h2 className="text-2xl font-semibold mb-4 text-primary">11. Contatti per Questioni Legali</h2>
                 <p className="mb-3">Per qualsiasi questione legale o richiesta di informazioni, puoi contattarci:</p>
                 <div className="bg-muted/50 p-4 rounded-lg">
-                  <p className="mb-1"><strong>Email:</strong> <a href="mailto:info@bareuropa.it" className="text-accent hover:underline">info@bareuropa.it</a></p>
+                  <p className="mb-1"><strong>Email:</strong> <a href="mailto:info@barpasticceriaeuropa.it" className="text-accent hover:underline">info@barpasticceriaeuropa.it</a></p>
                   <p className="mb-1"><strong>Telefono:</strong> <a href="tel:+390883583483" className="text-accent hover:underline">0883 583483</a></p>
                   <p className="mb-1"><strong>Indirizzo:</strong> Corso Vittorio Emanuele II 161, 76125 Trani (BT), Italia</p>
                 </div>

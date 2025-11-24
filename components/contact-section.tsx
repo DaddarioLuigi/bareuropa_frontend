@@ -62,11 +62,11 @@ export function ContactSection() {
                 <div>
                   <h3 className="font-semibold text-lg mb-1">Email</h3>
                   <a 
-                    href="mailto:info@bareuropa.it" 
+                    href="mailto:info@barpasticceriaeuropa.it" 
                     className="text-primary-foreground/80 hover:text-accent transition-colors"
                     aria-label="Invia email a Bar Europa"
                   >
-                    info@bareuropa.it
+                    info@barpasticceriaeuropa.it
                   </a>
                 </div>
               </div>
@@ -78,9 +78,7 @@ export function ContactSection() {
                 <div>
                   <h3 className="font-semibold text-lg mb-1">Orari</h3>
                   <div className="text-primary-foreground/80 space-y-1">
-                    <p>Lun - Ven: 6:30 - 20:00</p>
-                    <p>Sabato: 7:00 - 21:00</p>
-                    <p>Domenica: 8:00 - 19:00</p>
+                    <p>Lun-Dom 06:00-00:00</p>
                   </div>
                 </div>
               </div>

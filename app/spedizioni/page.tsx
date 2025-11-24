@@ -72,7 +72,7 @@ export default function ShippingPage() {
                     <h3 className="text-lg font-semibold mb-2">Spedizioni Internazionali</h3>
                     <p className="mb-2">Per spedizioni fuori dall'Italia, contattaci per un preventivo personalizzato:</p>
                     <ul className="list-disc pl-6 space-y-1">
-                      <li>Email: <a href="mailto:info@bareuropa.it" className="text-accent hover:underline">info@bareuropa.it</a></li>
+                      <li>Email: <a href="mailto:info@barpasticceriaeuropa.it" className="text-accent hover:underline">info@barpasticceriaeuropa.it</a></li>
                       <li>Telefono: <a href="tel:+390883583483" className="text-accent hover:underline">0883 583483</a></li>
                     </ul>
                     <p className="mt-2 text-sm text-muted-foreground">Nota: per prodotti deperibili, le spedizioni internazionali potrebbero non essere disponibili per motivi di sicurezza alimentare.</p>
@@ -226,10 +226,10 @@ export default function ShippingPage() {
                 <h2 className="text-2xl font-semibold mb-4 text-primary">8. Assistenza</h2>
                 <p className="mb-3">Per qualsiasi domanda o problema relativo alle spedizioni, siamo a tua disposizione:</p>
                 <div className="bg-muted/50 p-4 rounded-lg">
-                  <p className="mb-1"><strong>Email:</strong> <a href="mailto:info@bareuropa.it" className="text-accent hover:underline">info@bareuropa.it</a></p>
+                  <p className="mb-1"><strong>Email:</strong> <a href="mailto:info@barpasticceriaeuropa.it" className="text-accent hover:underline">info@barpasticceriaeuropa.it</a></p>
                   <p className="mb-1"><strong>Telefono:</strong> <a href="tel:+390883583483" className="text-accent hover:underline">0883 583483</a></p>
                   <p className="mb-1"><strong>WhatsApp:</strong> <a href="https://wa.me/393458041890" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">+39 345 804 1890</a></p>
-                  <p className="mb-1"><strong>Orari:</strong> Lun-Dom: 7:00 - 20:00</p>
+                  <p className="mb-1"><strong>Orari:</strong> Lun-Dom 06:00-00:00</p>
                   <p className="mb-1"><strong>Indirizzo:</strong> Corso Vittorio Emanuele II 161, 76125 Trani (BT), Italia</p>
                 </div>
               </section>

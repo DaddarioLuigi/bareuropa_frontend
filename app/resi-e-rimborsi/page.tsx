@@ -42,7 +42,7 @@ export default function ReturnsRefundsPage() {
                     <h3 className="text-lg font-semibold mb-2">1.2. Come Esercitare il Diritto di Recesso</h3>
                     <p className="mb-2">Per esercitare il diritto di recesso, devi comunicarci la tua decisione in modo chiaro. Puoi farlo:</p>
                     <ul className="list-disc pl-6 space-y-1">
-                      <li><strong>Via email:</strong> inviando una comunicazione a <a href="mailto:info@bareuropa.it" className="text-accent hover:underline">info@bareuropa.it</a></li>
+                      <li><strong>Via email:</strong> inviando una comunicazione a <a href="mailto:info@barpasticceriaeuropa.it" className="text-accent hover:underline">info@barpasticceriaeuropa.it</a></li>
                       <li><strong>Via telefono:</strong> chiamando il <a href="tel:+390883583483" className="text-accent hover:underline">0883 583483</a></li>
                       <li><strong>Via WhatsApp:</strong> contattandoci al <a href="https://wa.me/393458041890" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">+39 345 804 1890</a></li>
                     </ul>
@@ -166,7 +166,7 @@ export default function ReturnsRefundsPage() {
 
                   <div>
                     <h3 className="text-lg font-semibold mb-2">4.2. Comunicazione</h3>
-                    <p>In caso di prodotti difettosi o non conformi, contattaci immediatamente a <a href="mailto:info@bareuropa.it" className="text-accent hover:underline">info@bareuropa.it</a> o al <a href="tel:+390883583483" className="text-accent hover:underline">0883 583483</a>, indicando il numero d'ordine e descrivendo il problema.</p>
+                    <p>In caso di prodotti difettosi o non conformi, contattaci immediatamente a <a href="mailto:info@barpasticceriaeuropa.it" className="text-accent hover:underline">info@barpasticceriaeuropa.it</a> o al <a href="tel:+390883583483" className="text-accent hover:underline">0883 583483</a>, indicando il numero d'ordine e descrivendo il problema.</p>
                   </div>
                 </div>
               </section>
@@ -186,10 +186,10 @@ export default function ReturnsRefundsPage() {
                 <h2 className="text-2xl font-semibold mb-4 text-primary">6. Assistenza Clienti</h2>
                 <p className="mb-3">Per qualsiasi domanda o assistenza sui resi e rimborsi, siamo a tua disposizione:</p>
                 <div className="bg-muted/50 p-4 rounded-lg">
-                  <p className="mb-1"><strong>Email:</strong> <a href="mailto:info@bareuropa.it" className="text-accent hover:underline">info@bareuropa.it</a></p>
+                  <p className="mb-1"><strong>Email:</strong> <a href="mailto:info@barpasticceriaeuropa.it" className="text-accent hover:underline">info@barpasticceriaeuropa.it</a></p>
                   <p className="mb-1"><strong>Telefono:</strong> <a href="tel:+390883583483" className="text-accent hover:underline">0883 583483</a></p>
                   <p className="mb-1"><strong>WhatsApp:</strong> <a href="https://wa.me/393458041890" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">+39 345 804 1890</a></p>
-                  <p className="mb-1"><strong>Orari:</strong> Lun-Dom: 7:00 - 20:00</p>
+                  <p className="mb-1"><strong>Orari:</strong> Lun-Dom 06:00-00:00</p>
                   <p className="mb-1"><strong>Indirizzo:</strong> Corso Vittorio Emanuele II 161, 76125 Trani (BT), Italia</p>
                 </div>
               </section>

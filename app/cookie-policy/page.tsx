@@ -194,7 +194,7 @@ export default function CookiePolicyPage() {
                 <h2 className="text-2xl font-semibold mb-4 text-primary">8. Contatti</h2>
                 <p className="mb-3">Per domande o richieste relative all'uso dei cookie, puoi contattarci:</p>
                 <div className="bg-muted/50 p-4 rounded-lg">
-                  <p className="mb-1"><strong>Email:</strong> <a href="mailto:info@bareuropa.it" className="text-accent hover:underline">info@bareuropa.it</a></p>
+                  <p className="mb-1"><strong>Email:</strong> <a href="mailto:info@barpasticceriaeuropa.it" className="text-accent hover:underline">info@barpasticceriaeuropa.it</a></p>
                   <p className="mb-1"><strong>Telefono:</strong> <a href="tel:+390883583483" className="text-accent hover:underline">0883 583483</a></p>
                   <p className="mb-1"><strong>Indirizzo:</strong> Corso Vittorio Emanuele II 161, 76125 Trani (BT), Italia</p>
                 </div>

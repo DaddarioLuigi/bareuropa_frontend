@@ -25,7 +25,7 @@ export default function PrivacyPage() {
                   <p className="mb-2"><strong>Bar Europa</strong></p>
                   <p className="mb-1">Corso Vittorio Emanuele II 161</p>
                   <p className="mb-1">76125 Trani (BT), Italia</p>
-                  <p className="mb-1">Email: <a href="mailto:info@bareuropa.it" className="text-accent hover:underline">info@bareuropa.it</a></p>
+                  <p className="mb-1">Email: <a href="mailto:info@barpasticceriaeuropa.it" className="text-accent hover:underline">info@barpasticceriaeuropa.it</a></p>
                   <p className="mb-1">Telefono: <a href="tel:+390883583483" className="text-accent hover:underline">0883 583483</a></p>
                   <p className="mt-2 text-sm text-muted-foreground">P.IVA: [da inserire se disponibile]</p>
                 </div>
@@ -157,7 +157,7 @@ export default function PrivacyPage() {
                 </ul>
                 <div className="bg-accent/10 p-4 rounded-lg mt-4">
                   <p className="font-semibold mb-2">Per esercitare i tuoi diritti:</p>
-                  <p>Invia una richiesta scritta a <a href="mailto:info@bareuropa.it" className="text-accent hover:underline font-semibold">info@bareuropa.it</a></p>
+                  <p>Invia una richiesta scritta a <a href="mailto:info@barpasticceriaeuropa.it" className="text-accent hover:underline font-semibold">info@barpasticceriaeuropa.it</a></p>
                   <p className="text-sm mt-2">Risponderemo entro 30 giorni dalla ricezione della richiesta.</p>
                 </div>
               </section>
@@ -176,7 +176,7 @@ export default function PrivacyPage() {
                 <h2 className="text-2xl font-semibold mb-4 text-primary">11. Contatti</h2>
                 <p className="mb-3">Per qualsiasi domanda o richiesta relativa al trattamento dei dati personali, puoi contattarci:</p>
                 <div className="bg-muted/50 p-4 rounded-lg">
-                  <p className="mb-1"><strong>Email:</strong> <a href="mailto:info@bareuropa.it" className="text-accent hover:underline">info@bareuropa.it</a></p>
+                  <p className="mb-1"><strong>Email:</strong> <a href="mailto:info@barpasticceriaeuropa.it" className="text-accent hover:underline">info@barpasticceriaeuropa.it</a></p>
                   <p className="mb-1"><strong>Telefono:</strong> <a href="tel:+390883583483" className="text-accent hover:underline">0883 583483</a></p>
                   <p className="mb-1"><strong>Indirizzo:</strong> Corso Vittorio Emanuele II 161, 76125 Trani (BT), Italia</p>
                 </div>

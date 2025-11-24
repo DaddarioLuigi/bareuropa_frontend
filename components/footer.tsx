@@ -95,11 +95,11 @@ export function Footer() {
               </li>
               <li>
                 <a 
-                  href="mailto:info@bareuropa.it" 
+                  href="mailto:info@barpasticceriaeuropa.it" 
                   className="hover:text-accent transition-colors"
                   aria-label="Invia email a Bar Europa"
                 >
-                  info@bareuropa.it
+                  info@barpasticceriaeuropa.it
                 </a>
               </li>
             </ul>

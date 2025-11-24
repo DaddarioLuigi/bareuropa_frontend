@@ -130,7 +130,7 @@ export default function StoryPage() {
               <div className="mt-8 grid grid-cols-3 gap-3 sm:gap-6">
                 <Card className="text-center">
                   <CardContent className="p-4 sm:p-6">
-                    <div className="font-display text-2xl sm:text-3xl font-bold text-accent mb-2">58</div>
+                    <div className="font-display text-2xl sm:text-3xl font-bold text-accent mb-2">60</div>
                     <div className="text-xs sm:text-sm text-muted-foreground break-words leading-tight">Anni di Tradizione</div>
                   </CardContent>
                 </Card>
