@@ -34,25 +34,53 @@ export async function POST(request: NextRequest) {
     const cartData = await cartRes.json()
     const cart = cartData.cart || cartData
     
-    // Rimuovi il codice specifico dai discount
+    // Rimuovi il codice promozionale usando DELETE
     const codeToRemove = code.toUpperCase().trim()
-    const existingDiscounts = cart.discounts || []
-    const updatedDiscounts = existingDiscounts.filter((d: any) => {
-      const discountCode = (d.code || d.discount?.code || '').toUpperCase()
-      return discountCode !== codeToRemove
-    })
     
-    // Aggiorna il carrello senza il codice promozionale
-    const res = await fetch(`${MEDUSA_BACKEND_URL}/store/carts/${cartId}`, {
-      method: 'POST',
+    // Prova prima con DELETE /store/carts/{id}/promotions/{code}
+    let res = await fetch(`${MEDUSA_BACKEND_URL}/store/carts/${cartId}/promotions/${codeToRemove}`, {
+      method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
         'x-publishable-api-key': PUBLISHABLE_API_KEY,
-      },
-      body: JSON.stringify({
-        discounts: updatedDiscounts
-      })
+      }
     })
+
+    console.log('[Remove Discount] DELETE /promotions/{code} status:', res.status)
+
+    // Se l'endpoint non esiste, prova con DELETE /store/carts/{id}/discounts/{code}
+    if (!res.ok && (res.status === 404 || res.status === 405)) {
+      console.log('[Remove Discount] Endpoint /promotions/{code} non disponibile, provo con /discounts/{code}')
+      
+      res = await fetch(`${MEDUSA_BACKEND_URL}/store/carts/${cartId}/discounts/${codeToRemove}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-publishable-api-key': PUBLISHABLE_API_KEY,
+        }
+      })
+
+      console.log('[Remove Discount] DELETE /discounts/{code} status:', res.status)
+    }
+
+    // Se anche questo non funziona, prova con POST e body
+    if (!res.ok && (res.status === 404 || res.status === 405)) {
+      console.log('[Remove Discount] Endpoint DELETE non disponibile, provo con POST e body')
+      
+      res = await fetch(`${MEDUSA_BACKEND_URL}/store/carts/${cartId}/promotions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-publishable-api-key': PUBLISHABLE_API_KEY,
+        },
+        body: JSON.stringify({
+          code: codeToRemove,
+          remove: true
+        })
+      })
+
+      console.log('[Remove Discount] POST /promotions con remove status:', res.status)
+    }
 
     if (!res.ok) {
       const errorText = await res.text()
