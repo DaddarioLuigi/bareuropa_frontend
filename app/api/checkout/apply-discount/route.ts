@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     const codeToApply = code.toUpperCase().trim()
 
     // In Medusa v2, l'endpoint per applicare i codici promozionali è /store/carts/{id}/promotions
-    // con il body che contiene il codice promozionale
+    // con il body che contiene promo_codes (array)
     const res = await fetch(`${MEDUSA_BACKEND_URL}/store/carts/${cartId}/promotions`, {
       method: 'POST',
       headers: {
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
         'x-publishable-api-key': PUBLISHABLE_API_KEY,
       },
       body: JSON.stringify({
-        code: codeToApply
+        promo_codes: [codeToApply]
       })
     })
 
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
             'x-publishable-api-key': PUBLISHABLE_API_KEY,
           },
           body: JSON.stringify({
-            code: codeToApply
+            promo_codes: [codeToApply]
           })
         })
 

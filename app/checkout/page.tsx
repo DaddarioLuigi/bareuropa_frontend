@@ -857,21 +857,21 @@ export default function CheckoutPage() {
                       <span>€{cart.subtotal.toFixed(2)}</span>
                     </div>
                     
-                    {cart.discount_total && cart.discount_total > 0 && (
+                    {cart.discount_total !== undefined && cart.discount_total !== null && cart.discount_total > 0 && (
                       <div className="flex justify-between text-sm text-green-600">
                         <span>Sconto</span>
                         <span>-€{cart.discount_total.toFixed(2)}</span>
                       </div>
                     )}
                     
-                    {cart.shipping_total > 0 && (
+                    {cart.shipping_total !== undefined && cart.shipping_total !== null && cart.shipping_total > 0 && (
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Spedizione</span>
                         <span>€{cart.shipping_total.toFixed(2)}</span>
                       </div>
                     )}
 
-                    {cart.tax_total > 0 && (
+                    {cart.tax_total !== undefined && cart.tax_total !== null && cart.tax_total > 0 && (
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">IVA</span>
                         <span>€{cart.tax_total.toFixed(2)}</span>
