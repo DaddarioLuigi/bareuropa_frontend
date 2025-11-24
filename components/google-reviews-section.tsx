@@ -126,7 +126,7 @@ export function GoogleReviewsSection() {
 
   if (loading) {
     return (
-      <section id="recensioni" className="py-12 sm:py-24 bg-background">
+      <section id="recensioni" className="pt-6 sm:pt-12 pb-12 sm:pb-24 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold mb-4">
@@ -151,7 +151,7 @@ export function GoogleReviewsSection() {
   const displayedReviews = reviews.slice(0, 6) // Mostra le prime 6 recensioni
 
   return (
-    <section id="recensioni" className="py-12 sm:py-24 bg-background">
+    <section id="recensioni" className="pt-6 sm:pt-12 pb-12 sm:pb-24 bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold mb-4">
@@ -169,7 +169,7 @@ export function GoogleReviewsSection() {
                 <Star className="h-8 w-8 fill-yellow-400 text-yellow-400" />
               </div>
               <p className="text-sm text-muted-foreground">
-                Basato su {totalRatings} recensioni
+                Basato su +450 recensioni
               </p>
             </div>
           </div>
