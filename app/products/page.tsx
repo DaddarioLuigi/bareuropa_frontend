@@ -8,6 +8,7 @@ import { Eye } from "lucide-react"
 import { AddToCartButton } from "@/components/add-to-cart-button"
 import { ProductsSearch } from "@/components/products-search"
 import { ProductsPagination } from "@/components/products-pagination"
+import { MarkdownContent } from "@/components/markdown-content"
 import Link from "next/link"
 import { Suspense } from "react"
 import { Metadata } from 'next'
@@ -167,7 +168,13 @@ async function ProductsGrid({ searchParams }: ProductsPageProps) {
 
                   <CardTitle className="text-lg mb-2 line-clamp-1">{product.title}</CardTitle>
 
-                  <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{product.description}</p>
+                  <div className="mb-4 line-clamp-2">
+                    <MarkdownContent 
+                      content={product.description} 
+                      className="text-sm"
+                      fallback=""
+                    />
+                  </div>
 
                   <div className="flex items-center gap-2 mb-4">
                     <span className="text-2xl font-bold text-primary">

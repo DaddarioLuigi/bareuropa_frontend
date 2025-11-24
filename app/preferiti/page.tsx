@@ -6,6 +6,7 @@ import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { MarkdownContent } from "@/components/markdown-content"
 
 interface Product {
   id: string
@@ -90,7 +91,13 @@ export default function PreferitiPage() {
                       </CardHeader>
                       <CardContent className="p-4 flex-1">
                         <CardTitle className="text-lg mb-2 line-clamp-1">{product.title}</CardTitle>
-                        <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{product.description}</p>
+                        <div className="mb-4 line-clamp-2">
+                          <MarkdownContent 
+                            content={product.description} 
+                            className="text-sm"
+                            fallback=""
+                          />
+                        </div>
                       </CardContent>
                       <CardFooter className="p-4 pt-0 flex gap-2">
                         <Link href={`/products/${product.handle}`} className="flex-1">

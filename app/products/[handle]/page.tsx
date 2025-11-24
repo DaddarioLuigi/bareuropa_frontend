@@ -15,6 +15,7 @@ import { addToCart } from './actions'
 import { VariantSelector } from './variant-selector'
 import { AddToCartSection } from './add-to-cart-section'
 import { ProductImageGallery } from '@/components/product-image-gallery'
+import { MarkdownContent } from '@/components/markdown-content'
 
 export const revalidate = 300
 export const dynamicParams = true // Permette il rendering dinamico di prodotti non pre-generati
@@ -316,7 +317,11 @@ async function ProductDetails({ params }: ProductPageProps) {
                       </div>
                     )}
 
-                    <p className="text-muted-foreground leading-relaxed mb-6">{product.description}</p>
+                    <MarkdownContent 
+                      content={product.description} 
+                      className="mb-6"
+                      fallback=""
+                    />
                   </div>
 
                   {/* Add to Cart */}
@@ -359,9 +364,10 @@ async function ProductDetails({ params }: ProductPageProps) {
                 <Card>
                   <CardContent className="p-6">
                     <h3 className="font-display text-xl font-semibold mb-4">Descrizione</h3>
-                    <p className="text-muted-foreground leading-relaxed">
-                      {product.description || "Descrizione dettagliata non disponibile."}
-                    </p>
+                    <MarkdownContent 
+                      content={product.description}
+                      fallback="Descrizione dettagliata non disponibile."
+                    />
                   </CardContent>
                 </Card>
 
@@ -570,7 +576,11 @@ async function ProductDetails({ params }: ProductPageProps) {
                           </div>
                         )}
 
-                        <p className="text-muted-foreground leading-relaxed mb-6">{product.description}</p>
+                        <MarkdownContent 
+                          content={product.description} 
+                          className="mb-6"
+                          fallback=""
+                        />
                       </div>
 
                       <AddToCartSection 
@@ -609,9 +619,10 @@ async function ProductDetails({ params }: ProductPageProps) {
                     <Card>
                       <CardContent className="p-6">
                         <h3 className="font-display text-xl font-semibold mb-4">Descrizione</h3>
-                        <p className="text-muted-foreground leading-relaxed">
-                          {product.description || "Descrizione dettagliata non disponibile."}
-                        </p>
+                        <MarkdownContent 
+                          content={product.description}
+                          fallback="Descrizione dettagliata non disponibile."
+                        />
                       </CardContent>
                     </Card>
 
