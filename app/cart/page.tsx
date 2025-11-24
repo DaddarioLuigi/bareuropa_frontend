@@ -6,9 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { ClearCartButton } from "@/components/clear-cart-button"
 import { CartStateSync } from "@/components/cart-state-sync"
-import { Minus, Plus, Trash2, ShoppingBag, ArrowRight } from "lucide-react"
+import { QuantityInput } from "@/components/quantity-input"
+import { Trash2, ShoppingBag, ArrowRight } from "lucide-react"
 import Link from "next/link"
-import { redirect } from 'next/navigation'
 
 // Server Actions for cart operations
 async function updateCartItem(formData: FormData) {
@@ -41,7 +41,8 @@ async function updateCartItem(formData: FormData) {
       throw new Error(`Failed to update item: ${errorText}`)
     }
     
-    redirect('/cart')
+    // Don't redirect - let the client component handle the refresh
+    // This allows for better UX with the quantity input
   } catch (error) {
     console.error('Error updating cart item:', error)
     throw error
@@ -279,33 +280,12 @@ async function CartContent() {
 
                           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                             <div className="flex items-center gap-2 sm:gap-3">
-                              <form action={updateCartItem} className="flex items-center border rounded-lg">
-                                <input type="hidden" name="lineItemId" value={item.id} />
-                                <Button
-                                  type="submit"
-                                  variant="ghost"
-                                  size="sm"
-                                  name="quantity"
-                                  value={item.quantity - 1}
-                                  disabled={item.quantity <= 1}
-                                  aria-label={`Riduci quantità di ${productTitle}`}
-                                  className="min-h-[44px] min-w-[44px]"
-                                >
-                                  <Minus className="h-4 w-4" />
-                                </Button>
-                                <span className="px-2 sm:px-3 py-1 font-medium min-w-[3ch] text-center" aria-label={`Quantità: ${item.quantity}`}>{item.quantity}</span>
-                                <Button
-                                  type="submit"
-                                  variant="ghost"
-                                  size="sm"
-                                  name="quantity"
-                                  value={item.quantity + 1}
-                                  aria-label={`Aumenta quantità di ${productTitle}`}
-                                  className="min-h-[44px] min-w-[44px]"
-                                >
-                                  <Plus className="h-4 w-4" />
-                                </Button>
-                              </form>
+                              <QuantityInput
+                                lineItemId={item.id}
+                                currentQuantity={item.quantity}
+                                productTitle={productTitle}
+                                updateCartItem={updateCartItem}
+                              />
 
                               <form action={removeCartItem}>
                                 <input type="hidden" name="lineItemId" value={item.id} />
