@@ -222,9 +222,58 @@ export default function CheckoutPage() {
       }
 
       const data = await res.json()
+      console.log('[Checkout] Apply promo code response:', {
+        hasCart: !!data.cart,
+        hasData: !!data,
+        cartId: data.cart?.id || data.id,
+        discounts: data.cart?.discounts || data.discounts,
+        discountTotal: data.cart?.discount_total || data.discount_total
+      })
+      
       const updatedCart = data.cart || data
+      
+      if (!updatedCart) {
+        throw new Error('Carrello non trovato nella risposta')
+      }
+      
+      // Verifica che il codice sia stato effettivamente applicato
+      const hasDiscount = updatedCart.discounts && updatedCart.discounts.length > 0
+      const discountCode = hasDiscount 
+        ? (updatedCart.discounts[0]?.code || updatedCart.discounts[0]?.discount?.code || updatedCart.discounts[0]?.promotion?.code)
+        : null
+      
+      console.log('[Checkout] Discount verification:', {
+        hasDiscount,
+        discountCode,
+        discountTotal: updatedCart.discount_total,
+        appliedCode: promoCode.toUpperCase().trim()
+      })
+      
+      if (!hasDiscount || !discountCode) {
+        // Ricarica il carrello per verificare lo stato attuale
+        console.log('[Checkout] Ricarico il carrello per verificare lo stato...')
+        const cartRes = await fetch('/api/cart/details')
+        if (cartRes.ok) {
+          const cartData = await cartRes.json()
+          const currentCart = cartData.cart || cartData
+          setCart(currentCart)
+          
+          // Verifica di nuovo se il codice è stato applicato
+          if (currentCart.discounts && currentCart.discounts.length > 0) {
+            const code = currentCart.discounts[0]?.code || currentCart.discounts[0]?.discount?.code
+            if (code) {
+              setAppliedPromoCode(code.toUpperCase())
+              setPromoCode('')
+              setPromoSuccess(true)
+              return
+            }
+          }
+        }
+        throw new Error('Il codice promozionale non è stato applicato. Verifica che sia valido e attivo.')
+      }
+      
       setCart(updatedCart)
-      setAppliedPromoCode(promoCode.toUpperCase().trim())
+      setAppliedPromoCode(discountCode.toUpperCase())
       setPromoCode('')
       setPromoSuccess(true)
       
@@ -247,7 +296,17 @@ export default function CheckoutPage() {
       }
     } catch (error) {
       console.error('Errore applicazione codice promozionale:', error)
-      setPromoError(error instanceof Error ? error.message : 'Errore nell\'applicazione del codice promozionale')
+      let errorMessage = error instanceof Error ? error.message : 'Errore nell\'applicazione del codice promozionale'
+      
+      // Traduci errori comuni se non sono già in italiano
+      if (errorMessage.toLowerCase().includes('invalid') && !errorMessage.toLowerCase().includes('valido')) {
+        errorMessage = errorMessage.replace(/invalid/gi, 'non valido')
+      }
+      if (errorMessage.toLowerCase().includes('promotion code') && !errorMessage.toLowerCase().includes('codice promozionale')) {
+        errorMessage = errorMessage.replace(/promotion code/gi, 'codice promozionale')
+      }
+      
+      setPromoError(errorMessage)
     } finally {
       setApplyingPromo(false)
     }

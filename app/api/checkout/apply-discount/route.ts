@@ -62,15 +62,39 @@ export async function POST(request: NextRequest) {
             errorData = { message: errorText2 || 'Codice promozionale non valido' }
           }
           
-          const errorMessage = errorData.message || 
-                               errorData.error?.message || 
-                               errorData.error || 
-                               (errorData.errors && Array.isArray(errorData.errors) && errorData.errors[0]?.message) ||
-                               (errorData.details && errorData.details.message) ||
-                               'Codice promozionale non valido'
+          let errorMessage = errorData.message || 
+                             errorData.error?.message || 
+                             errorData.error || 
+                             (errorData.errors && Array.isArray(errorData.errors) && errorData.errors[0]?.message) ||
+                             (errorData.details && errorData.details.message) ||
+                             'Codice promozionale non valido'
+          
+          // Traduci errori comuni in italiano
+          const errorTranslations: { [key: string]: string } = {
+            'invalid': 'non valido',
+            'not found': 'non trovato',
+            'expired': 'scaduto',
+            'already applied': 'già applicato',
+            'The promotion code': 'Il codice promozionale',
+            'is invalid': 'non è valido'
+          }
+          
+          let translatedMessage = errorMessage
+          Object.keys(errorTranslations).forEach(key => {
+            if (translatedMessage.toLowerCase().includes(key.toLowerCase())) {
+              translatedMessage = translatedMessage.replace(
+                new RegExp(key, 'gi'),
+                errorTranslations[key]
+              )
+            }
+          })
+          
+          if (translatedMessage.toLowerCase().includes('promotion code')) {
+            translatedMessage = translatedMessage.replace(/promotion code/gi, 'codice promozionale')
+          }
           
           return NextResponse.json(
-            { error: errorMessage, details: errorText2 },
+            { error: translatedMessage, details: errorText2 },
             { status: res2.status }
           )
         }
@@ -80,7 +104,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(data)
       }
       
-      // Per altri errori, restituisci l'errore originale
+      // Per altri errori, traducili in italiano
       let errorData
       try {
         errorData = JSON.parse(errorText)
@@ -88,21 +112,68 @@ export async function POST(request: NextRequest) {
         errorData = { message: errorText || 'Codice promozionale non valido' }
       }
       
-      const errorMessage = errorData.message || 
-                           errorData.error?.message || 
-                           errorData.error || 
-                           (errorData.errors && Array.isArray(errorData.errors) && errorData.errors[0]?.message) ||
-                           (errorData.details && errorData.details.message) ||
-                           'Codice promozionale non valido'
+      let errorMessage = errorData.message || 
+                         errorData.error?.message || 
+                         errorData.error || 
+                         (errorData.errors && Array.isArray(errorData.errors) && errorData.errors[0]?.message) ||
+                         (errorData.details && errorData.details.message) ||
+                         'Codice promozionale non valido'
+      
+      // Traduci errori comuni in italiano
+      const errorTranslations: { [key: string]: string } = {
+        'invalid': 'non valido',
+        'not found': 'non trovato',
+        'expired': 'scaduto',
+        'already applied': 'già applicato',
+        'not applicable': 'non applicabile',
+        'The promotion code': 'Il codice promozionale',
+        'is invalid': 'non è valido',
+        'does not exist': 'non esiste',
+        'has expired': 'è scaduto',
+        'cannot be applied': 'non può essere applicato'
+      }
+      
+      // Traduci il messaggio di errore
+      let translatedMessage = errorMessage
+      Object.keys(errorTranslations).forEach(key => {
+        if (translatedMessage.toLowerCase().includes(key.toLowerCase())) {
+          translatedMessage = translatedMessage.replace(
+            new RegExp(key, 'gi'),
+            errorTranslations[key]
+          )
+        }
+      })
+      
+      // Se contiene "promotion code" o "code", assicurati che sia in italiano
+      if (translatedMessage.toLowerCase().includes('promotion code')) {
+        translatedMessage = translatedMessage.replace(/promotion code/gi, 'codice promozionale')
+      }
+      if (translatedMessage.toLowerCase().includes('code') && !translatedMessage.toLowerCase().includes('codice')) {
+        translatedMessage = translatedMessage.replace(/code/gi, 'codice')
+      }
       
       return NextResponse.json(
-        { error: errorMessage, details: errorText },
+        { error: translatedMessage, details: errorText },
         { status: res.status }
       )
     }
 
     const data = await res.json()
-    console.log('[Apply Discount] Success. Cart updated:', !!data.cart)
+    console.log('[Apply Discount] Success. Response structure:', {
+      hasCart: !!data.cart,
+      hasData: !!data,
+      keys: Object.keys(data || {}),
+      cartId: data.cart?.id || data.id,
+      discounts: data.cart?.discounts || data.discounts,
+      discountTotal: data.cart?.discount_total || data.discount_total
+    })
+    
+    // Assicurati che la risposta contenga il carrello
+    if (!data.cart && data.id) {
+      // Se la risposta è direttamente il carrello, wrappalo
+      return NextResponse.json({ cart: data })
+    }
+    
     return NextResponse.json(data)
   } catch (error) {
     console.error('Errore apply discount route:', error)
