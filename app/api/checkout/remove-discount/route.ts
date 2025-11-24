@@ -63,9 +63,16 @@ export async function POST(request: NextRequest) {
       console.log('[Remove Discount] DELETE /discounts/{code} status:', res.status)
     }
 
-    // Se anche questo non funziona, prova con POST e body
+    // Se anche questo non funziona, prova con POST e promo_codes vuoto o senza il codice
     if (!res.ok && (res.status === 404 || res.status === 405)) {
-      console.log('[Remove Discount] Endpoint DELETE non disponibile, provo con POST e body')
+      console.log('[Remove Discount] Endpoint DELETE non disponibile, provo con POST e promo_codes')
+      
+      // Recupera i codici promozionali attuali e rimuovi quello specificato
+      const existingDiscounts = cart.discounts || []
+      const updatedPromoCodes = existingDiscounts
+        .map((d: any) => d.code || d.discount?.code)
+        .filter((c: string) => c && c.toUpperCase() !== codeToRemove)
+        .map((c: string) => c.toUpperCase())
       
       res = await fetch(`${MEDUSA_BACKEND_URL}/store/carts/${cartId}/promotions`, {
         method: 'POST',
@@ -74,12 +81,11 @@ export async function POST(request: NextRequest) {
           'x-publishable-api-key': PUBLISHABLE_API_KEY,
         },
         body: JSON.stringify({
-          code: codeToRemove,
-          remove: true
+          promo_codes: updatedPromoCodes
         })
       })
 
-      console.log('[Remove Discount] POST /promotions con remove status:', res.status)
+      console.log('[Remove Discount] POST /promotions con promo_codes aggiornati status:', res.status)
     }
 
     if (!res.ok) {

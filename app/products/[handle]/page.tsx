@@ -424,6 +424,10 @@ async function ProductDetails({ params }: ProductPageProps) {
     )
   } catch (error) {
     console.error('[ProductPage] Error fetching product:', error)
+    // Se l'errore è un 404 o simile, restituisci notFound
+    if (error instanceof Error && (error.message.includes('404') || error.message.includes('not found'))) {
+      notFound()
+    }
     
     // Try alternative approach: fetch all products and filter by handle
     try {

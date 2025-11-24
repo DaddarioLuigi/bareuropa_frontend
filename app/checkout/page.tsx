@@ -186,10 +186,15 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (cart && cart.discounts && cart.discounts.length > 0) {
       const firstDiscount = cart.discounts[0]
-      const code = firstDiscount?.code || firstDiscount?.discount?.code
+      const code = firstDiscount?.code || firstDiscount?.discount?.code || firstDiscount?.promotion?.code
       if (code) {
         setAppliedPromoCode(code.toUpperCase())
+        setPromoSuccess(true)
       }
+    } else if (cart && (!cart.discounts || cart.discounts.length === 0)) {
+      // Se non ci sono discount, rimuovi il codice applicato
+      setAppliedPromoCode(null)
+      setPromoSuccess(false)
     }
   }, [cart])
 
@@ -858,10 +863,19 @@ export default function CheckoutPage() {
                     </div>
                     
                     {cart.discount_total !== undefined && cart.discount_total !== null && cart.discount_total > 0 && (
-                      <div className="flex justify-between text-sm text-green-600">
-                        <span>Sconto</span>
-                        <span>-€{cart.discount_total.toFixed(2)}</span>
-                      </div>
+                      <>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-green-600 font-medium">
+                            Sconto {appliedPromoCode && `(${appliedPromoCode})`}
+                          </span>
+                          <span className="text-green-600 font-medium">
+                            -€{cart.discount_total.toFixed(2)}
+                          </span>
+                        </div>
+                        <div className="text-xs text-muted-foreground pl-2">
+                          Risparmi: €{cart.discount_total.toFixed(2)}
+                        </div>
+                      </>
                     )}
                     
                     {cart.shipping_total !== undefined && cart.shipping_total !== null && cart.shipping_total > 0 && (
@@ -884,6 +898,11 @@ export default function CheckoutPage() {
                       <span>Totale</span>
                       <span className="text-primary">€{cart.total.toFixed(2)}</span>
                     </div>
+                    {cart.discount_total !== undefined && cart.discount_total !== null && cart.discount_total > 0 && (
+                      <div className="text-xs text-muted-foreground text-right">
+                        Prezzo originale: €{(cart.total + cart.discount_total).toFixed(2)}
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
