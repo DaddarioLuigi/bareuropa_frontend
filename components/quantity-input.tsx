@@ -54,12 +54,15 @@ export function QuantityInput({
       // Reset to current quantity on error
       setQuantity(currentQuantity.toString())
       setIsSubmitting(false)
+      // Show error message to user
+      alert('Errore nell\'aggiornamento della quantità. Verifica che la quantità sia valida.')
     }
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
     // Allow empty string for better UX while typing
+    // Allow any positive number (no maximum limit)
     if (value === '' || /^\d+$/.test(value)) {
       setQuantity(value)
     }
@@ -67,9 +70,11 @@ export function QuantityInput({
 
   const handleInputBlur = () => {
     const numValue = parseInt(quantity) || 1
-    setQuantity(numValue.toString())
-    if (numValue !== currentQuantity) {
-      handleSubmit(numValue)
+    // Ensure minimum of 1, but no maximum limit
+    const validQuantity = Math.max(1, numValue)
+    setQuantity(validQuantity.toString())
+    if (validQuantity !== currentQuantity) {
+      handleSubmit(validQuantity)
     }
   }
 
@@ -119,6 +124,7 @@ export function QuantityInput({
         disabled={isSubmitting}
         aria-label={`Quantità di ${productTitle}`}
         className="w-16 text-center border-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-2 py-1 font-medium [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+        step="1"
       />
       <Button
         type="button"
