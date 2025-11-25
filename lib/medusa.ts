@@ -7,7 +7,10 @@ const BASE = process.env.MEDUSA_BACKEND_URL
 export const MEDUSA_REGION_ID = process.env.MEDUSA_REGION_ID || process.env.NEXT_PUBLIC_MEDUSA_REGION_ID
 
 export async function api(path: string, init?: RequestInit) {
-  const res = await fetch(`${BASE}${path}`, {
+  const url = `${BASE}${path}`
+  console.log('[Medusa API] Request:', url)
+  
+  const res = await fetch(url, {
     ...init,
     headers: { 
       'content-type': 'application/json',
@@ -19,12 +22,17 @@ export async function api(path: string, init?: RequestInit) {
     },
   })
   
+  console.log('[Medusa API] Response status:', res.status, res.statusText)
+  
   if (!res.ok) {
     const errorText = await res.text()
+    console.error('[Medusa API] Error:', res.status, errorText)
     throw new Error(`Medusa ${res.status}: ${errorText}`)
   }
   
-  return res.json()
+  const data = await res.json()
+  console.log('[Medusa API] Response data type:', typeof data, Array.isArray(data) ? 'array' : 'object')
+  return data
 }
 
 // Tipi per i prodotti Medusa

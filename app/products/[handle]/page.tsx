@@ -135,16 +135,25 @@ async function ProductDetails({ params }: ProductPageProps) {
     console.log('[ProductPage] Fetching product with handle:', params.handle)
     console.log('[ProductPage] Query string:', queryString)
     
-    const data = await api(
-      `/store/products?${queryString}`,
-      { next: { revalidate: 300 } }
-    )
+    let data
+    try {
+      data = await api(
+        `/store/products?${queryString}`,
+        { next: { revalidate: 300 } }
+      )
+    } catch (apiError) {
+      console.error('[ProductPage] API error:', apiError)
+      // Se l'API restituisce un errore, prova il fallback
+      throw apiError
+    }
     
     console.log('[ProductPage] API response structure:', {
       isArray: Array.isArray(data),
       hasProducts: !!data?.products,
       hasProduct: !!data?.product,
-      keys: Object.keys(data || {})
+      keys: Object.keys(data || {}),
+      dataType: typeof data,
+      dataPreview: JSON.stringify(data).substring(0, 200)
     })
     
     // Handle different response structures
@@ -155,14 +164,28 @@ async function ProductDetails({ params }: ProductPageProps) {
       products = data.products
     } else if (data?.product) {
       products = [data.product]
+    } else if (data && typeof data === 'object') {
+      // Se data è un oggetto ma non ha products/product, potrebbe essere un singolo prodotto
+      if (data.id && data.title) {
+        products = [data]
+      }
     }
+    
+    console.log('[ProductPage] Products extracted:', {
+      count: products.length,
+      firstProductId: products[0]?.id,
+      firstProductHandle: products[0]?.handle,
+      firstProductTitle: products[0]?.title
+    })
     
     const product: Product | undefined = products[0]
     let enrichedProduct: any | undefined
 
     if (!product) {
       console.error('[ProductPage] Product not found for handle:', params.handle)
-      notFound()
+      console.error('[ProductPage] Available products count:', products.length)
+      // Non chiamare notFound() qui, lascia che il fallback ci provi
+      throw new Error(`Product not found for handle: ${params.handle}`)
     }
     
     console.log('[ProductPage] Product found:', product.id, product.title)
