@@ -28,6 +28,8 @@ export function QuantityInput({
   // Sync with prop changes (e.g., after server update)
   useEffect(() => {
     setQuantity(currentQuantity.toString())
+    // Reset submitting state when quantity updates (after successful server update)
+    setIsSubmitting(false)
   }, [currentQuantity])
 
   const handleSubmit = async (newQuantity: number) => {
@@ -49,6 +51,7 @@ export function QuantityInput({
       await updateCartItem(formData)
       // Refresh the page to show updated cart
       router.refresh()
+      // Note: isSubmitting will be reset when currentQuantity prop updates after refresh
     } catch (error) {
       console.error('Error updating quantity:', error)
       // Reset to current quantity on error
