@@ -75,8 +75,10 @@ export function AddToCartButton({
       setShowNotification(true)
       setTimeout(() => setShowNotification(false), 3000)
       
-      // Refresh the router to update server-side data
-      router.refresh()
+      // Note: Non chiamiamo router.refresh() qui perché:
+      // 1. L'aggiunta al carrello non modifica i dati della pagina prodotto
+      // 2. router.refresh() può causare problemi con params dinamici in Next.js
+      // 3. Il carrello viene aggiornato tramite localStorage e eventi custom
     } catch (error) {
       console.error('Error adding to cart:', error)
       alert('Errore nell\'aggiunta del prodotto al carrello')

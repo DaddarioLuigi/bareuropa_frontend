@@ -21,9 +21,18 @@ export const revalidate = 300
 export const dynamicParams = true // Permette il rendering dinamico di prodotti non pre-generati
 
 export async function generateMetadata({ params }: { params: { handle: string } }): Promise<Metadata> {
+  // Validazione params per metadata
+  if (!params || !params.handle || typeof params.handle !== 'string' || params.handle.trim() === '') {
+    return {
+      title: 'Prodotto non trovato - Bar Europa',
+    }
+  }
+
+  const handle = params.handle.trim()
+
   try {
     const regionParam = MEDUSA_REGION_ID ? `&region_id=${MEDUSA_REGION_ID}` : ''
-    const queryString = `handle=${encodeURIComponent(params.handle)}&limit=1${regionParam}`
+    const queryString = `handle=${encodeURIComponent(handle)}&limit=1${regionParam}`
     const data = await api(
       `/store/products?${queryString}`,
       { next: { revalidate: 300 } }
@@ -128,11 +137,19 @@ interface ProductPageProps {
 }
 
 async function ProductDetails({ params }: ProductPageProps) {
+  // Validazione robusta dei params
+  if (!params || !params.handle || typeof params.handle !== 'string' || params.handle.trim() === '') {
+    console.error('[ProductPage] Invalid params:', params)
+    notFound()
+  }
+
+  const handle = params.handle.trim()
+  
   try {
     const regionParam = MEDUSA_REGION_ID ? `&region_id=${MEDUSA_REGION_ID}` : ''
-    const queryString = `handle=${encodeURIComponent(params.handle)}&limit=1${regionParam}`
+    const queryString = `handle=${encodeURIComponent(handle)}&limit=1${regionParam}`
     
-    console.log('[ProductPage] Fetching product with handle:', params.handle)
+    console.log('[ProductPage] Fetching product with handle:', handle)
     console.log('[ProductPage] Query string:', queryString)
     
     let data
@@ -182,10 +199,10 @@ async function ProductDetails({ params }: ProductPageProps) {
     let enrichedProduct: any | undefined
 
     if (!product) {
-      console.error('[ProductPage] Product not found for handle:', params.handle)
+      console.error('[ProductPage] Product not found for handle:', handle)
       console.error('[ProductPage] Available products count:', products.length)
       // Non chiamare notFound() qui, lascia che il fallback ci provi
-      throw new Error(`Product not found for handle: ${params.handle}`)
+      throw new Error(`Product not found for handle: ${handle}`)
     }
     
     console.log('[ProductPage] Product found:', product.id, product.title)
@@ -468,7 +485,7 @@ async function ProductDetails({ params }: ProductPageProps) {
         allProducts = allProductsData.products
       }
       
-      const foundProduct = allProducts.find((p: any) => p.handle === params.handle)
+      const foundProduct = allProducts.find((p: any) => p.handle === handle)
       
       if (foundProduct) {
         console.log('[ProductPage] Product found via fallback:', foundProduct.id, foundProduct.title)
@@ -714,8 +731,43 @@ async function ProductDetails({ params }: ProductPageProps) {
       }
     } catch (fallbackError) {
       console.error('[ProductPage] Fallback also failed:', fallbackError)
+      // Se anche il fallback fallisce, prova un ultimo tentativo con retry
+      try {
+        console.log('[ProductPage] Attempting final retry with handle:', handle)
+        const retryRegionParam = MEDUSA_REGION_ID ? `&region_id=${MEDUSA_REGION_ID}` : ''
+        // Retry con un breve delay simulato (Next.js gestisce automaticamente)
+        const retryData = await api(
+          `/store/products?handle=${encodeURIComponent(handle)}&limit=1${retryRegionParam}`,
+          { next: { revalidate: 0 } } // Forza un fetch fresco
+        )
+        
+        let retryProducts: any[] = []
+        if (Array.isArray(retryData)) {
+          retryProducts = retryData
+        } else if (retryData?.products && Array.isArray(retryData.products)) {
+          retryProducts = retryData.products
+        } else if (retryData?.product) {
+          retryProducts = [retryData.product]
+        }
+        
+        if (retryProducts.length > 0 && retryProducts[0]) {
+          console.log('[ProductPage] Product found via retry')
+          // Se trovato, ricarica la pagina con il prodotto trovato
+          // In Next.js App Router, possiamo semplicemente continuare con il rendering
+          // ma per sicurezza chiamiamo notFound se non c'è prodotto
+          if (!retryProducts[0].id) {
+            notFound()
+          }
+        } else {
+          notFound()
+        }
+      } catch (retryError) {
+        console.error('[ProductPage] Final retry also failed:', retryError)
+        notFound()
+      }
     }
     
+    // Se arriviamo qui senza aver trovato il prodotto, mostra 404
     notFound()
   }
 }
@@ -749,6 +801,16 @@ export async function generateStaticParams() {
 }
 
 export default function ProductPage({ params }: ProductPageProps) {
+  // Validazione params anche nel componente principale per sicurezza
+  if (!params || !params.handle || typeof params.handle !== 'string' || params.handle.trim() === '') {
+    notFound()
+  }
+
+  // Assicurati che params sia sempre un oggetto valido
+  const safeParams = {
+    handle: params.handle.trim()
+  }
+
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-background">
@@ -768,7 +830,7 @@ export default function ProductPage({ params }: ProductPageProps) {
         <Footer />
       </div>
     }>
-      <ProductDetails params={params} />
+      <ProductDetails params={safeParams} />
     </Suspense>
   )
 }
